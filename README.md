@@ -1,3 +1,3 @@
-first line is now from github
-seconds line from github
-third line is now from local
+first line is net
+second line is net
+third line is net
