@@ -10,7 +10,7 @@ export default function SignIn() {
         <div className="signin__brand-icon">
           <span className="material-symbols-outlined">cloud</span>
         </div>
-        <h1 className="display-sm">Loonaris</h1>
+        <h1 className="display-sm">Loonaris</h1> 
       </div>
 
       {/* Glass Card */}
