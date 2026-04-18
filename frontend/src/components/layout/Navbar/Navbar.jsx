@@ -13,8 +13,8 @@ export default function Navbar(){
                 </nav>
             </div>
             <div className="actions">
-                <button className="signIn">Sign In</button>
-                <button className="cta">Start for free</button>
+                <button className="signIn"><a href="signin">Sign In</a></button>
+                <button className="cta"><a href="signup">Start for free</a></button>
             </div>
 
         </div>

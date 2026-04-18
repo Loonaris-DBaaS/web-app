@@ -1,0 +1,234 @@
+/* pages/SignIn.css */
+
+.signin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) var(--space-6);
+  width: 100%;
+}
+
+/* ── Brand ───────────────────────────────────────────────────────────────── */
+.signin__brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-10);
+}
+
+.signin__brand-icon {
+  width: 3rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--primary);
+  border-radius: var(--radius-lg);
+  margin-bottom: var(--space-2);
+}
+
+.signin__brand-icon .material-symbols-outlined {
+  color: var(--on-primary);
+  font-size: 1.5rem;
+}
+
+.signin__brand h1 {
+  color: var(--on-surface);
+}
+
+.signin__brand .label-md {
+  color: var(--on-surface-variant);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.signin__card {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-8);
+  /* .floating from global.css: glass bg + blur + shadow-modal */
+}
+
+.signin__card-header {
+  margin-bottom: var(--space-8);
+}
+
+.signin__card-header .title-lg {
+  color: var(--on-surface);
+  margin-bottom: var(--space-1);
+}
+
+.signin__card-header .body-md {
+  color: var(--on-surface-variant);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.signin__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.signin__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.signin__field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.signin__label {
+  /* label-md from global.css handles size, weight, tracking */
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 0 var(--space-1);
+}
+
+.signin__forgot {
+  color: var(--primary);
+  font-size: var(--text-body-sm-size);
+  font-weight: 500;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.signin__forgot:hover {
+  color: var(--primary-container);
+}
+
+.signin__input {
+  width: 100%;
+  background-color: var(--surface-container-low);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-md-size);
+  color: var(--on-surface);
+  outline: none;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.signin__input::placeholder {
+  color: var(--outline);
+}
+
+.signin__input:focus {
+  background-color: var(--surface-container-lowest);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* ── Primary button ──────────────────────────────────────────────────────── */
+.signin__btn-primary {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  /* gradient-primary from global.css */
+  color: var(--on-primary);
+  font-size: var(--text-body-md-size);
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 20%, transparent);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.signin__btn-primary:hover  { transform: scale(0.98); }
+.signin__btn-primary:active { transform: scale(0.95); }
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.signin__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) 0;
+}
+
+.signin__divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--surface-container-highest);
+}
+
+.signin__divider-text {
+  /* label-sm from global.css */
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--outline);
+}
+
+/* ── GitHub button ───────────────────────────────────────────────────────── */
+.signin__btn-github {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--surface-container-low);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-md-size);
+  font-weight: 600;
+  color: var(--on-surface);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.signin__btn-github:hover  { background-color: var(--surface-container-high); }
+.signin__btn-github:active { transform: scale(0.98); }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.signin__footer {
+  margin-top: var(--space-8);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.signin__footer .body-md {
+  color: var(--on-surface-variant);
+}
+
+.signin__link {
+  color: var(--primary);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  text-underline-offset: 4px;
+}
+
+.signin__footer-links {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.signin__footer-link {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--outline);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.signin__footer-link:hover {
+  color: var(--on-surface-variant);
+}
+
+.signin__dot {
+  width: 4px;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--outline-variant);
+  display: inline-block;
+}
