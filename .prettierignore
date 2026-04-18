@@ -1,0 +1,20 @@
+node_modules
+dist
+build
+coverage
+
+# lockfiles
+package-lock.json
+
+# environment
+.env
+.env.*
+
+# caches
+.cache
+.vite
+
+# editor/os
+.DS_Store
+.idea
+.vscode

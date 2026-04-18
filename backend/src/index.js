@@ -36,10 +36,12 @@ app.post('/auth/signup', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.query(
       'INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id, email',
-      [email, hash]
+      [email, hash],
     );
     const user = result.rows[0];
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    });
     res.status(201).json({ token, user });
   } catch (err) {
     if (err.code === '23505') return res.status(409).json({ error: 'Email already in use' });
@@ -61,7 +63,9 @@ app.post('/auth/signin', async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(401).json({ error: 'Invalid credentials' });
 
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    });
     res.json({ token, user: { id: user.id, email: user.email } });
   } catch (err) {
     console.error(err);
@@ -79,7 +83,7 @@ initDb()
   .then(() => {
     app.listen(PORT, () => console.log(`Backend running on http://localhost:${PORT}`));
   })
-  .catch(err => {
+  .catch((err) => {
     console.error('Failed to initialize database:', err.message);
     process.exit(1);
   });

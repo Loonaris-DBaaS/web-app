@@ -11,15 +11,12 @@ export default function SignIn() {
         </div>
         <h1 className="display-sm">Loonaris</h1>
       </div>
-      
 
       {/* Glass Card */}
       <div className="signin__card floating">
         <div className="signin__card-header">
           <h2 className="title-lg">Sign in to your account</h2>
-          <p className="body-md">
-            Enter your details to access your databases.
-          </p>
+          <p className="body-md">Enter your details to access your databases.</p>
         </div>
 
         <form className="signin__form">
@@ -57,10 +54,7 @@ export default function SignIn() {
           </div>
 
           {/* Submit */}
-          <button
-            type="submit"
-            className="signin__btn-primary gradient-primary"
-          >
+          <button type="submit" className="signin__btn-primary gradient-primary">
             Sign in to Loonaris
           </button>
         </form>
@@ -68,9 +62,7 @@ export default function SignIn() {
         {/* Divider */}
         <div className="signin__divider">
           <span className="signin__divider-line" />
-          <span className="signin__divider-text label-sm">
-            or continue with
-          </span>
+          <span className="signin__divider-text label-sm">or continue with</span>
           <span className="signin__divider-line" />
         </div>
 

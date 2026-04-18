@@ -20,8 +20,7 @@ export default function SignUp() {
         <div className="signup__card-header">
           <h1 className="headline-sm">Create your account</h1>
           <p className="body-md">
-            Join the ethereal engine and manage your PostgreSQL clusters with
-            weightless precision.
+            Join the ethereal engine and manage your PostgreSQL clusters with weightless precision.
           </p>
         </div>
 
@@ -68,10 +67,7 @@ export default function SignUp() {
             />
           </div>
 
-          <button
-            type="submit"
-            className="signup__btn-primary gradient-primary"
-          >
+          <button type="submit" className="signup__btn-primary gradient-primary">
             Create account
           </button>
         </form>
@@ -79,9 +75,7 @@ export default function SignUp() {
         {/* Divider */}
         <div className="signup__divider">
           <span className="signup__divider-line" />
-          <span className="signup__divider-text label-sm">
-            or continue with
-          </span>
+          <span className="signup__divider-text label-sm">or continue with</span>
           <span className="signup__divider-line" />
         </div>
 

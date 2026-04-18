@@ -8,10 +8,7 @@ function Hero() {
       <div className="heroGrid">
         <div className="heroCopy">
           <div className="badge">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 14 }}
-            >
+            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
               bolt
             </span>
             NEW: GLOBAL READ REPLICAS
@@ -24,8 +21,8 @@ function Hero() {
           </h1>
 
           <p className="heroSub">
-            Spin up, manage, and scale PostgreSQL without the infrastructure
-            hassle. Focus on your code, we'll handle the queries.
+            Spin up, manage, and scale PostgreSQL without the infrastructure hassle. Focus on your
+            code, we'll handle the queries.
           </p>
 
           <div className="heroCtas">
@@ -46,9 +43,7 @@ function Hero() {
                 <span className="dot" style={{ background: '#ff5f56' }} />
                 <span className="dot" style={{ background: '#ffbd2e' }} />
                 <span className="dot" style={{ background: '#27c93f' }} />
-                <span className="terminalLabel">
-                  PostgreSQL Instance — prod-db-01
-                </span>
+                <span className="terminalLabel">PostgreSQL Instance — prod-db-01</span>
               </div>
               <div className="terminalBody">
                 <div className="terminalLine">
@@ -59,9 +54,7 @@ function Hero() {
                 <p className="tMuted">Preparing architecture... done</p>
                 <p className="tMuted">Provisioning compute engine... done</p>
                 <p className="tMuted">Initializing Postgres 15.4... done</p>
-                <p className="tSuccess">
-                  ✓ Instance online at: db.loonaris.io/p-1022
-                </p>
+                <p className="tSuccess">✓ Instance online at: db.loonaris.io/p-1022</p>
                 <div className="statusRow">
                   <span className="pulse" />
                   <span className="statusText">Active &amp; Scaling</span>
@@ -100,8 +93,7 @@ function Features() {
             </span>
             <h3 className="bentoCardTitle">One-click PostgreSQL</h3>
             <p className="bentoCardBody">
-              Deploy production-ready databases in seconds. No more yaml hell or
-              manual tuning.
+              Deploy production-ready databases in seconds. No more yaml hell or manual tuning.
             </p>
           </div>
           <div className="progressCard">
@@ -117,18 +109,14 @@ function Features() {
 
         <div className="bentoCard bentoAccent">
           <div className="bentoIconWrap">
-            <span
-              className="material-symbols-outlined"
-              style={{ fontSize: 36 }}
-            >
+            <span className="material-symbols-outlined" style={{ fontSize: 36 }}>
               trending_up
             </span>
           </div>
           <div>
             <h3 className="bentoAccentTitle">Auto scaling</h3>
             <p className="bentoAccentBody">
-              Resources that grow with your traffic. Automatically. No downtime,
-              ever.
+              Resources that grow with your traffic. Automatically. No downtime, ever.
             </p>
           </div>
         </div>
@@ -189,8 +177,7 @@ function Features() {
           <div>
             <h3 className="bentoCardTitle">Connection pooling</h3>
             <p className="bentoCardBody">
-              Handle thousands of simultaneous connections with built-in
-              PgBouncer.
+              Handle thousands of simultaneous connections with built-in PgBouncer.
             </p>
           </div>
         </div>
@@ -227,10 +214,7 @@ function Pricing() {
         <div className="pricingGrid">
           <div className="pricingCard">
             <div>
-              <p
-                className="label-lg"
-                style={{ marginBottom: 'var(--space-1)' }}
-              >
+              <p className="label-lg" style={{ marginBottom: 'var(--space-1)' }}>
                 Free Tier
               </p>
               <div className="priceRow">
@@ -252,10 +236,7 @@ function Pricing() {
               ))}
               {freeOff.map((f) => (
                 <li key={f} className="featureItem featureOff">
-                  <span
-                    className="material-symbols-outlined"
-                    style={{ fontSize: 20 }}
-                  >
+                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>
                     cancel
                   </span>
                   {f}
@@ -300,9 +281,7 @@ function CTABanner() {
     <section className="ctaSection">
       <div className="ctaDotPattern" />
       <div className="ctaContent">
-        <h2 className="ctaTitle">
-          Ready to stop worrying about infrastructure?
-        </h2>
+        <h2 className="ctaTitle">Ready to stop worrying about infrastructure?</h2>
         <button className="ctaBannerBtn">Deploy your first DB</button>
         <p className="ctaSub">Join developers building on Loonaris.</p>
       </div>

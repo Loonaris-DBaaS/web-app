@@ -36,11 +36,7 @@
   --on-error-container: #7f1d1d;
 
   /* ── Gradients ───────────────────────────────────────────────────────────── */
-  --gradient-primary: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-container) 100%
-  );
+  --gradient-primary: linear-gradient(135deg, var(--primary) 0%, var(--primary-container) 100%);
   --gradient-chart-fill: linear-gradient(
     180deg,
     rgba(79, 70, 229, 0.2) 0%,
