@@ -1,10 +1,10 @@
-
-
 @import './variables.css';
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 /* ── Reset ───────────────────────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
@@ -33,9 +33,15 @@ a {
   text-decoration: none;
   transition: color var(--duration-fast) var(--ease-out);
 }
-a:hover { color: var(--primary-container); }
+a:hover {
+  color: var(--primary-container);
+}
 
-img, svg { display: block; max-width: 100%; }
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
 
 button {
   cursor: pointer;
@@ -44,10 +50,16 @@ button {
   background: none;
 }
 
-input, textarea, select { font-family: inherit; }
+input,
+textarea,
+select {
+  font-family: inherit;
+}
 
-ul, ol { list-style: none; }
-
+ul,
+ol {
+  list-style: none;
+}
 
 /* Display — high-level data summaries */
 .display-lg {
@@ -85,7 +97,7 @@ ul, ol { list-style: none; }
   font-size: var(--text-headline-sm-size);
   line-height: var(--text-headline-sm-height);
   font-weight: 600;
-  color: rgba(25, 28, 29, 0.90);
+  color: rgba(25, 28, 29, 0.9);
 }
 
 /* Title */
@@ -155,13 +167,27 @@ ul, ol { list-style: none; }
 }
 
 /* ── Surface Utilities ───────────────────────────────────────────────────── */
-.surface               { background-color: var(--surface); }
-.surface-bright        { background-color: var(--surface-bright); }
-.surface-lowest        { background-color: var(--surface-container-lowest); }
-.surface-low           { background-color: var(--surface-container-low); }
-.surface-container     { background-color: var(--surface-container); }
-.surface-high          { background-color: var(--surface-container-high); }
-.surface-highest       { background-color: var(--surface-container-highest); }
+.surface {
+  background-color: var(--surface);
+}
+.surface-bright {
+  background-color: var(--surface-bright);
+}
+.surface-lowest {
+  background-color: var(--surface-container-lowest);
+}
+.surface-low {
+  background-color: var(--surface-container-low);
+}
+.surface-container {
+  background-color: var(--surface-container);
+}
+.surface-high {
+  background-color: var(--surface-container-high);
+}
+.surface-highest {
+  background-color: var(--surface-container-highest);
+}
 
 /* ── Elevation: Cards & Floating Elements ────────────────────────────────── */
 
@@ -193,13 +219,20 @@ ul, ol { list-style: none; }
 }
 
 /* ── Scrollbar ───────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
 ::-webkit-scrollbar-thumb {
   background: var(--outline-variant);
   border-radius: var(--radius-full);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--outline); }
+::-webkit-scrollbar-thumb:hover {
+  background: var(--outline);
+}
 
 /* ── Focus Ring ──────────────────────────────────────────────────────────── */
 :focus-visible {

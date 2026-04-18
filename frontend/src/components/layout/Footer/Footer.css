@@ -16,7 +16,9 @@
   margin-bottom: var(--space-6);
 }
 @media (min-width: 768px) {
-  .footer-grid { grid-template-columns: 2fr 1fr 1fr 1fr; }
+  .footer-grid {
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+  }
 }
 
 .footer-brand p {
@@ -55,7 +57,9 @@
   color: var(--on-surface-variant);
   transition: color var(--duration-fast) var(--ease-out);
 }
-.footer-link-list a:hover { color: var(--primary); }
+.footer-link-list a:hover {
+  color: var(--primary);
+}
 
 .footer-bottom {
   display: flex;
@@ -81,4 +85,6 @@
   color: var(--on-surface-variant);
   transition: color var(--duration-fast) var(--ease-out);
 }
-.footer-socials a:hover { color: var(--primary); }
+.footer-socials a:hover {
+  color: var(--primary);
+}

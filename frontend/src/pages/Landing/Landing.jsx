@@ -1,20 +1,25 @@
-import Footer from "../../components/layout/Footer/Footer";
-import Navbar from "../../components/layout/Navbar/Navbar";
+import Footer from '../../components/layout/Footer/Footer';
+import Navbar from '../../components/layout/Navbar/Navbar';
 import './Landing.css';
 
 function Hero() {
   return (
     <section className="heroSection">
       <div className="heroGrid">
-
         <div className="heroCopy">
           <div className="badge">
-            <span className="material-symbols-outlined" style={{ fontSize: 14 }}>bolt</span>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 14 }}
+            >
+              bolt
+            </span>
             NEW: GLOBAL READ REPLICAS
           </div>
 
           <h1 className="heroTitle">
-            Your database.<br />
+            Your database.
+            <br />
             <span className="heroAccent">Zero ops.</span>
           </h1>
 
@@ -41,7 +46,9 @@ function Hero() {
                 <span className="dot" style={{ background: '#ff5f56' }} />
                 <span className="dot" style={{ background: '#ffbd2e' }} />
                 <span className="dot" style={{ background: '#27c93f' }} />
-                <span className="terminalLabel">PostgreSQL Instance — prod-db-01</span>
+                <span className="terminalLabel">
+                  PostgreSQL Instance — prod-db-01
+                </span>
               </div>
               <div className="terminalBody">
                 <div className="terminalLine">
@@ -52,7 +59,9 @@ function Hero() {
                 <p className="tMuted">Preparing architecture... done</p>
                 <p className="tMuted">Provisioning compute engine... done</p>
                 <p className="tMuted">Initializing Postgres 15.4... done</p>
-                <p className="tSuccess">✓ Instance online at: db.loonaris.io/p-1022</p>
+                <p className="tSuccess">
+                  ✓ Instance online at: db.loonaris.io/p-1022
+                </p>
                 <div className="statusRow">
                   <span className="pulse" />
                   <span className="statusText">Active &amp; Scaling</span>
@@ -63,7 +72,7 @@ function Hero() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function Features() {
@@ -78,9 +87,22 @@ function Features() {
         <div className="bentoCard bentoBig">
           <div className="bentoBigGlow" />
           <div>
-            <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--primary)', marginBottom: 'var(--space-6)', display: 'block' }}>rocket_launch</span>
+            <span
+              className="material-symbols-outlined"
+              style={{
+                fontSize: 36,
+                color: 'var(--primary)',
+                marginBottom: 'var(--space-6)',
+                display: 'block',
+              }}
+            >
+              rocket_launch
+            </span>
             <h3 className="bentoCardTitle">One-click PostgreSQL</h3>
-            <p className="bentoCardBody">Deploy production-ready databases in seconds. No more yaml hell or manual tuning.</p>
+            <p className="bentoCardBody">
+              Deploy production-ready databases in seconds. No more yaml hell or
+              manual tuning.
+            </p>
           </div>
           <div className="progressCard">
             <div className="progressHeader">
@@ -95,22 +117,53 @@ function Features() {
 
         <div className="bentoCard bentoAccent">
           <div className="bentoIconWrap">
-            <span className="material-symbols-outlined" style={{ fontSize: 36 }}>trending_up</span>
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 36 }}
+            >
+              trending_up
+            </span>
           </div>
           <div>
             <h3 className="bentoAccentTitle">Auto scaling</h3>
-            <p className="bentoAccentBody">Resources that grow with your traffic. Automatically. No downtime, ever.</p>
+            <p className="bentoAccentBody">
+              Resources that grow with your traffic. Automatically. No downtime,
+              ever.
+            </p>
           </div>
         </div>
 
         <div className="bentoCard bentoSmall">
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--secondary)', marginBottom: 'var(--space-4)', display: 'block' }}>content_copy</span>
-          <h3 className="bentoCardTitle" style={{ textAlign: 'center' }}>Read replicas</h3>
+          <span
+            className="material-symbols-outlined"
+            style={{
+              fontSize: 36,
+              color: 'var(--secondary)',
+              marginBottom: 'var(--space-4)',
+              display: 'block',
+            }}
+          >
+            content_copy
+          </span>
+          <h3 className="bentoCardTitle" style={{ textAlign: 'center' }}>
+            Read replicas
+          </h3>
         </div>
 
         <div className="bentoCard bentoMed">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-            <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--warning)' }}>settings_backup_restore</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 'var(--space-4)',
+            }}
+          >
+            <span
+              className="material-symbols-outlined"
+              style={{ fontSize: 36, color: 'var(--warning)' }}
+            >
+              settings_backup_restore
+            </span>
             <div>
               <h3 className="bentoCardTitle">Backups &amp; restore</h3>
               <p className="label-md">Point-in-time recovery to any second.</p>
@@ -120,22 +173,47 @@ function Features() {
       </div>
 
       <div className="poolingBanner">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-6)' }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 36, color: 'var(--primary)' }}>rebase_edit</span>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 'var(--space-6)',
+          }}
+        >
+          <span
+            className="material-symbols-outlined"
+            style={{ fontSize: 36, color: 'var(--primary)' }}
+          >
+            rebase_edit
+          </span>
           <div>
             <h3 className="bentoCardTitle">Connection pooling</h3>
-            <p className="bentoCardBody">Handle thousands of simultaneous connections with built-in PgBouncer.</p>
+            <p className="bentoCardBody">
+              Handle thousands of simultaneous connections with built-in
+              PgBouncer.
+            </p>
           </div>
         </div>
         <button className="poolingBtn">Enable Pooler</button>
       </div>
     </section>
-  )
+  );
 }
 
-const freeTier = ['1 Database instance', '512MB Storage', '7-day automated backups', 'Shared compute']
-const freeOff  = ['Read replicas']
-const proTier  = ['Unlimited DBs', 'Dedicated compute (2 vCPU)', 'Up to 5 Read replicas', '30-day backups (PITR)', 'Custom domains & SSL']
+const freeTier = [
+  '1 Database instance',
+  '512MB Storage',
+  '7-day automated backups',
+  'Shared compute',
+];
+const freeOff = ['Read replicas'];
+const proTier = [
+  'Unlimited DBs',
+  'Dedicated compute (2 vCPU)',
+  'Up to 5 Read replicas',
+  '30-day backups (PITR)',
+  'Custom domains & SSL',
+];
 
 function Pricing() {
   return (
@@ -149,22 +227,37 @@ function Pricing() {
         <div className="pricingGrid">
           <div className="pricingCard">
             <div>
-              <p className="label-lg" style={{ marginBottom: 'var(--space-1)' }}>Free Tier</p>
+              <p
+                className="label-lg"
+                style={{ marginBottom: 'var(--space-1)' }}
+              >
+                Free Tier
+              </p>
               <div className="priceRow">
                 <span className="priceAmt">$0</span>
                 <span className="label-md">/month</span>
               </div>
             </div>
             <ul className="featureList">
-              {freeTier.map(f => (
+              {freeTier.map((f) => (
                 <li key={f} className="featureItem">
-                  <span className="material-symbols-outlined" style={{ color: 'var(--success)', fontSize: 20 }}>check_circle</span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: 'var(--success)', fontSize: 20 }}
+                  >
+                    check_circle
+                  </span>
                   {f}
                 </li>
               ))}
-              {freeOff.map(f => (
+              {freeOff.map((f) => (
                 <li key={f} className="featureItem featureOff">
-                  <span className="material-symbols-outlined" style={{ fontSize: 20 }}>cancel</span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ fontSize: 20 }}
+                  >
+                    cancel
+                  </span>
                   {f}
                 </li>
               ))}
@@ -182,9 +275,14 @@ function Pricing() {
               </div>
             </div>
             <ul className="featureList">
-              {proTier.map(f => (
+              {proTier.map((f) => (
                 <li key={f} className="featureItem featureItemLight">
-                  <span className="material-symbols-outlined" style={{ color: 'var(--primary-fixed)', fontSize: 20 }}>check_circle</span>
+                  <span
+                    className="material-symbols-outlined"
+                    style={{ color: 'var(--primary-fixed)', fontSize: 20 }}
+                  >
+                    check_circle
+                  </span>
                   {f}
                 </li>
               ))}
@@ -194,7 +292,7 @@ function Pricing() {
         </div>
       </div>
     </section>
-  )
+  );
 }
 
 function CTABanner() {
@@ -209,14 +307,14 @@ function CTABanner() {
         <p className="ctaSub">Join developers building on Loonaris.</p>
       </div>
     </section>
-  )
+  );
 }
 
 export default function Landing() {
   return (
     <>
       <main className="main">
-        <Navbar/>
+        <Navbar />
         <Hero />
         <Features />
         <Pricing />
@@ -224,5 +322,5 @@ export default function Landing() {
       </main>
       <Footer />
     </>
-  )
+  );
 }

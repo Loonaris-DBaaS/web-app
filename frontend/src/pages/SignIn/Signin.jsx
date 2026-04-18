@@ -4,25 +4,25 @@ import './Signin.css';
 export default function SignIn() {
   return (
     <div className="signin">
-
       {/* Brand Header */}
       <div className="signin__brand">
         <div className="signin__brand-icon">
           <span className="material-symbols-outlined">cloud</span>
         </div>
-        <h1 className="display-sm">Loonaris</h1> 
+        <h1 className="display-sm">Loonaris</h1>
       </div>
+      
 
       {/* Glass Card */}
       <div className="signin__card floating">
-
         <div className="signin__card-header">
           <h2 className="title-lg">Sign in to your account</h2>
-          <p className="body-md">Enter your details to access your databases.</p>
+          <p className="body-md">
+            Enter your details to access your databases.
+          </p>
         </div>
 
         <form className="signin__form">
-
           {/* Email */}
           <div className="signin__field">
             <label htmlFor="email" className="signin__label label-md">
@@ -43,7 +43,9 @@ export default function SignIn() {
               <label htmlFor="password" className="signin__label label-md">
                 Password
               </label>
-              <a href="#" className="signin__forgot body-sm">Forgot?</a>
+              <a href="#" className="signin__forgot body-sm">
+                Forgot?
+              </a>
             </div>
             <input
               id="password"
@@ -55,7 +57,10 @@ export default function SignIn() {
           </div>
 
           {/* Submit */}
-          <button type="submit" className="signin__btn-primary gradient-primary">
+          <button
+            type="submit"
+            className="signin__btn-primary gradient-primary"
+          >
             Sign in to Loonaris
           </button>
         </form>
@@ -63,7 +68,9 @@ export default function SignIn() {
         {/* Divider */}
         <div className="signin__divider">
           <span className="signin__divider-line" />
-          <span className="signin__divider-text label-sm">or continue with</span>
+          <span className="signin__divider-text label-sm">
+            or continue with
+          </span>
           <span className="signin__divider-line" />
         </div>
 
@@ -79,17 +86,24 @@ export default function SignIn() {
         <div className="signin__footer">
           <p className="body-md">
             Don't have an account?{' '}
-            <Link to="/signup" className="signin__link">Sign Up</Link>
+            <Link to="/signup" className="signin__link">
+              Sign Up
+            </Link>
           </p>
           <div className="signin__footer-links">
-            <a href="#" className="signin__footer-link label-sm">Privacy Policy</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Privacy Policy
+            </a>
             <span className="signin__dot" />
-            <a href="#" className="signin__footer-link label-sm">Security</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Security
+            </a>
             <span className="signin__dot" />
-            <a href="#" className="signin__footer-link label-sm">Support</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Support
+            </a>
           </div>
         </div>
-
       </div>
     </div>
   );

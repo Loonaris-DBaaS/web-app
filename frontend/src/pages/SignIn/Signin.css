@@ -137,8 +137,12 @@
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
-.signin__btn-primary:hover  { transform: scale(0.98); }
-.signin__btn-primary:active { transform: scale(0.95); }
+.signin__btn-primary:hover {
+  transform: scale(0.98);
+}
+.signin__btn-primary:active {
+  transform: scale(0.95);
+}
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .signin__divider {
@@ -183,8 +187,12 @@
     transform var(--duration-fast) var(--ease-out);
 }
 
-.signin__btn-github:hover  { background-color: var(--surface-container-high); }
-.signin__btn-github:active { transform: scale(0.98); }
+.signin__btn-github:hover {
+  background-color: var(--surface-container-high);
+}
+.signin__btn-github:active {
+  transform: scale(0.98);
+}
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .signin__footer {

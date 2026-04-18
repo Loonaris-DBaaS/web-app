@@ -4,7 +4,6 @@ import './Signup.css';
 export default function SignUp() {
   return (
     <div className="signup">
-
       {/* Free-tier badge */}
       <div className="signup__badge">
         <span
@@ -18,18 +17,19 @@ export default function SignUp() {
 
       {/* Glass Card */}
       <div className="signup__card floating">
-
         <div className="signup__card-header">
           <h1 className="headline-sm">Create your account</h1>
           <p className="body-md">
-            Join the ethereal engine and manage your PostgreSQL clusters with weightless precision.
+            Join the ethereal engine and manage your PostgreSQL clusters with
+            weightless precision.
           </p>
         </div>
 
         <form className="signup__form">
-
           <div className="signup__field">
-            <label htmlFor="name" className="signup__label label-md">Full Name</label>
+            <label htmlFor="name" className="signup__label label-md">
+              Full Name
+            </label>
             <input
               id="name"
               name="name"
@@ -41,7 +41,9 @@ export default function SignUp() {
           </div>
 
           <div className="signup__field">
-            <label htmlFor="email" className="signup__label label-md">Email Address</label>
+            <label htmlFor="email" className="signup__label label-md">
+              Email Address
+            </label>
             <input
               id="email"
               name="email"
@@ -53,7 +55,9 @@ export default function SignUp() {
           </div>
 
           <div className="signup__field">
-            <label htmlFor="password" className="signup__label label-md">Password</label>
+            <label htmlFor="password" className="signup__label label-md">
+              Password
+            </label>
             <input
               id="password"
               name="password"
@@ -64,7 +68,10 @@ export default function SignUp() {
             />
           </div>
 
-          <button type="submit" className="signup__btn-primary gradient-primary">
+          <button
+            type="submit"
+            className="signup__btn-primary gradient-primary"
+          >
             Create account
           </button>
         </form>
@@ -72,7 +79,9 @@ export default function SignUp() {
         {/* Divider */}
         <div className="signup__divider">
           <span className="signup__divider-line" />
-          <span className="signup__divider-text label-sm">or continue with</span>
+          <span className="signup__divider-text label-sm">
+            or continue with
+          </span>
           <span className="signup__divider-line" />
         </div>
 
@@ -88,15 +97,22 @@ export default function SignUp() {
         <div className="signup__footer">
           <p className="body-sm">
             By signing up, you agree to our{' '}
-            <a href="#" className="signup__link">Terms of Service</a> and{' '}
-            <a href="#" className="signup__link">Privacy Policy</a>.
+            <a href="#" className="signup__link">
+              Terms of Service
+            </a>{' '}
+            and{' '}
+            <a href="#" className="signup__link">
+              Privacy Policy
+            </a>
+            .
           </p>
           <p className="body-md">
             Already have an account?{' '}
-            <Link to="/signin" className="signup__link signup__link--bold">Log In</Link>
+            <Link to="/signin" className="signup__link signup__link--bold">
+              Log In
+            </Link>
           </p>
         </div>
-
       </div>
     </div>
   );

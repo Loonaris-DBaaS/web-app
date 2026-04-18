@@ -110,8 +110,12 @@
     transform var(--duration-fast) var(--ease-out);
 }
 
-.signup__btn-primary:hover  { opacity: 0.9; }
-.signup__btn-primary:active { transform: scale(0.98); }
+.signup__btn-primary:hover {
+  opacity: 0.9;
+}
+.signup__btn-primary:active {
+  transform: scale(0.98);
+}
 
 /* ── Divider ─────────────────────────────────────────────────────────────── */
 .signup__divider {
@@ -156,8 +160,12 @@
     transform var(--duration-fast) var(--ease-out);
 }
 
-.signup__btn-github:hover  { background-color: var(--surface-container-high); }
-.signup__btn-github:active { transform: scale(0.98); }
+.signup__btn-github:hover {
+  background-color: var(--surface-container-high);
+}
+.signup__btn-github:active {
+  transform: scale(0.98);
+}
 
 /* ── Footer ──────────────────────────────────────────────────────────────── */
 .signup__footer {
