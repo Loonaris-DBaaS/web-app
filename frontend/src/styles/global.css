@@ -1,0 +1,215 @@
+
+
+@import './variables.css';
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+
+/* ── Reset ───────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-md-height);
+  color: var(--on-surface);
+  background-color: var(--surface);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+a:hover { color: var(--primary-container); }
+
+img, svg { display: block; max-width: 100%; }
+
+button {
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+  background: none;
+}
+
+input, textarea, select { font-family: inherit; }
+
+ul, ol { list-style: none; }
+
+
+/* Display — high-level data summaries */
+.display-lg {
+  font-size: var(--text-display-lg-size);
+  line-height: var(--text-display-lg-height);
+  font-weight: 700;
+  letter-spacing: var(--text-display-tracking);
+}
+.display-md {
+  font-size: var(--text-display-md-size);
+  line-height: var(--text-display-md-height);
+  font-weight: 700;
+  letter-spacing: var(--text-display-tracking);
+}
+.display-sm {
+  font-size: var(--text-display-sm-size);
+  line-height: var(--text-display-sm-height);
+  font-weight: 600;
+  letter-spacing: var(--text-display-tracking);
+}
+
+/* Headline */
+.headline-lg {
+  font-size: var(--text-headline-lg-size);
+  line-height: var(--text-headline-lg-height);
+  font-weight: 600;
+}
+.headline-md {
+  font-size: var(--text-headline-md-size);
+  line-height: var(--text-headline-md-height);
+  font-weight: 600;
+}
+/* Page titles: 90% opacity to soften against pure white (spec) */
+.headline-sm {
+  font-size: var(--text-headline-sm-size);
+  line-height: var(--text-headline-sm-height);
+  font-weight: 600;
+  color: rgba(25, 28, 29, 0.90);
+}
+
+/* Title */
+.title-lg {
+  font-size: var(--text-title-lg-size);
+  line-height: var(--text-title-lg-height);
+  font-weight: 500;
+}
+.title-md {
+  font-size: var(--text-title-md-size);
+  line-height: var(--text-title-md-height);
+  font-weight: 500;
+}
+.title-sm {
+  font-size: var(--text-title-sm-size);
+  line-height: var(--text-title-sm-height);
+  font-weight: 500;
+}
+
+/* Body */
+.body-lg {
+  font-size: var(--text-body-lg-size);
+  line-height: var(--text-body-lg-height);
+  font-weight: 400;
+}
+.body-md {
+  font-size: var(--text-body-md-size);
+  line-height: var(--text-body-md-height);
+  font-weight: 400;
+}
+.body-sm {
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-height);
+  font-weight: 400;
+}
+
+/* Monospace — connection strings, technical values */
+.body-mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum', 'kern';
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-height);
+  font-weight: 400;
+}
+
+/* Label — system metadata: CPU, versions, timestamps */
+.label-lg {
+  font-size: var(--text-label-lg-size);
+  line-height: var(--text-label-lg-height);
+  font-weight: 500;
+  letter-spacing: var(--text-label-tracking);
+  color: var(--on-surface-variant);
+}
+.label-md {
+  font-size: var(--text-label-md-size);
+  line-height: var(--text-label-md-height);
+  font-weight: 500;
+  letter-spacing: var(--text-label-tracking);
+  color: var(--on-surface-variant);
+}
+.label-sm {
+  font-size: var(--text-label-sm-size);
+  line-height: var(--text-label-sm-height);
+  font-weight: 500;
+  letter-spacing: var(--text-label-tracking);
+  color: var(--on-surface-variant);
+}
+
+/* ── Surface Utilities ───────────────────────────────────────────────────── */
+.surface               { background-color: var(--surface); }
+.surface-bright        { background-color: var(--surface-bright); }
+.surface-lowest        { background-color: var(--surface-container-lowest); }
+.surface-low           { background-color: var(--surface-container-low); }
+.surface-container     { background-color: var(--surface-container); }
+.surface-high          { background-color: var(--surface-container-high); }
+.surface-highest       { background-color: var(--surface-container-highest); }
+
+/* ── Elevation: Cards & Floating Elements ────────────────────────────────── */
+
+/* Level 1 — standard card sitting on a surface-low base */
+.card {
+  background-color: var(--surface-container-lowest);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-float);
+  /* NO border — boundary is defined by surface contrast (spec) */
+}
+
+/* Level 2 — floating: modals, dropdowns (glassmorphism spec) */
+.floating {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-modal);
+}
+
+/* Ghost border — accessibility fallback only, never for layout */
+.ghost-border {
+  outline: 1px solid rgba(194, 199, 207, 0.15); /* outline-variant @ 15% */
+}
+
+/* ── Gradient Utilities ───────────────────────────────────────────────────── */
+.gradient-primary {
+  background: var(--gradient-primary);
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--outline-variant);
+  border-radius: var(--radius-full);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--outline); }
+
+/* ── Focus Ring ──────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-xs);
+}
+
+/* ── Selection ───────────────────────────────────────────────────────────── */
+::selection {
+  background-color: var(--primary-fixed);
+  color: var(--primary);
+}
