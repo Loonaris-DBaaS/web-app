@@ -2,8 +2,8 @@
   "name": "frontend",
   "version": "1.0.0",
   "scripts": {
-    "dev":"vite",
-    "preview":"vite preview",
+    "dev": "vite",
+    "preview": "vite preview",
     "build": "vite build"
   },
   "dependencies": {
@@ -22,5 +22,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.8"
   }
 }
