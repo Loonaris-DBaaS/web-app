@@ -1,18 +1,25 @@
-node_modules
-dist
-build
+# dependencies
+frontend/node_modules
+backend/node_modules
+
+# build outputs
+frontend/dist
+frontend/build
+backend/dist
+backend/build
 coverage
 
 # lockfiles
-package-lock.json
+frontend/package-lock.json
+backend/package-lock.json
 
 # environment
-.env
-.env.*
+backend/.env
+backend/.env.*
 
 # caches
-.cache
-.vite
+frontend/.cache
+frontend/.vite
 
 # editor/os
 .DS_Store
