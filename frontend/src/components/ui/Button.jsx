@@ -1,0 +1,1 @@
+//custom button component  parameters : text width, colors , icon ( optional), onClick..
