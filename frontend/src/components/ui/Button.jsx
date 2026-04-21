@@ -1,11 +1,16 @@
 import React from 'react';
 
-/**
- * Button
- * Props: text, onClick, variant, size, width, icon, disabled, loading
- * variant: 'primary'(default) | 'secondary' | 'outlined' | 'ghost' | 'danger'
- * size:    'sm' | 'md'(default) | 'lg'
- */
+//usage example:
+// <Button
+//   text="Click Me"
+//   onClick={() => alert('Button clicked!')}
+//   variant="primary"
+//   size="md"
+//   width="200px"
+//   icon={<span className="material-symbols-outlined">touch_app</span>}
+//   disabled={false}
+//   loading={false}
+// />
 export default function Button({
   text = 'Button',
   onClick,

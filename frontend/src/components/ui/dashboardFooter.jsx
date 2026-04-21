@@ -1,4 +1,14 @@
 export default function DashboardFooter({
+  // usage example:
+  // <DashboardFooter
+  //   companyName="Loonaris Cloud"
+  //   year={2024}
+  //   links={[
+  //     { label: 'Privacy Policy', href: '/privacy' },
+  //     { label: 'Terms of Service', href: '/terms' },
+  //     { label: 'Security', href: '/security' },
+  //   ]}
+  // /> 
   companyName = 'Loonaris Cloud',
   year = new Date().getFullYear(),
   links = [

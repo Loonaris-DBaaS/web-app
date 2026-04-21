@@ -1,4 +1,11 @@
 import { useState } from "react";
+//usage example:
+// <ConnectionParameters
+//   connectionString="postgres://root:••••••••••••@db.loonaris.io:5432/production_main"
+//   mode="Standard"
+//   modes={['Standard','URI','JDBC']}
+//   onModeChange={(m) => console.log(m)}
+// />
 export default function ConnectionParameters({
     connectionString ='postgres://root:••••••••••••@db.loonaris.io:5432/production_main',
     mode ='Standard',

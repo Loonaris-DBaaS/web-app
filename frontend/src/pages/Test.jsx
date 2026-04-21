@@ -1,5 +1,6 @@
 import ConnectionParameters from "../components/ui/ConnectionParameters";
 import DashboardHeader from "../components/ui/DashboardHeader";
+import { InstanceContainer } from "../components/ui/InstanceContainer";
 export default function Test(){
     return (
     <>
@@ -10,6 +11,7 @@ export default function Test(){
             modes={['Standard', 'URI', 'JDBC']}
             onModeChange={(m) => console.log(m)}
         />
+        <InstanceContainer name="Production Main" version="PostgreSQL 15.3" region="us-east-1" usedStorage={20} totalStorage={100} status="RUNNING" />
         </>
     )
 }

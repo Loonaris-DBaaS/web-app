@@ -1,5 +1,14 @@
 import Button from "./Button";
-
+//usage example:
+// <DashboardHeader
+//   pageTitle="Dashboard"
+//   pageDescription="Welcome back, Alex!"
+//   username="Alex Rivera"
+//   userImageURL="https://example.com/avatar.jpg"
+//   buttonText="New Instance"
+//   buttonIcon={<span className="material-symbols-outlined">add</span>}
+//   buttonOnClick={() => alert('Create new instance')}
+// />
 export default function DashboardHeader({
   pageTitle,
   pageDescription,
