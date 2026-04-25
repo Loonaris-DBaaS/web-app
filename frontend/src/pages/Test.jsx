@@ -1,6 +1,7 @@
 import ConnectionParameters from "../components/ui/ConnectionParameters";
 import DashboardHeader from "../components/ui/DashboardHeader";
 import { InstanceContainer } from "../components/ui/InstanceContainer";
+import CreateDatabaseForm from "../components/ui/CreateDatabaseForm";
 export default function Test(){
     return (
     <>
@@ -12,6 +13,8 @@ export default function Test(){
             onModeChange={(m) => console.log(m)}
         />
         <InstanceContainer name="Production Main" version="PostgreSQL 15.3" region="us-east-1" usedStorage={20} totalStorage={100} status="RUNNING" />
+        <CreateDatabaseForm onSubmit={(data) => console.log(data)} onCancel={()=>console.log("cancelled")} />
         </>
+
     )
 }
