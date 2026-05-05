@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
-import Sidebar from '../components/ui/Sidebar';
-import DashboardFooter from '../components/ui/DashboardFooter';
+import DashboardFooter from '../components/ui/DashboardFooter.jsx';
+import Sidebar from '../components/ui/Sidebar.jsx';
 export default function DashboardLayout() {
 	return (
 		<div className="dashboard-shell">
