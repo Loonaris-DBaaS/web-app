@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import ConnectionParameters from "./ConnectionParameters";
 
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
   .dbf-wrap {
     font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
-    background: var(--surface, #f9f9fb);
     padding: 2rem;
-    min-height: 100%;
   }
 
   .dbf-card {
@@ -479,6 +478,27 @@ const REGIONS = [
 
 const PG_VERSIONS = ["18", "17", "16"];
 
+const DEPLOYMENT_OPTIONS = [
+  {
+    id: "multi-az-cluster",
+    name: "Multi-AZ cluster",
+    details: "RW + RO endpoints",
+    description: "Primary + read replicas across AZs.",
+  },
+  {
+    id: "multi-az-instance",
+    name: "Multi-AZ instance",
+    details: "RW endpoint only",
+    description: "Primary + standby replica for failover.",
+  },
+  {
+    id: "single-az-instance",
+    name: "Single-AZ instance",
+    details: "RW endpoint only",
+    description: "Single instance without standby.",
+  },
+];
+
 function DbIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
@@ -519,7 +539,8 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const [region, setRegion] = useState("us-east-1");
   const [pgVersion, setPgVersion] = useState("17");
   const [selectedSize, setSelectedSize] = useState("pro");
-  const [ha, setHa] = useState(false);
+  const [deploymentOption, setDeploymentOption] = useState("multi-az-cluster");
+  const [readReplicas, setReadReplicas] = useState("1");
   const [backup, setBackup] = useState(true);
   const [nameError, setNameError] = useState("");
   const [status, setStatus] = useState("idle"); // idle | loading | success
@@ -527,9 +548,25 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
 
   const size = SIZES.find((s) => s.id === selectedSize);
   const baseCost = size ? size.price : 79;
-  const totalCost = (ha ? baseCost * 2 : baseCost) + (backup ? 5 : 0);
+  const replicasCount = Number(readReplicas);
+  const deploymentMultiplier =
+    deploymentOption === "multi-az-cluster"
+      ? 1 + replicasCount
+      : deploymentOption === "multi-az-instance"
+        ? 2
+        : 1;
+  const totalCost = baseCost * deploymentMultiplier + (backup ? 5 : 0);
 
   const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
+  const baseHost = `${previewName}.${region}.db.ourplatform.com`;
+  const previewConnections =
+    deploymentOption === "multi-az-cluster"
+      ? [
+          { key: "rw", label: "rw", value: `postgres://sk_live_••••••••@rw.${baseHost}` },
+          { key: "ro", label: "ro", value: `postgres://sk_live_••••••••@ro.${baseHost}` },
+          { key: "both", label: "both", value: `postgres://sk_live_••••••••@cluster.${baseHost}` },
+        ]
+      : [{ key: "rw", label: "rw", value: `postgres://sk_live_••••••••@rw.${baseHost}` }];
 
   function validateName(val) {
     if (!val.trim()) { setNameError("Database name is required."); return false; }
@@ -553,8 +590,19 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       region,
       pgVersion,
       size: selectedSize,
-      ha,
+      deploymentOption,
+      readReplicas: deploymentOption === "multi-az-cluster" ? replicasCount : 0,
       backup,
+      connectionStrings:
+        deploymentOption === "multi-az-cluster"
+          ? {
+              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
+              ro: `postgres://sk_live_xxxxxxxx@ro.${baseHost}`,
+              both: `postgres://sk_live_xxxxxxxx@cluster.${baseHost}`,
+            }
+          : {
+              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
+            },
       estimatedCost: totalCost,
     };
 
@@ -661,19 +709,44 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </div>
             </div>
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Resilience &amp; backups</div>
+            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Availability &amp; durability</div>
 
-            {/* HA Toggle */}
-            <div className="dbf-toggle-row">
-              <div>
-                <div className="dbf-toggle-title">High availability replica</div>
-                <div className="dbf-toggle-desc">Standby replica with automatic failover via CloudNativePG. Doubles instance cost.</div>
+            {/* Deployment options (reuse size card style) */}
+            <div className="dbf-field">
+              <label className="dbf-label">Deployment option <span className="dbf-req">*</span></label>
+              <div className="dbf-size-grid">
+                {DEPLOYMENT_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.id}
+                    className={`dbf-size-card${deploymentOption === opt.id ? " selected" : ""}`}
+                    onClick={() => setDeploymentOption(opt.id)}
+                  >
+                    <div className="dbf-size-name">{opt.name}</div>
+                    <div className="dbf-size-specs">{opt.description}</div>
+                    <div className="dbf-size-price">{opt.details}</div>
+                  </button>
+                ))}
               </div>
-              <label className="dbf-toggle-switch">
-                <input type="checkbox" checked={ha} onChange={(e) => setHa(e.target.checked)} />
-                <span className="dbf-toggle-track" />
-              </label>
             </div>
+
+            {deploymentOption === "multi-az-cluster" && (
+              <div className="dbf-field">
+                <label className="dbf-label">Read replicas (max 3)</label>
+                <div className="dbf-select-wrap">
+                  <select
+                    className="dbf-select"
+                    value={readReplicas}
+                    onChange={(e) => setReadReplicas(e.target.value)}
+                  >
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Backups</div>
 
             {/* Backup Toggle */}
             <div className="dbf-toggle-row">
@@ -690,14 +763,12 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
             <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Connection string preview</div>
 
             {/* Connection Preview */}
-            <div className="dbf-conn-preview">
-              <span className="dbf-conn-key">postgres://</span>
-              <span className="dbf-conn-val">sk_live_••••••••</span>
-              <span className="dbf-conn-key">@</span>
-              <span className="dbf-conn-val">db.ourplatform.com</span>
-              <span className="dbf-conn-key">/</span>
-              <span className="dbf-conn-val">{previewName}</span>
-            </div>
+            <ConnectionParameters
+              title="Connection preview"
+              connections={previewConnections}
+              showModeTabs={false}
+              description="Use these connection strings in your applications. Rotate credentials regularly and avoid exposing them in client-side code."
+            />
           </div>
 
           {/* Footer */}
