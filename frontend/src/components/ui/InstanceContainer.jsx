@@ -62,11 +62,11 @@ export function InstanceContainer({ name, version, region, usedStorage, totalSto
           </div>
           <div>
             <h3 style={{
-              fontSize: 'var(--text-title-lg-size)',
+              fontSize: 'var(--text-title-md-size)',
               fontWeight: 700,
               color: 'var(--on-surface)',
               margin: 0,
-              lineHeight: 'var(--text-title-lg-height)',
+              lineHeight: 'var(--text-title-md-height)',
             }}>
               {name}
             </h3>
