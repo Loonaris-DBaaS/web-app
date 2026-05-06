@@ -18,7 +18,7 @@ export default function SignUp() {
       {/* Glass Card */}
       <div className="signup__card floating">
         <div className="signup__card-header">
-          <h1 className="headline-sm">Create your account</h1>
+          <h1 className="headline-sm">Create your account..</h1>
           <p className="body-md">
             Join the ethereal engine and manage your PostgreSQL clusters with weightless precision.
           </p>
