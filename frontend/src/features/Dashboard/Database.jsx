@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardHeader from '../../components/ui/DashboardHeader';
-import StorageUtilizationCard from '../../components/ui/StorageUtilizationCard';
-import ClusterHealthCard from '../../components/ui/ClusterHealthCard';
-import DatabasesTable from '../../components/ui/DatabasesTable';
 import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
+import StorageUtilizationCard from './components/StorageUtilizationCard';
+import ClusterHealthCard from './components/ClusterHealthCard';
+import DatabasesTable from './components/DatabasesTable';
 
 const databases = [
 	{

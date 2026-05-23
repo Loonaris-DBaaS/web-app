@@ -1,14 +1,14 @@
-import Landing from '../../pages/Landing/Landing';
-import AuthLayout from '../../layouts/AuthLayout';
-import SignIn from '../../pages/SignIn/Signin';
-import SignUp from '../../pages/SignUp/Signup';
-import Test from '../../pages/Test';
 import { Navigate } from 'react-router-dom';
+import AuthLayout from '../../layouts/AuthLayout';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import Database from '../../pages/Dashboard/Database';
-import SettingsPage from '../../pages/Dashboard/SettingsPage';
-import Support from '../../pages/Dashboard/Support';
-import DatabaseDetailPage from '../../pages/Dashboard/DatabaseDetailPage';
+import Landing from '../../features/Landing/Landing';
+import SignIn from '../../features/SignIn/Signin';
+import SignUp from '../../features/SignUp/Signup';
+import Test from '../../features/Test/Test';
+import Database from '../../features/Dashboard/Database';
+import DatabaseDetailPage from '../../features/Dashboard/DatabaseDetailPage';
+import SettingsPage from '../../features/Dashboard/SettingsPage';
+import Support from '../../features/Dashboard/Support';
 
 const routes = [
   {

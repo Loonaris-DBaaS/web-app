@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Button from './Button';
+import Button from '../../../components/ui/Button';
 
 const SIZE_OPTIONS = [
   { id: 'starter', label: 'Starter', ram: '0.5GB RAM' },

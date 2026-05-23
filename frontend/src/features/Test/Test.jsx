@@ -1,7 +1,7 @@
-import ConnectionParameters from "../components/ui/ConnectionParameters";
-import DashboardHeader from "../components/ui/DashboardHeader";
-import { InstanceContainer } from "../components/ui/InstanceContainer";
-import CreateDatabaseForm from "../components/ui/CreateDatabaseForm";
+import ConnectionParameters from '../../components/ui/ConnectionParameters';
+import DashboardHeader from '../../components/ui/DashboardHeader';
+import { InstanceContainer } from '../../components/ui/InstanceContainer';
+import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
 export default function Test(){
     return (
     <>

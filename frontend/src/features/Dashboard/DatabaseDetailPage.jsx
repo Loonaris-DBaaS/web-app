@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import DashboardHeader from '../../components/ui/DashboardHeader';
-import DatabaseMetricsTab from '../../components/ui/DatabaseMetricsTab';
-import DatabaseSettingsTab from '../../components/ui/DatabaseSettingsTab';
-import DatabaseTabNavigation from '../../components/ui/DatabaseTabNavigation';
 import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import ConnectionParameters from '../../components/ui/ConnectionParameters';
+import DatabaseMetricsTab from './components/DatabaseMetricsTab';
+import DatabaseSettingsTab from './components/DatabaseSettingsTab';
+import DatabaseTabNavigation from './components/DatabaseTabNavigation';
 
 const styles = `
   .ddp-main {
