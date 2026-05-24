@@ -2,7 +2,7 @@ import 'dotenv/config';
 import express, { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
-import { openApiSpec } from './openapi';
+import { openApiSpec } from './config/openapi';
 import pgClusterRoutes from './modules/pgCluster/routes';
 import testAppRoutes from './modules/testApp/routes';
 

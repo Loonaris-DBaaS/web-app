@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import prisma from '@/db';
+import prisma from '@/lib/prisma';
 import { CreateClusterDto } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';

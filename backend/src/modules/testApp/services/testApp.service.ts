@@ -1,4 +1,4 @@
-import prisma from '@/db';
+import prisma from '@/lib/prisma';
 import type { TestApp } from '@/generated/prisma/client';
 
 export type { TestApp };
