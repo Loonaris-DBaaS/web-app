@@ -1,9 +1,9 @@
 import { CreateClusterDto } from '../dto/create-cluster.dto';
-import { ClusterStatus } from '../dto/cluster.dto';
+import { ProjectStatus } from '../dto/cluster.dto';
 
 export interface ProvisionResult {
   externalId: string;
-  status: ClusterStatus;
+  status: ProjectStatus;
 }
 
 /**
@@ -37,7 +37,7 @@ export async function deprovisionCluster(externalId: string): Promise<void> {
 /**
  * Polls the CloudNativePG Cluster resource and returns its current status.
  */
-export async function getClusterStatus(externalId: string): Promise<ClusterStatus> {
+export async function getClusterStatus(externalId: string): Promise<ProjectStatus> {
   // TODO: read the Cluster CR status from Kubernetes and map to ClusterStatus
   console.log(`[provisioning] Polling status for ${externalId}`);
   return 'running';

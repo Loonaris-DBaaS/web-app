@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { JwtPayload } from 'jsonwebtoken';
-import prisma from '@/db';
+import prisma from '@/lib/prisma';
 
 export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
