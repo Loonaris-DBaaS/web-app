@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ClusterStatus {
+  provisioning
+  running
+  stopped
+  error
+  deleting
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("users")
+}
+
+model TestApp {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  @@map("test_apps")
+}
+
+model Cluster {
+  id               String        @id @default(uuid())
+  tenantId         String        @map("tenant_id")
+  name             String
+  region           String
+  pgVersion        String        @map("pg_version")
+  size             String
+  deploymentOption String        @map("deployment_option")
+  readReplicas     Int           @default(1) @map("read_replicas")
+  backup           Boolean       @default(true)
+  status           ClusterStatus @default(provisioning)
+  externalId       String?       @map("external_id")
+  createdAt        DateTime      @default(now()) @map("created_at")
+
+  @@map("clusters")
+}

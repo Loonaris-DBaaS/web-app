@@ -1,0 +1,44 @@
+import { CreateClusterDto } from '../dto/create-cluster.dto';
+import { ClusterStatus } from '../dto/cluster.dto';
+
+export interface ProvisionResult {
+  externalId: string;
+  status: ClusterStatus;
+}
+
+/**
+ * Submits a CloudNativePG Cluster manifest to Kubernetes.
+*/
+export async function provisionCluster(
+  clusterId: string,
+  dto: CreateClusterDto,
+): Promise<ProvisionResult> {
+  // TODO: call the Kubernetes API (e.g. @kubernetes/client-node)
+  // const k8s = new KubeConfig(); k8s.loadFromDefault();
+  // const customApi = k8s.makeApiClient(CustomObjectsApi);
+  // await customApi.createNamespacedCustomObject('postgresql.cnpg.io', 'v1', 'default', 'clusters', manifest);
+
+  console.log(`[provisioning] Submitting cluster ${clusterId} (${dto.name}) to CloudNativePG`);
+
+  return {
+    externalId: `cnpg-${clusterId}`,
+    status: 'provisioning',
+  };
+}
+
+/**
+ * Deletes the CloudNativePG Cluster resource from Kubernetes.
+ */
+export async function deprovisionCluster(externalId: string): Promise<void> {
+  // TODO: call the Kubernetes API to delete the Cluster CR
+  console.log(`[provisioning] Deleting cluster ${externalId} from CloudNativePG`);
+}
+
+/**
+ * Polls the CloudNativePG Cluster resource and returns its current status.
+ */
+export async function getClusterStatus(externalId: string): Promise<ClusterStatus> {
+  // TODO: read the Cluster CR status from Kubernetes and map to ClusterStatus
+  console.log(`[provisioning] Polling status for ${externalId}`);
+  return 'running';
+}
