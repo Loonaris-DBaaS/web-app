@@ -1,16 +1,6 @@
 import bcrypt from 'bcryptjs';
-import jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret-change-in-prod';
-const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function generateTokens(userId: string) {
-  const accessToken = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign({ id: userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
-  return { accessToken, refreshToken };
-}
+import { generateTokens, REFRESH_TTL_MS } from '@/lib/tokens';
 
 export async function signup(data: {
   username: string;

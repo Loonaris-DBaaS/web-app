@@ -1,16 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import prisma from '@/lib/prisma';
-
-const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ?? 'dev-refresh-secret-change-in-prod';
-const REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-
-function generateTokens(userId: string) {
-  const accessToken = jwt.sign({ id: userId }, JWT_SECRET, { expiresIn: '15m' });
-  const refreshToken = jwt.sign({ id: userId }, JWT_REFRESH_SECRET, { expiresIn: '7d' });
-  return { accessToken, refreshToken };
-}
+import { generateTokens, verifyRefreshToken, REFRESH_TTL_MS } from '@/lib/tokens';
 
 export async function login(email: string, password: string) {
   const tenant = await prisma.tenant.findUnique({ where: { email } });
@@ -43,7 +34,7 @@ export async function login(email: string, password: string) {
 export async function refreshAccessToken(refreshToken: string) {
   let decoded: jwt.JwtPayload;
   try {
-    decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET) as jwt.JwtPayload;
+    decoded = verifyRefreshToken(refreshToken);
   } catch {
     throw new Error('Invalid refresh token');
   }
@@ -52,7 +43,7 @@ export async function refreshAccessToken(refreshToken: string) {
   if (!record || record.revokedAt) throw new Error('Refresh token is invalid or revoked');
   if (new Date() > record.expiresAt) throw new Error('Refresh token has expired');
 
-  const accessToken = jwt.sign({ id: decoded['id'] }, JWT_SECRET, { expiresIn: '15m' });
+  const { accessToken } = generateTokens(decoded['id']);
   return { accessToken };
 }
 
