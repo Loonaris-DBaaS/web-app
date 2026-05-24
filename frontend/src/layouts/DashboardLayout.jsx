@@ -1,5 +1,5 @@
 import { Outlet } from 'react-router-dom';
-import DashboardFooter from '../components/ui/dashboardFooter.jsx';
+import DashboardFooter from '../components/layout/DashboardFooter.jsx';
 import Sidebar from '../components/ui/Sidebar.jsx';
 export default function DashboardLayout() {
 	return (

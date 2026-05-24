@@ -1,0 +1,49 @@
+import 'dotenv/config';
+import express, { NextFunction, Request, Response } from 'express';
+import cors from 'cors';
+import cookieParser from 'cookie-parser';
+import swaggerUi from 'swagger-ui-express';
+import { openApiSpec } from './config/openapi';
+import authRoutes from './modules/auth/routes';
+import pgClusterRoutes from './modules/pgCluster/routes';
+import testAppRoutes from './modules/testApp/routes';
+
+const app = express();
+const PORT = process.env.PORT ?? 3001;
+
+const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',');
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+app.use(express.json());
+app.use(cookieParser());
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+
+app.use('/auth', authRoutes);
+app.use('/clusters', pgClusterRoutes);
+app.use('/test', testAppRoutes);
+
+// Global error handler
+app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Request, res: Response, _next: NextFunction) => {
+  console.error(err);
+
+  if (err.code === 'P2002') {
+    const field = err.meta?.target?.[0] ?? 'field';
+    res.status(400).json({ success: false, message: `${field} already exists` });
+    return;
+  }
+  if (err.code === 'P2025') {
+    res.status(404).json({ success: false, message: 'Record not found' });
+    return;
+  }
+  if (err.message.includes('Invalid') || err.message.includes('already') || err.message.includes('required')) {
+    res.status(400).json({ success: false, message: err.message });
+    return;
+  }
+
+  res.status(500).json({ success: false, message: 'Internal server error' });
+});
+
+app.listen(PORT, () => {
+  console.log(`Backend running on http://localhost:${PORT}`);
+  console.log(`Swagger UI:   http://localhost:${PORT}/docs`);
+});
