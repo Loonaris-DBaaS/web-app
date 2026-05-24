@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DeploymentOption{
+  MULTI_AZ_CLUSTER
+  MULTI_AZ_INSTANCE
+  SINGLE_AZ_INSTANCE
+}
+model Tenant {
+  id            String          @id @default(uuid())
+  email         String          @unique
+  username      String          @unique
+  country       String?
+  password_hash String          @unique
+  photo_url     String?
+  created_at    DateTime        @default(now())
+
+  refresh_tokens RefreshToken[]
+  projects       Project[]
+
+  @@map("tenant")
+}
+
+model RefreshToken {
+  id         String    @id @default(uuid())
+  token      String    @unique
+  expires_at DateTime
+  revoked_at DateTime?
+  created_at DateTime  @default(now())
+
+  tenant_id  String
+  tenant     Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Project {
+  id            String    @id @default(uuid())
+  name          String
+  k8s_namespace String    @unique
+  pg_version    String
+  region        String
+  created_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
+  estimated_price Float
+  price Float
+  cpu_usage Float
+  ram_usage Float
+  storage_usage Float
+  deployment_option DeploymentOption
+  tenant_id     String
+  tenant        Tenant    @relation(fields: [tenant_id], references: [id], onDelete: Cascade)
+
+  ressource_config   ResourceConfig?
+  poolers            Pooler[]
+  api_keys           ApiKey[]
+
+  @@map("projects")
+}
+
+model ResourceConfig {
+  id                String   @id @default(uuid())
+  desired_replicas  Int      @db.SmallInt
+  enable_backup     Boolean  @default(false)
+  enable_autoscale  Boolean  @default(false)
+  enable_pitr       Boolean  @default(false)
+  desired_storage   String
+  desired_ram       String
+  desired_cpu       String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  project_id        String   @unique
+  project           Project  @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("ressource_configs")
+}
+
+model Pooler {
+  id            String  @id @default(uuid())
+  ro_pooler_link String
+  rw_pooler_link String
+
+  project_id    String
+  project       Project @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("poolers")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  key_hash   String    @unique
+  prefix     String
+  duration   Int
+  created_at DateTime  @default(now())
+  revoked_at DateTime?
+
+  project_id String
+  project    Project   @relation(fields: [project_id], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
