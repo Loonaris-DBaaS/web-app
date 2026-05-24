@@ -1,0 +1,202 @@
+/* pages/SignUp.css */
+
+.signup {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-12) var(--space-6);
+  width: 100%;
+}
+
+/* ── Badge ───────────────────────────────────────────────────────────────── */
+.signup__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  background-color: var(--surface-container-low);
+  border-radius: var(--radius-full);
+  outline: 1px solid rgba(194, 199, 207, 0.15);
+  margin-bottom: var(--space-6);
+}
+
+.signup__badge-icon {
+  font-size: 0.875rem;
+  color: var(--primary);
+}
+
+.signup__badge .label-md {
+  color: var(--on-surface-variant);
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.signup__card {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--space-8);
+  /* .floating from global.css: glass bg + blur + shadow-modal */
+}
+
+.signup__card-header {
+  text-align: center;
+  margin-bottom: var(--space-8);
+}
+
+.signup__card-header .headline-sm {
+  margin-bottom: var(--space-2);
+}
+
+.signup__card-header .body-md {
+  color: var(--on-surface-variant);
+  line-height: var(--text-body-md-height);
+}
+
+/* ── Form ────────────────────────────────────────────────────────────────── */
+.signup__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.signup__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.signup__label {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+}
+
+.signup__input {
+  width: 100%;
+  background-color: var(--surface-container-low);
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-body-md-size);
+  color: var(--on-surface);
+  outline: none;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-base) var(--ease-out);
+}
+
+.signup__input::placeholder {
+  color: var(--outline-variant);
+}
+
+.signup__input:focus {
+  background-color: var(--surface-container-lowest);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 20%, transparent);
+}
+
+/* ── Primary button ──────────────────────────────────────────────────────── */
+.signup__btn-primary {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  /* gradient-primary from global.css */
+  color: var(--on-primary);
+  font-size: var(--text-body-md-size);
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 20%, transparent);
+  transition:
+    opacity var(--duration-fast) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.signup__btn-primary:hover {
+  opacity: 0.9;
+}
+.signup__btn-primary:active {
+  transform: scale(0.98);
+}
+
+/* ── Divider ─────────────────────────────────────────────────────────────── */
+.signup__divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: var(--space-8) 0;
+}
+
+.signup__divider-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--outline-variant);
+  opacity: 0.15;
+}
+
+.signup__divider-text {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--outline);
+}
+
+/* ── GitHub button ───────────────────────────────────────────────────────── */
+.signup__btn-github {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--surface-container-low);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-body-md-size);
+  font-weight: 500;
+  color: var(--on-surface);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-base) var(--ease-out),
+    transform var(--duration-fast) var(--ease-out);
+}
+
+.signup__btn-github:hover {
+  background-color: var(--surface-container-high);
+}
+.signup__btn-github:active {
+  transform: scale(0.98);
+}
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.signup__footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-6);
+  text-align: center;
+}
+
+.signup__footer .body-sm {
+  color: var(--on-surface-variant);
+}
+
+.signup__footer .body-md {
+  color: var(--on-surface-variant);
+}
+
+.signup__link {
+  color: var(--primary);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--primary) 30%, transparent);
+  text-underline-offset: 3px;
+  transition: text-decoration-color var(--duration-fast) var(--ease-out);
+}
+
+.signup__link:hover {
+  text-decoration-color: var(--primary);
+}
+
+.signup__link--bold {
+  font-weight: 600;
+}

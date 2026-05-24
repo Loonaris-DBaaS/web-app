@@ -1,28 +1,27 @@
 import { randomUUID } from 'crypto';
-import prisma from '@/lib/prisma';
-import { CreateClusterDto } from '../dto/create-cluster.dto';
+import prisma from '@/db';
+import { CreateClusterDto, SIZE_SPECS, DeploymentOption } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
-import type { Cluster } from '@/generated/prisma/client';
+import type { Project } from '@/generated/prisma/client';
 
-function toDto(c: Cluster): ClusterDto {
+function toDto(p: Project): ClusterDto {
   return {
-    id: c.id,
-    tenantId: c.tenantId,
-    name: c.name,
-    region: c.region,
-    pgVersion: c.pgVersion as ClusterDto['pgVersion'],
-    size: c.size as ClusterDto['size'],
-    deploymentOption: c.deploymentOption as ClusterDto['deploymentOption'],
-    readReplicas: c.readReplicas,
-    backup: c.backup,
-    status: c.status as ClusterDto['status'],
-    createdAt: c.createdAt.toISOString(),
+    id: p.id,
+    tenantId: p.tenantId,
+    name: p.name,
+    k8sNamespace: p.k8sNamespace,
+    region: p.region,
+    pgVersion: p.pgVersion as ClusterDto['pgVersion'],
+    deploymentOption: p.deploymentOption as DeploymentOption,
+    status: p.status as ClusterDto['status'],
+    estimatedPrice: p.estimatedPrice,
+    createdAt: p.createdAt.toISOString(),
   };
 }
 
 export async function listClusters(tenantId: string): Promise<ClusterDto[]> {
-  const rows = await prisma.cluster.findMany({
+  const rows = await prisma.project.findMany({
     where: { tenantId },
     orderBy: { createdAt: 'desc' },
   });
@@ -30,27 +29,43 @@ export async function listClusters(tenantId: string): Promise<ClusterDto[]> {
 }
 
 export async function getCluster(tenantId: string, clusterId: string): Promise<ClusterDto | null> {
-  const row = await prisma.cluster.findFirst({ where: { id: clusterId, tenantId } });
+  const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   return row ? toDto(row) : null;
 }
 
 export async function createCluster(tenantId: string, dto: CreateClusterDto): Promise<ClusterDto> {
   const clusterId = randomUUID();
-  const { externalId, status } = await provisionCluster(clusterId, dto);
+  const namespace = `tenant-${tenantId.slice(0, 8)}-${clusterId.slice(0, 8)}`;
+  const specs = SIZE_SPECS[dto.size];
+  const replicas = dto.readReplicas ?? 1;
+  const multiplier =
+    dto.deploymentOption === 'MULTI_AZ_CLUSTER' ? 1 + replicas
+    : dto.deploymentOption === 'MULTI_AZ_INSTANCE' ? 2
+    : 1;
+  const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
 
-  const row = await prisma.cluster.create({
+  const { status } = await provisionCluster(clusterId, dto);
+
+  const row = await prisma.project.create({
     data: {
       id: clusterId,
       tenantId,
       name: dto.name,
+      k8sNamespace: namespace,
       region: dto.region,
       pgVersion: dto.pgVersion,
-      size: dto.size,
       deploymentOption: dto.deploymentOption,
-      readReplicas: dto.readReplicas ?? 1,
-      backup: dto.backup ?? true,
+      estimatedPrice,
       status,
-      externalId,
+      resourceConfig: {
+        create: {
+          desiredReplicas: replicas,
+          enableBackup: dto.backup ?? true,
+          desiredStorage: specs.storage,
+          desiredRam: specs.ram,
+          desiredCpu: specs.cpu,
+        },
+      },
     },
   });
 
@@ -58,11 +73,11 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
 }
 
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {
-  const row = await prisma.cluster.findFirst({ where: { id: clusterId, tenantId } });
+  const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;
 
-  await deprovisionCluster(row.externalId ?? clusterId);
-  await prisma.cluster.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  await deprovisionCluster(row.k8sNamespace);
+  await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
 
   return true;
 }

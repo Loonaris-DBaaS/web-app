@@ -7,7 +7,13 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ClusterStatus {
+enum DeploymentOption {
+  MULTI_AZ_CLUSTER
+  MULTI_AZ_INSTANCE
+  SINGLE_AZ_INSTANCE
+}
+
+enum ProjectStatus {
   provisioning
   running
   stopped
@@ -15,13 +21,101 @@ enum ClusterStatus {
   deleting
 }
 
-model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now()) @map("created_at")
+model Tenant {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  username     String   @unique
+  country      String?
+  passwordHash String   @map("password_hash")
+  photoUrl     String?  @map("photo_url")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  @@map("users")
+  refreshTokens RefreshToken[]
+  projects      Project[]
+
+  @@map("tenant")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+model Project {
+  id               String           @id @default(uuid())
+  name             String
+  k8sNamespace     String           @unique @map("k8s_namespace")
+  pgVersion        String           @map("pg_version")
+  region           String
+  deploymentOption DeploymentOption @map("deployment_option")
+  estimatedPrice   Float            @default(0) @map("estimated_price")
+  price            Float            @default(0)
+  cpuUsage         Float            @default(0) @map("cpu_usage")
+  ramUsage         Float            @default(0) @map("ram_usage")
+  storageUsage     Float            @default(0) @map("storage_usage")
+  status           ProjectStatus    @default(provisioning)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  tenantId String @map("tenant_id")
+  tenant   Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  resourceConfig ResourceConfig?
+  poolers        Pooler[]
+  apiKeys        ApiKey[]
+
+  @@map("projects")
+}
+
+model ResourceConfig {
+  id              String   @id @default(uuid())
+  desiredReplicas Int      @map("desired_replicas")
+  enableBackup    Boolean  @default(false) @map("enable_backup")
+  enableAutoscale Boolean  @default(false) @map("enable_autoscale")
+  enablePitr      Boolean  @default(false) @map("enable_pitr")
+  desiredStorage  String   @map("desired_storage")
+  desiredRam      String   @map("desired_ram")
+  desiredCpu      String   @map("desired_cpu")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  projectId String  @unique @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("resource_configs")
+}
+
+model Pooler {
+  id           String @id @default(uuid())
+  roPoolerLink String @map("ro_pooler_link")
+  rwPoolerLink String @map("rw_pooler_link")
+
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("poolers")
+}
+
+model ApiKey {
+  id        String    @id @default(uuid())
+  keyHash   String    @unique @map("key_hash")
+  prefix    String
+  duration  Int
+  createdAt DateTime  @default(now()) @map("created_at")
+  revokedAt DateTime? @map("revoked_at")
+
+  projectId String  @map("project_id")
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
 }
 
 model TestApp {
@@ -29,21 +123,4 @@ model TestApp {
   name String
 
   @@map("test_apps")
-}
-
-model Cluster {
-  id               String        @id @default(uuid())
-  tenantId         String        @map("tenant_id")
-  name             String
-  region           String
-  pgVersion        String        @map("pg_version")
-  size             String
-  deploymentOption String        @map("deployment_option")
-  readReplicas     Int           @default(1) @map("read_replicas")
-  backup           Boolean       @default(true)
-  status           ClusterStatus @default(provisioning)
-  externalId       String?       @map("external_id")
-  createdAt        DateTime      @default(now()) @map("created_at")
-
-  @@map("clusters")
 }
