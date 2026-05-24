@@ -26,10 +26,10 @@ This document is the **single source of truth** for code style, naming, and stru
 | React component | `PascalCase.jsx` | `Sidebar.jsx` |
 | React stylesheet | Match component name | `Sidebar.css` |
 | Non-component JS (hooks, utils, services) | `camelCase.js` | `useAuth.js`, `auth.service.js` |
-| Backend controller | `featureName.controller.js` | `database.controller.js` |
-| Backend service | `featureName.service.js` | `login.service.js` |
-| Backend model | `modelName.js` | `tenant.js` |
-| Config files | `camelCase.js` | `db.js` |
+| Backend controller | `featureName.controller.ts` | `pgCluster.controller.ts` |
+| Backend service | `featureName.service.ts` | `pgCluster.service.ts` |
+| Backend DTO | `name.dto.ts` | `create-cluster.dto.ts` |
+| Config files | `camelCase.ts` | `db.ts` |
 
 ### CSS Classes
 - Use **`kebab-case`** for CSS class names.
