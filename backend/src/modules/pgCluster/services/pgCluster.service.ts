@@ -44,8 +44,7 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
     : 1;
   const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
 
-  const { status } = await provisionCluster(clusterId, dto);
-
+  // Create DB record immediately — status defaults to 'provisioning'
   const row = await prisma.project.create({
     data: {
       id: clusterId,
@@ -56,7 +55,6 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
       pgVersion: dto.pgVersion,
       deploymentOption: dto.deploymentOption,
       estimatedPrice,
-      status,
       resourceConfig: {
         create: {
           desiredReplicas: replicas,
@@ -69,15 +67,46 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
     },
   });
 
+  // Fire provisioning in background — client gets 202 immediately
+  runProvisioning(clusterId, namespace, dto);
+
   return toDto(row);
+}
+
+// Runs after the 202 response is sent. Updates the DB when K8s provisioning completes.
+async function runProvisioning(
+  clusterId: string,
+  namespace: string,
+  dto: CreateClusterDto,
+): Promise<void> {
+  try {
+    const { rwPoolerLink, roPoolerLink } = await provisionCluster(clusterId, namespace, dto);
+
+    await prisma.project.update({
+      where: { id: clusterId },
+      data: { status: 'running' },
+    });
+
+    await prisma.pooler.create({
+      data: { projectId: clusterId, rwPoolerLink, roPoolerLink },
+    });
+
+    console.log(`[service] Cluster ${clusterId} is running — pooler links stored`);
+  } catch (err) {
+    console.error(`[service] Provisioning failed for cluster ${clusterId}:`, err);
+    await prisma.project.update({
+      where: { id: clusterId },
+      data: { status: 'error' },
+    });
+  }
 }
 
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {
   const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;
 
-  await deprovisionCluster(row.k8sNamespace);
   await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  await deprovisionCluster(row.k8sNamespace);
 
   return true;
 }

@@ -13,7 +13,7 @@ export async function index(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
-export async function show(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function show(req: Request, res: Response, next: NextFunction){
   try {
     const { tenantId } = req.user as JwtPayload & { tenantId: string };
     const cluster = await pgClusterService.getCluster(tenantId, req.params['id'] as string);
@@ -27,7 +27,7 @@ export async function show(req: Request, res: Response, next: NextFunction): Pro
   }
 }
 
-export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function create(req: Request, res: Response, next: NextFunction) {
   const { tenantId } = req.user as JwtPayload & { tenantId: string };
   const dto = req.body as CreateClusterDto;
 
@@ -44,7 +44,7 @@ export async function create(req: Request, res: Response, next: NextFunction): P
   }
 }
 
-export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function remove(req: Request, res: Response, next: NextFunction){
   try {
     const { tenantId } = req.user as JwtPayload & { tenantId: string };
     const deleted = await pgClusterService.deleteCluster(tenantId, req.params['id'] as string);

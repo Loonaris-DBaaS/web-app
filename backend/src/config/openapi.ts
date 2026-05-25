@@ -38,6 +38,34 @@ export const openApiSpec = {
       bearerAuth: { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
     },
     schemas: {
+      ClusterDto: {
+        type: 'object',
+        properties: {
+          id: { type: 'string', format: 'uuid' },
+          tenantId: { type: 'string', format: 'uuid' },
+          name: { type: 'string' },
+          k8sNamespace: { type: 'string' },
+          region: { type: 'string' },
+          pgVersion: { type: 'string', enum: ['16', '17', '18'] },
+          deploymentOption: { type: 'string', enum: ['MULTI_AZ_CLUSTER', 'MULTI_AZ_INSTANCE', 'SINGLE_AZ_INSTANCE'] },
+          status: { type: 'string', enum: ['provisioning', 'running', 'stopped', 'error', 'deleting'] },
+          estimatedPrice: { type: 'number' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+      CreateClusterRequest: {
+        type: 'object',
+        required: ['name', 'region', 'pgVersion', 'size', 'deploymentOption'],
+        properties: {
+          name: { type: 'string', example: 'my-pg-cluster' },
+          region: { type: 'string', example: 'us-east-1' },
+          pgVersion: { type: 'string', enum: ['16', '17', '18'], example: '17' },
+          size: { type: 'string', enum: ['starter', 'pro', 'scale'], example: 'starter' },
+          deploymentOption: { type: 'string', enum: ['MULTI_AZ_CLUSTER', 'MULTI_AZ_INSTANCE', 'SINGLE_AZ_INSTANCE'], example: 'SINGLE_AZ_INSTANCE' },
+          readReplicas: { type: 'integer', minimum: 1, example: 1 },
+          backup: { type: 'boolean', example: true },
+        },
+      },
       User: {
         type: 'object',
         properties: {
@@ -72,6 +100,63 @@ export const openApiSpec = {
     },
   },
   paths: {
+    '/clusters': {
+      get: {
+        tags: ['Clusters'],
+        summary: 'List all clusters for the authenticated tenant',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Array of clusters',
+            content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/ClusterDto' } } } },
+          },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+      post: {
+        tags: ['Clusters'],
+        summary: 'Create a new PostgreSQL cluster',
+        security: [{ bearerAuth: [] }],
+        requestBody: {
+          required: true,
+          content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateClusterRequest' } } },
+        },
+        responses: {
+          '202': {
+            description: 'Cluster accepted for provisioning (async)',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } } },
+          },
+          '400': { description: 'Missing required fields', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          '401': { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/clusters/{id}': {
+      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      get: {
+        tags: ['Clusters'],
+        summary: 'Get a single cluster by ID',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '200': {
+            description: 'Cluster object',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } } },
+          },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Cluster not found' },
+        },
+      },
+      delete: {
+        tags: ['Clusters'],
+        summary: 'Delete (deprovision) a cluster',
+        security: [{ bearerAuth: [] }],
+        responses: {
+          '204': { description: 'Cluster queued for deletion' },
+          '401': { description: 'Unauthorized' },
+          '404': { description: 'Cluster not found' },
+        },
+      },
+    },
     '/auth/signup': {
       post: {
         tags: ['Auth'],
