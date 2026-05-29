@@ -1,11 +1,53 @@
 import { randomUUID } from 'crypto';
 import prisma from '@/lib/prisma';
-import { CreateClusterDto, SIZE_SPECS, DeploymentOption } from '../dto/create-cluster.dto';
+import { CreateClusterDto, SIZE_SPECS, DeploymentOption, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
+import { UpdateClusterDto } from '../dto/update-cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
-import type { Project } from '@/generated/prisma/client';
+import type { Project, ResourceConfig } from '@/generated/prisma/client';
 
-function toDto(p: Project): ClusterDto {
+type ProjectWithResourceConfig = Project & {
+  resourceConfig?: ResourceConfig | null;
+};
+
+function parseStorageToGb(storage: string | null | undefined): number {
+  if (!storage) {
+    return 0;
+  }
+
+  const match = storage.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function inferClusterSize(resourceConfig: ResourceConfig | null | undefined): ClusterSize {
+  switch (resourceConfig?.desiredCpu) {
+    case '1':
+      return 'starter';
+    case '4':
+      return 'scale';
+    case '2':
+    default:
+      return 'pro';
+  }
+}
+
+function toDeploymentMultiplier(deploymentOption: DeploymentOption, readReplicas: number): number {
+  if (deploymentOption === 'MULTI_AZ_CLUSTER') {
+    return 1 + readReplicas;
+  }
+
+  if (deploymentOption === 'MULTI_AZ_INSTANCE') {
+    return 2;
+  }
+
+  return 1;
+}
+
+function toDto(p: ProjectWithResourceConfig): ClusterDto {
+  const resourceConfig = p.resourceConfig;
+  const readReplicas = resourceConfig?.desiredReplicas ?? 1;
+  const size = inferClusterSize(resourceConfig);
+
   return {
     id: p.id,
     tenantId: p.tenantId,
@@ -13,8 +55,13 @@ function toDto(p: Project): ClusterDto {
     k8sNamespace: p.k8sNamespace,
     region: p.region,
     pgVersion: p.pgVersion as ClusterDto['pgVersion'],
+    size,
     deploymentOption: p.deploymentOption as DeploymentOption,
     status: p.status as ClusterDto['status'],
+    readReplicas,
+    backup: resourceConfig?.enableBackup ?? false,
+    storageUsedGb: Number(p.storageUsage ?? 0),
+    provisionedStorageGb: parseStorageToGb(resourceConfig?.desiredStorage),
     estimatedPrice: p.estimatedPrice,
     createdAt: p.createdAt.toISOString(),
   };
@@ -24,12 +71,16 @@ export async function listClusters(tenantId: string): Promise<ClusterDto[]> {
   const rows = await prisma.project.findMany({
     where: { tenantId },
     orderBy: { createdAt: 'desc' },
+    include: { resourceConfig: true },
   });
   return rows.map(toDto);
 }
 
 export async function getCluster(tenantId: string, clusterId: string): Promise<ClusterDto | null> {
-  const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
+  const row = await prisma.project.findFirst({
+    where: { id: clusterId, tenantId },
+    include: { resourceConfig: true },
+  });
   return row ? toDto(row) : null;
 }
 
@@ -38,10 +89,7 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
   const namespace = `tenant-${tenantId.slice(0, 8)}-${clusterId.slice(0, 8)}`;
   const specs = SIZE_SPECS[dto.size];
   const replicas = dto.readReplicas ?? 1;
-  const multiplier =
-    dto.deploymentOption === 'MULTI_AZ_CLUSTER' ? 1 + replicas
-    : dto.deploymentOption === 'MULTI_AZ_INSTANCE' ? 2
-    : 1;
+  const multiplier = toDeploymentMultiplier(dto.deploymentOption, replicas);
   const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
 
   const { status } = await provisionCluster(clusterId, dto);
@@ -70,6 +118,71 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
   });
 
   return toDto(row);
+}
+
+export async function updateCluster(
+  tenantId: string,
+  clusterId: string,
+  dto: UpdateClusterDto,
+): Promise<ClusterDto | null> {
+  const row = await prisma.project.findFirst({
+    where: { id: clusterId, tenantId },
+    include: { resourceConfig: true },
+  });
+
+  if (!row) {
+    return null;
+  }
+
+  const nextSize = dto.size ?? inferClusterSize(row.resourceConfig);
+  const nextDeploymentOption = dto.deploymentOption ?? (row.deploymentOption as DeploymentOption);
+  const nextReadReplicas = dto.readReplicas ?? row.resourceConfig?.desiredReplicas ?? 1;
+  const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
+  const specs = SIZE_SPECS[nextSize];
+  const estimatedPrice = specs.price * toDeploymentMultiplier(nextDeploymentOption, nextReadReplicas) + (nextBackup ? 5 : 0);
+  const shouldReconcile =
+    dto.size !== undefined ||
+    dto.pgVersion !== undefined ||
+    dto.deploymentOption !== undefined ||
+    dto.readReplicas !== undefined;
+
+  const updated = await prisma.project.update({
+    where: { id: clusterId },
+    data: {
+      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.region !== undefined ? { region: dto.region } : {}),
+      ...(dto.pgVersion !== undefined ? { pgVersion: dto.pgVersion } : {}),
+      ...(dto.deploymentOption !== undefined ? { deploymentOption: dto.deploymentOption } : {}),
+      estimatedPrice,
+      ...(shouldReconcile ? { status: 'provisioning' } : {}),
+      resourceConfig: row.resourceConfig
+        ? {
+            update: {
+              ...(dto.size !== undefined
+                ? {
+                    desiredCpu: specs.cpu,
+                    desiredRam: specs.ram,
+                    desiredStorage: specs.storage,
+                  }
+                : {}),
+              ...(dto.readReplicas !== undefined ? { desiredReplicas: nextReadReplicas } : {}),
+              ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
+            },
+          }
+        : {
+            create: {
+              desiredCpu: specs.cpu,
+              desiredRam: specs.ram,
+              desiredStorage: specs.storage,
+              desiredReplicas: nextReadReplicas,
+              enableBackup: nextBackup,
+            },
+          },
+    },
+    include: { resourceConfig: true },
+  });
+
+  return toDto(updated);
 }
 
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {

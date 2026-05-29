@@ -9,8 +9,13 @@ export interface ClusterDto {
   k8sNamespace: string;
   region: string;
   pgVersion: PgVersion;
+  size: ClusterSize;
   deploymentOption: DeploymentOption;
   status: ProjectStatus;
+  readReplicas: number;
+  backup: boolean;
+  storageUsedGb: number;
+  provisionedStorageGb: number;
   estimatedPrice: number;
   createdAt: string;
 }

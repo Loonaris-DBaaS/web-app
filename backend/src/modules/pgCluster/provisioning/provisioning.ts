@@ -42,3 +42,18 @@ export async function getClusterStatus(externalId: string): Promise<ProjectStatu
   console.log(`[provisioning] Polling status for ${externalId}`);
   return 'running';
 }
+
+export interface ClusterMetricsPoint {
+  timestamp: string;
+  cpuUsage: number;
+  memoryUsage: number;
+  storageUsage: number;
+}
+
+/**
+ * Placeholder for future Kubernetes-backed metrics retrieval.
+ */
+export async function getClusterMetrics(_externalId: string): Promise<ClusterMetricsPoint[]> {
+  // TODO: query Kubernetes / Prometheus and map the series to the dashboard model.
+  return [];
+}
