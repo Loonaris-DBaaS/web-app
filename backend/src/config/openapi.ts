@@ -208,7 +208,7 @@ export const openApiSpec = {
         responses: { '200': { description: 'Account deleted' }, '401': { description: 'Unauthorized' } },
       },
     },
-    '/clusters': {
+    '/api/clusters': {
       get: {
         tags: ['Clusters'],
         summary: 'List all clusters for the authenticated tenant',
@@ -233,7 +233,7 @@ export const openApiSpec = {
         },
       },
     },
-    '/clusters/{id}': {
+    '/api/clusters/{id}': {
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       get: {
         tags: ['Clusters'],
