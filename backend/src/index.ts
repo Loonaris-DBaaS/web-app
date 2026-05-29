@@ -9,6 +9,7 @@ import pgClusterRoutes from './modules/pgCluster/routes';
 import testAppRoutes from './modules/testApp/routes';
 
 const app = express();
+const apiRouter = express.Router();
 const PORT = process.env.PORT ?? 3001;
 
 const allowedOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:5173').split(',');
@@ -18,15 +19,16 @@ app.use(cookieParser());
 
 // Liveness probe for the ALB target group / ECS — intentionally does NOT touch
 // the DB so the task reports healthy even before RDS is wired up.
-app.get('/health', (_req: Request, res: Response) => {
+apiRouter.get('/health', (_req: Request, res: Response) => {
   res.status(200).json({ status: 'ok' });
 });
 
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
+apiRouter.use('/auth', authRoutes);
+apiRouter.use('/clusters', pgClusterRoutes);
+apiRouter.use('/test', testAppRoutes);
 
-app.use('/api/auth', authRoutes);
-app.use('/api/clusters', pgClusterRoutes);
-app.use('/api/test', testAppRoutes);
+app.use('/api', apiRouter);
 
 // Global error handler
 app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Request, res: Response, _next: NextFunction) => {
@@ -51,5 +53,5 @@ app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Req
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);
-  console.log(`Swagger UI:   http://localhost:${PORT}/docs`);
+  console.log(`Swagger UI:   http://localhost:${PORT}/api/docs`);
 });
