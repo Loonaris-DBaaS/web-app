@@ -1,11 +1,13 @@
-import { ClusterSize, DeploymentOption, PgVersion } from './create-cluster.dto';
+import { DeploymentOption, PgVersion } from './create-cluster.dto';
 
 export interface UpdateClusterDto {
   name?: string;
   region?: string;
   pgVersion?: PgVersion;
-  size?: ClusterSize;
   deploymentOption?: DeploymentOption;
+  cpu?: string;
+  ram?: string;
+  storage?: string;
   readReplicas?: number;
   backup?: boolean;
 }

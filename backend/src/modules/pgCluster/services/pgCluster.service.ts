@@ -53,8 +53,12 @@ function toDto(p: ProjectWithResourceConfig): ClusterDto {
     size,
     deploymentOption: p.deploymentOption as DeploymentOption,
     status: p.status as ClusterDto['status'],
+    cpu: resourceConfig?.desiredCpu ?? '',
+    ram: resourceConfig?.desiredRam ?? '',
+    storage: resourceConfig?.desiredStorage ?? '',
     readReplicas,
     backup: resourceConfig?.enableBackup ?? false,
+    autoscale: resourceConfig?.enableAutoscale ?? false,
     storageUsedGb: Number(p.storageUsage ?? 0),
     provisionedStorageGb: parseStorageToGb(resourceConfig?.desiredStorage),
     estimatedPrice: p.estimatedPrice,
@@ -102,6 +106,7 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
         create: {
           desiredReplicas: replicas,
           enableBackup: dto.backup ?? true,
+          enableAutoscale: dto.size === 'scale',
           desiredStorage: specs.storage,
           desiredRam: specs.ram,
           desiredCpu: specs.cpu,
@@ -132,14 +137,19 @@ export async function updateCluster(
     return null;
   }
 
-  const nextSize = dto.size ?? inferClusterSize(row.resourceConfig);
   const nextDeploymentOption = dto.deploymentOption ?? (row.deploymentOption as DeploymentOption);
   const nextReadReplicas = dto.readReplicas ?? row.resourceConfig?.desiredReplicas ?? 1;
   const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
-  const specs = SIZE_SPECS[nextSize];
-  const estimatedPrice = specs.price * toDeploymentMultiplier(nextDeploymentOption, nextReadReplicas) + (nextBackup ? 5 : 0);
+  const nextCpu = dto.cpu ?? row.resourceConfig?.desiredCpu ?? '2';
+  const estimatedPrice =
+    SIZE_SPECS[inferClusterSize({ ...row.resourceConfig, desiredCpu: nextCpu } as any)].price *
+      toDeploymentMultiplier(nextDeploymentOption, nextReadReplicas) +
+    (nextBackup ? 5 : 0);
+
   const shouldReconcile =
-    dto.size !== undefined ||
+    dto.cpu !== undefined ||
+    dto.ram !== undefined ||
+    dto.storage !== undefined ||
     dto.pgVersion !== undefined ||
     dto.deploymentOption !== undefined ||
     dto.readReplicas !== undefined;
@@ -156,24 +166,21 @@ export async function updateCluster(
       resourceConfig: row.resourceConfig
         ? {
             update: {
-              ...(dto.size !== undefined
-                ? {
-                    desiredCpu: specs.cpu,
-                    desiredRam: specs.ram,
-                    desiredStorage: specs.storage,
-                  }
-                : {}),
+              ...(dto.cpu !== undefined ? { desiredCpu: dto.cpu } : {}),
+              ...(dto.ram !== undefined ? { desiredRam: dto.ram } : {}),
+              ...(dto.storage !== undefined ? { desiredStorage: dto.storage } : {}),
               ...(dto.readReplicas !== undefined ? { desiredReplicas: nextReadReplicas } : {}),
               ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
             },
           }
         : {
             create: {
-              desiredCpu: specs.cpu,
-              desiredRam: specs.ram,
-              desiredStorage: specs.storage,
+              desiredCpu: nextCpu,
+              desiredRam: dto.ram ?? '4Gi',
+              desiredStorage: dto.storage ?? '50Gi',
               desiredReplicas: nextReadReplicas,
               enableBackup: nextBackup,
+              enableAutoscale: false,
             },
           },
     },

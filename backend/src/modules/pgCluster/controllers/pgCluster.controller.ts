@@ -69,7 +69,9 @@ export async function update(req: Request, res: Response, next: NextFunction): P
     dto.name === undefined &&
     dto.region === undefined &&
     dto.pgVersion === undefined &&
-    dto.size === undefined &&
+    dto.cpu === undefined &&
+    dto.ram === undefined &&
+    dto.storage === undefined &&
     dto.deploymentOption === undefined &&
     dto.readReplicas === undefined &&
     dto.backup === undefined
