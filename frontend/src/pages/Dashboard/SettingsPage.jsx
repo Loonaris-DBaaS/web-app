@@ -1377,7 +1377,9 @@ export default function SettingsPage() {
   async function handleSaveProfile(fields) {
     await updateProfile({
       username: fields.displayName || fields.fullName || undefined,
-      country: fields.country || undefined,
+      country:  fields.country  ?? undefined,
+      jobTitle: fields.jobTitle ?? undefined,
+      company:  fields.company  ?? undefined,
       photoUrl: fields.avatarUrl ?? undefined,
     });
   }
@@ -1393,8 +1395,8 @@ export default function SettingsPage() {
         fullName: user.username,
         displayName: user.username,
         email: user.email,
-        jobTitle: '',
-        company: '',
+        jobTitle: user.jobTitle ?? '',
+        company: user.company ?? '',
         avatarUrl: user.photoUrl ?? null,
         country: user.country ?? '',
         plan: 'free',
