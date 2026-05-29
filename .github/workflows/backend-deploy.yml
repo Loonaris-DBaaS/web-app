@@ -9,6 +9,9 @@ on:
       - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
 
+env:
+  ECR_REPOSITORY: ahmed-aws/loonaris
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -18,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -31,39 +37,150 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to ECR
-        working-directory: ./backend
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ahmed-aws/loonaris
-          IMAGE_TAG: latest
-        run: |
-          echo "Building image…"
-          docker build --provenance=false -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
-          echo "Pushing image…"
-          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+        uses: docker/build-push-action@v6
+        with:
+          context: ./backend
+          push: true
+          provenance: false
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
-      - name: Force new ECS deployment
+      - name: Get pushed image digest
+        id: image-digest
         run: |
-          echo "Triggering ECS force-new-deployment…"
+          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} | cut -d'@' -f2)
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
+          echo "Pushed digest: $DIGEST"
+
+      - name: Register new task definition revision with exact digest
+        id: register-td
+        run: |
+          # Fetch current task definition
+          TD_ARN=$(aws ecs describe-services \
+            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+            --services ${{ vars.ECS_SERVICE_NAME }} \
+            --region ${{ vars.AWS_REGION }} \
+            --query 'services[0].taskDefinition' --output text)
+
+          echo "Current task definition: $TD_ARN"
+
+          # Copy current TD and update image to exact digest
+          aws ecs describe-task-definition \
+            --task-definition "$TD_ARN" \
+            --region ${{ vars.AWS_REGION }} \
+            --query 'taskDefinition' > /tmp/taskdef.json
+
+          # Build new container definition with exact digest
+          NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${{ steps.image-digest.outputs.digest }}"
+          echo "New image URI: $NEW_IMAGE"
+
+          # Use jq to update image in container definitions
+          cat /tmp/taskdef.json | jq \
+            --arg image "$NEW_IMAGE" \
+            '.containerDefinitions[0].image = $image' \
+            > /tmp/new-taskdef.json
+
+          # Register new revision
+          NEW_TD_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "file:///tmp/new-taskdef.json" \
+            --region ${{ vars.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          echo "new-td-arn=$NEW_TD_ARN" >> $GITHUB_OUTPUT
+          echo "Registered new task definition: $NEW_TD_ARN"
+
+      - name: Update ECS service and force deployment
+        run: |
+          echo "Updating ECS service to new task definition…"
           aws ecs update-service \
             --cluster ${{ vars.ECS_CLUSTER_NAME }} \
             --service ${{ vars.ECS_SERVICE_NAME }} \
+            --task-definition ${{ steps.register-td.outputs.new-td-arn }} \
             --force-new-deployment \
             --region ${{ vars.AWS_REGION }}
 
-      - name: Wait for ECS deployment to stabilize
+      - name: Wait for deployment and verify digest
+        timeout-minutes: 6
         run: |
-          echo "Waiting for ECS service to reach steady state…"
-          aws ecs wait services-stable \
-            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
-            --services ${{ vars.ECS_SERVICE_NAME }} \
-            --region ${{ vars.AWS_REGION }}
-          echo "Deployment stable."
+          EXPECTED_DIGEST="${{ steps.image-digest.outputs.digest }}"
+          echo "Waiting for tasks with digest: $EXPECTED_DIGEST"
+
+          for i in {1..36}; do
+            sleep 10
+
+            TASKS=$(aws ecs list-tasks \
+              --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+              --service-name ${{ vars.ECS_SERVICE_NAME }} \
+              --desired-status RUNNING \
+              --region ${{ vars.AWS_REGION }} \
+              --query 'taskArns' --output text)
+
+            if [ -z "$TASKS" ] || [ "$TASKS" = "None" ]; then
+              echo "Check $i: No running tasks yet…"
+              continue
+            fi
+
+            MATCH=0
+            for task in $TASKS; do
+              DIGEST=$(aws ecs describe-tasks \
+                --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+                --tasks "$task" \
+                --region ${{ vars.AWS_REGION }} \
+                --query 'tasks[0].containers[0].imageDigest' --output text)
+
+              if [ "$DIGEST" = "$EXPECTED_DIGEST" ]; then
+                MATCH=$((MATCH + 1))
+                echo "Check $i: ✓ Task $task has correct digest ($MATCH/2)"
+              else
+                echo "Check $i: ✗ Task $task has wrong digest: $DIGEST"
+              fi
+            done
+
+            if [ "$MATCH" -ge 2 ]; then
+              echo ""
+              echo "✓ All tasks running the correct image!"
+              exit 0
+            fi
+          done
+
+          echo ""
+          echo "::error::Timed out waiting for correct image to deploy"
+          exit 1
 
       - name: Verify health endpoint
         run: |
           echo "Checking /api/health…"
-          curl -fsSL --retry 5 --retry-delay 10 \
-            ${{ vars.ALB_URL }}/api/health \
-            -o /tmp/health.json
-          cat /tmp/health.json
+          RESPONSE=$(curl -fsSL --retry 5 --retry-delay 5 \
+            ${{ vars.ALB_URL }}/api/health)
+
+          echo "Response: $RESPONSE"
+
+          STATUS=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('status',''))")
+          MESSAGE=$(echo "$RESPONSE" | python3 -c "import sys,json; print(json.load(sys.stdin).get('message',''))")
+
+          if [ "$STATUS" != "ok" ]; then
+            echo "::error::Health check failed: status='$STATUS'"
+            exit 1
+          fi
+
+          echo "✓ Health check passed"
+          echo "  Status: $STATUS"
+          echo "  Message: $MESSAGE"
+
+      - name: Report deployment summary
+        if: success()
+        run: |
+          echo ""
+          echo "═══════════════════════════════════════════════════"
+          echo "  DEPLOYMENT SUCCESSFUL"
+          echo "═══════════════════════════════════════════════════"
+          echo "  Image:     ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
+          echo "  Digest:    ${{ steps.image-digest.outputs.digest }}"
+          echo "  Task Def:  ${{ steps.register-td.outputs.new-td-arn }}"
+          echo "  Cluster:   ${{ vars.ECS_CLUSTER_NAME }}"
+          echo "  Service:   ${{ vars.ECS_SERVICE_NAME }}"
+          echo "═══════════════════════════════════════════════════"

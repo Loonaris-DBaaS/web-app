@@ -17,11 +17,9 @@
 ## 1. Deployment Approach (CRITICAL — do not deviate)
 
 - **ECR image tag is fixed (`:latest`)** and gets overwritten on every push.
-- **The task definition must reference `:latest`**, not a pinned digest (`@sha256:...`). If it ever gets pinned, `force-new-deployment` will keep pulling the old digest even after a new push.
-- **Normal deploy flow:** `docker build` → `docker push` (overwrites `:latest` in ECR) → `force-new-deployment`
-- **You only need to register a new task definition revision** if:
-  - The image reference got pinned to a digest (fix it back to `:latest`)
-  - Environment variables, CPU, memory, or other task-level config needs to change
+- **The CI/CD pipeline registers a new task definition revision** on every deploy, pinning the image to the exact digest (`@sha256:...`) that was just pushed. This is the only reliable way to ensure ECS actually pulls the new image.
+- **Why not `:latest` in the task definition?** ECS caches the `:latest` tag resolution. Even when ECR `:latest` points to a new digest, ECS may continue pulling the old cached digest. Pinning the exact digest eliminates this problem.
+- **Normal deploy flow:** `docker build` → `docker push` (tags `:latest` + Git SHA) → register new task definition with exact digest → update ECS service → `force-new-deployment`
 - **Never create new target groups or listener rules.**
 
 ### Automated CI/CD (GitHub Actions)
@@ -32,18 +30,29 @@ The backend deploys automatically on every push to `main` that changes `backend/
 
 **What it does:**
 1. Checks out the repo
-2. Configures AWS credentials (from GitHub secrets)
-3. Logs into ECR
-4. Builds and pushes `…/ahmed-aws/loonaris:latest`
-5. Forces a new ECS deployment
-6. Waits for the service to reach steady state
-7. Verifies `/api/health` responds with `200`
+2. Sets up Docker Buildx with GitHub Actions cache
+3. Configures AWS credentials (from GitHub secrets)
+4. Logs into ECR
+5. Builds and pushes `…/ahmed-aws/loonaris:latest` **and** `…/loonaris:<git-sha>`
+6. Captures the exact digest of the pushed image
+7. Registers a new ECS task definition revision with the exact digest
+8. Updates the ECS service to use the new task definition + `force-new-deployment`
+9. Verifies running tasks actually use the pushed digest (not a cached old image)
+10. Verifies `/api/health` responds with `200` and valid JSON
 
 **Required GitHub secrets:**
 | Secret | Description |
 |---|---|
 | `AWS_ACCESS_KEY_ID` | IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+
+**Required GitHub variables:**
+| Variable | Value |
+|---|---|
+| `AWS_REGION` | `eu-west-3` |
+| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster` |
+| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4` |
+| `ALB_URL` | `http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com` |
 
 > See `backend/CI-CD-PLAN.md` for the full pipeline design, rollback strategy, and future improvements.
 
@@ -53,14 +62,17 @@ If you ever need to deploy manually (e.g., CI is broken):
 
 ```bash
 cd backend && bash local-tools/push-container-script.sh
+# Get the digest of the pushed image
+DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
+  474741569968.dkr.ecr.eu-west-3.amazonaws.com/ahmed-aws/loonaris:latest | cut -d'@' -f2)
+# Register new task definition with exact digest (see CI workflow for full jq logic)
+# Then update service
 aws ecs update-service \
   --cluster loonaris-ecs-fargate-cluster \
   --service loonaris-backend-service-p839kjg4 \
   --force-new-deployment \
   --region eu-west-3
 ```
-
-> If the task definition image is pinned to a digest, re-register the task definition with `:latest` first, then run `force-new-deployment`.
 
 **Build & push script:** `backend/local-tools/push-container-script.sh`
 
@@ -142,8 +154,8 @@ This script:
 - **Launch Type:** `FARGATE`
 - **Desired Count:** `2`
 - **Platform Version:** `LATEST` (currently `1.4.0`)
-- **Task Definition Family:** `loonaris-backend` (currently revision `8`)
-- **Active Task Definition ARN:** `arn:aws:ecs:eu-west-3:474741569968:task-definition/loonaris-backend:8`
+- **Task Definition Family:** `loonaris-backend` (currently revision `9`)
+- **Active Task Definition ARN:** `arn:aws:ecs:eu-west-3:474741569968:task-definition/loonaris-backend:9`
 - **Deployment Controller:** `ECS` with circuit breaker + rollback enabled
 - **Maximum Percent:** `200`
 - **Minimum Healthy Percent:** `100`
@@ -235,6 +247,39 @@ This means the ALB health check path must be `/api/health`, not `/health`.
 
 ## 8. Known Debugging History
 
+**2026-05-29 — CI/CD deploys succeed but old image keeps running**
+
+**Symptom:** GitHub Actions workflow completed successfully, pushed new image to ECR, `force-new-deployment` ran, but `/api/health` still returned the old response. ECS tasks showed digest `sha256:8d5e...` (old) even though ECR `:latest` pointed to `sha256:32f0...` (new).
+
+**Root cause:** ECS Fargate caches the `:latest` tag resolution. Even after ECR `:latest` is overwritten with a new digest, ECS may continue pulling the old cached digest for newly scheduled tasks. This is a known ECS behavior.
+
+**Fix applied:**
+- Completely redesigned the CI/CD pipeline (`.github/workflows/backend-deploy.yml`) to:
+  1. Build and push image with both `:latest` and `:<git-sha>` tags
+  2. Capture the exact digest of the pushed image
+  3. Register a **new task definition revision** with the image pinned to that exact digest (`@sha256:...`)
+  4. Update the ECS service to use the new task definition revision
+  5. Verify running tasks actually use the pushed digest
+  6. Verify health endpoint returns expected content
+- Added Docker layer caching via `docker/build-push-action@v6` with GitHub Actions cache (`type=gha`) for faster builds.
+- Updated AGENTS.md deployment rules to reflect the new digest-based approach.
+
+**Key lesson:** Never rely on ECS `:latest` tag resolution for CI/CD. Always pin the exact digest in the task definition.
+
+---
+
+**2026-05-29 — Fargate vCPU limit blocks deployments**
+
+**Symptom:** ECS couldn't place new tasks during rolling deployment. Error: `"You've reached the limit on the number of vCPUs you can run concurrently"`.
+
+**Root cause:** AWS account default Fargate on-demand vCPU quota was 4. Each task uses 1 vCPU. During rolling deployment, ECS temporarily needs 4 vCPUs (2 old + 2 new), which hit the limit.
+
+**Fix applied:**
+- Requested quota increase to 8 vCPUs via AWS Service Quotas.
+- As a workaround, scaled service to 0 then back to 2 to force a clean deploy without needing concurrent old+new tasks.
+
+---
+
 **2026-05-29 — Signup / DB queries fail with TLS certificate error**
 
 **Symptom:** `POST /api/auth/signup` returned `400` with message:
@@ -272,7 +317,7 @@ Error opening a TLS connection: self-signed certificate in certificate chain
 
 ## 9. Golden Rules for Agents
 
-1. **Deployment is always: build → push → `force-new-deployment`. Only register a new task definition if the image got pinned to a digest or task-level config changed.**
+1. **Deployment is always: build → push → register new task def with exact digest → `force-new-deployment`. Never rely on `:latest` tag resolution in ECS.**
 2. **Never touch ALB listeners, target groups, or security groups without asking.**
 3. **Health check path in the target group and the app must match exactly.**
 4. **All app routes live under `/api` — keep it that way.**
