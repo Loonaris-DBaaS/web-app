@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import AuthLayout from '../../layouts/AuthLayout';
 import DashboardLayout from '../../layouts/DashboardLayout';
+import ProtectedRoute from './ProtectedRoute';
 import Landing from '../../pages/Landing/Landing';
 import SignIn from '../../pages/SignIn/Signin';
 import SignUp from '../../pages/SignUp/Signup';
@@ -11,23 +12,22 @@ import SettingsPage from '../../pages/Dashboard/SettingsPage';
 import Support from '../../pages/Dashboard/Support';
 
 const routes = [
+  { path: '/', element: <Landing /> },
+  { path: '/test', element: <Test /> },
   {
-    path: '/',
-    element: <Landing />,
-  },
-  {
-    path:'/test',
-    element:<Test />,
-  },
-  {
-    path: '/dashboard',
-    element: <DashboardLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Navigate to="/dashboard/databases" replace /> },
-      { path: 'databases', element: <Database /> },
-      { path: 'databases/:databaseId', element: <DatabaseDetailPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: 'support', element: <Support /> },
+      {
+        path: '/dashboard',
+        element: <DashboardLayout />,
+        children: [
+          { index: true, element: <Navigate to="/dashboard/databases" replace /> },
+          { path: 'databases', element: <Database /> },
+          { path: 'databases/:databaseId', element: <DatabaseDetailPage /> },
+          { path: 'settings', element: <SettingsPage /> },
+          { path: 'support', element: <Support /> },
+        ],
+      },
     ],
   },
   {
@@ -38,4 +38,5 @@ const routes = [
     ],
   },
 ];
+
 export default routes;

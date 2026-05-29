@@ -200,3 +200,5 @@
 .signup__link--bold {
   font-weight: 600;
 }
+
+.signup__error { color: var(--error); background: var(--error-container); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); font-size: var(--text-body-sm-size); margin-bottom: var(--space-2); }

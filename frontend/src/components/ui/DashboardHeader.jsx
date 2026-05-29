@@ -1,116 +1,77 @@
-import Button from "./Button";
-//usage example:
-// <DashboardHeader
-//   pageTitle="Dashboard"
-//   pageDescription="Welcome back, Alex!"
-//   username="Alex Rivera"
-//   userImageURL="https://example.com/avatar.jpg"
-//   buttonText="New Instance"
-//   buttonIcon={<span className="material-symbols-outlined">add</span>}
-//   buttonOnClick={() => alert('Create new instance')}
-// />
-export default function DashboardHeader({
-  pageTitle,
-  pageDescription,
-  username,
-  userImageURL,
-  buttonText,
-  buttonIcon,
-  buttonOnClick,
-}) {
-  return (
-    <header style={{
-      height: 'var(--topbar-height)',
-      background: 'var(--surface-container-lowest)',
-      borderBottom: '1px solid var(--outline-variant)',
-      display: 'flex',
-      alignItems: 'center',
-      padding: '0 var(--space-8)',
-      gap: 'var(--space-4)',
-    }}>
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth.jsx';
+import Button from './Button';
 
+function BellIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+      <path d="M10 17a2 2 0 1 0 4 0" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  );
+}
+
+export default function DashboardHeader({ pageTitle, pageDescription, buttonText, buttonIcon, buttonOnClick }) {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : '?';
+
+  async function handleLogout() {
+    await logout();
+    navigate('/signin');
+  }
+
+  return (
+    <header className="dash-header">
       {/* Title + description */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{
-          fontSize: 'var(--text-title-lg-size)',
-          lineHeight: 'var(--text-title-lg-height)',
-          fontWeight: 600,
-          color: 'var(--on-surface)',
-          display: 'block',
-          whiteSpace: 'nowrap',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-        }}>
-          {pageTitle}
-        </span>
+      <div className="dash-header__title-wrap">
+        <span className="dash-header__title">{pageTitle}</span>
         {pageDescription && (
-          <p style={{
-            fontSize: 'var(--text-body-sm-size)',
-            lineHeight: 'var(--text-body-sm-height)',
-            color: 'var(--on-surface-variant)',
-            margin: 0,
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}>
-            {pageDescription}
-          </p>
+          <p className="dash-header__desc">{pageDescription}</p>
         )}
       </div>
 
-      {/* Optional action button */}
+      {/* Action button */}
       {buttonText && buttonOnClick && (
         <Button text={buttonText} icon={buttonIcon} onClick={buttonOnClick} />
       )}
 
-      {/* User profile */}
-      {username && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'var(--space-3)',
-          paddingLeft: 'var(--space-4)',
-          borderLeft: '1px solid var(--outline-variant)',
-          flexShrink: 0,
-        }}>
-          {userImageURL ? (
-            <img
-              src={userImageURL}
-              alt={username}
-              style={{
-                width: 34,
-                height: 34,
-                borderRadius: 'var(--radius-full)',
-                objectFit: 'cover',
-              }}
-            />
-          ) : (
-            <div style={{
-              width: 34,
-              height: 34,
-              borderRadius: 'var(--radius-full)',
-              background: 'var(--primary-fixed)',
-              color: 'var(--primary)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: 'var(--text-label-md-size)',
-              fontWeight: 600,
-              flexShrink: 0,
-            }}>
-              {username.charAt(0).toUpperCase()}
-            </div>
-          )}
-          <span style={{
-            fontSize: 'var(--text-label-lg-size)',
-            fontWeight: 500,
-            color: 'var(--on-surface)',
-          }}>
-            {username}
-          </span>
-        </div>
-      )}
+      {/* Right: bell + avatar + logout */}
+      <div className="dash-header__actions">
+        <button className="dash-header__icon-btn" type="button" aria-label="Notifications">
+          <BellIcon />
+        </button>
 
+        <button
+          className="dash-header__avatar"
+          type="button"
+          onClick={() => navigate('/dashboard/settings')}
+          title={user?.username ?? 'Profile'}
+          aria-label="Go to settings"
+        >
+          {user?.photoUrl
+            ? <img src={user.photoUrl} alt={user.username} />
+            : initials}
+        </button>
+
+        <div className="dash-header__divider" />
+
+        <button className="dash-header__logout" type="button" onClick={handleLogout} title="Sign out">
+          <LogoutIcon />
+          <span>Sign out</span>
+        </button>
+      </div>
     </header>
   );
 }

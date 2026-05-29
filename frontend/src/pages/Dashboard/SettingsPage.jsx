@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth.jsx';
 
 const REGION_OPTIONS = [
   { value: 'us-east-1', label: 'US East (N. Virginia)' },
@@ -25,7 +27,6 @@ const styles = `
   .sp-page {
     --sp-tabs-width: 12.5rem;
     --sp-avatar-size: 5rem;
-    min-height: 100vh;
     background: var(--surface);
     color: var(--on-surface);
     font-family: var(--font-sans);
@@ -771,12 +772,15 @@ function getStrengthTone(index) {
 function ProfileTab({ user, onSaveProfile }) {
   const [fullName, setFullName] = useState(user.fullName);
   const [displayName, setDisplayName] = useState(user.displayName);
+  const [country, setCountry] = useState(user.country || '');
   const [jobTitle, setJobTitle] = useState(user.jobTitle);
   const [company, setCompany] = useState(user.company);
   const [avatarPreview, setAvatarPreview] = useState(user.avatarUrl || '');
   const [avatarError, setAvatarError] = useState('');
   const [errors, setErrors] = useState({ fullName: '', displayName: '' });
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const [saving, setSaving] = useState(false);
   const fileInputRef = useRef(null);
 
   useEffect(() => {
@@ -814,24 +818,32 @@ function ProfileTab({ user, onSaveProfile }) {
     }
   }
 
-  function handleSave() {
+  async function handleSave() {
     const nextErrors = {
       fullName: fullName.trim() ? '' : 'Full name is required.',
       displayName: displayName.trim() ? '' : 'Display name is required.',
     };
     setErrors(nextErrors);
-
     if (nextErrors.fullName || nextErrors.displayName) return;
 
-    onSaveProfile?.({
-      fullName: fullName.trim(),
-      displayName: displayName.trim(),
-      email: user.email,
-      jobTitle: jobTitle.trim(),
-      company: company.trim(),
-      avatarUrl: avatarPreview || null,
-    });
-    setSaved(true);
+    setSaving(true);
+    setSaveError('');
+    try {
+      await onSaveProfile?.({
+        fullName: fullName.trim(),
+        displayName: displayName.trim(),
+        country: country.trim(),
+        email: user.email,
+        jobTitle: jobTitle.trim(),
+        company: company.trim(),
+        avatarUrl: avatarPreview || null,
+      });
+      setSaved(true);
+    } catch (err) {
+      setSaveError(err.message ?? 'Failed to save profile.');
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -909,17 +921,24 @@ function ProfileTab({ user, onSaveProfile }) {
               <input id="sp-job-title" className="sp-input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
             </div>
           </div>
-          <div className="sp-field" style={{ marginTop: 'var(--space-4)' }}>
-            <label className="sp-label" htmlFor="sp-company">Company name</label>
-            <input id="sp-company" className="sp-input" value={company} onChange={(e) => setCompany(e.target.value)} />
+          <div className="sp-field-row" style={{ marginTop: 'var(--space-4)' }}>
+            <div className="sp-field">
+              <label className="sp-label" htmlFor="sp-country">Country</label>
+              <input id="sp-country" className="sp-input" placeholder="Tunisia" value={country} onChange={(e) => setCountry(e.target.value)} />
+            </div>
+            <div className="sp-field">
+              <label className="sp-label" htmlFor="sp-company">Company name</label>
+              <input id="sp-company" className="sp-input" value={company} onChange={(e) => setCompany(e.target.value)} />
+            </div>
           </div>
         </div>
 
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={handleSave}>Save changes</button>
-          {saved && (
-            <span className="sp-success"><span className="sp-success-dot" />Profile updated</span>
-          )}
+          <button className="sp-btn sp-btn-primary" type="button" onClick={handleSave} disabled={saving}>
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+          {saved && <span className="sp-success"><span className="sp-success-dot" />Profile updated</span>}
+          {saveError && <span className="sp-error">{saveError}</span>}
         </div>
       </section>
     </div>
@@ -1345,67 +1364,75 @@ function DangerZoneTab({ user, onDeleteAccount }) {
   );
 }
 
-export default function SettingsPage({
-  user,
-  onNavigate,
-  onSaveProfile,
-  onChangePassword,
-  onDeleteAccount,
-  onSaveNotifications,
-  onSaveGeneral,
-}) {
+export default function SettingsPage() {
+  const { user, updateProfile, logout } = useAuth();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('Profile');
 
-  const safeUser = user || {
-    id: 'u_1',
-    fullName: 'Marie Ben Salah',
-    displayName: 'marie',
-    email: 'marie@example.com',
-    jobTitle: 'Platform Engineer',
-    company: 'Loonaris',
-    avatarUrl: null,
-    plan: 'pro',
-    createdAt: '2026-01-11T10:00:00Z',
-  };
+  async function handleLogout() {
+    await logout();
+    navigate('/signin');
+  }
+
+  async function handleSaveProfile(fields) {
+    await updateProfile({
+      username: fields.displayName || fields.fullName || undefined,
+      country: fields.country || undefined,
+      photoUrl: fields.avatarUrl ?? undefined,
+    });
+  }
+
+  async function handleDeleteAccount() {
+    await logout();
+    navigate('/signin');
+  }
+
+  const safeUser = user
+    ? {
+        id: user.id,
+        fullName: user.username,
+        displayName: user.username,
+        email: user.email,
+        jobTitle: '',
+        company: '',
+        avatarUrl: user.photoUrl ?? null,
+        country: user.country ?? '',
+        plan: 'free',
+        createdAt: user.createdAt ?? new Date().toISOString(),
+      }
+    : {
+        id: '',
+        fullName: '',
+        displayName: '',
+        email: '',
+        jobTitle: '',
+        company: '',
+        avatarUrl: null,
+        plan: 'free',
+        createdAt: new Date().toISOString(),
+      };
 
   const initials = getInitials(safeUser.fullName || safeUser.displayName || 'U');
 
   function renderTab() {
     if (activeTab === 'Profile') {
-      return <ProfileTab user={safeUser} onSaveProfile={onSaveProfile} />;
+      return <ProfileTab user={safeUser} onSaveProfile={handleSaveProfile} />;
     }
     if (activeTab === 'Security') {
-      return <SecurityTab onChangePassword={onChangePassword} />;
+      return <SecurityTab onChangePassword={() => {}} />;
     }
     if (activeTab === 'General') {
-      return <GeneralTab onSaveGeneral={onSaveGeneral} />;
+      return <GeneralTab onSaveGeneral={() => {}} />;
     }
     if (activeTab === 'Notifications') {
-      return <NotificationsTab onSaveNotifications={onSaveNotifications} />;
+      return <NotificationsTab onSaveNotifications={() => {}} />;
     }
-    return <DangerZoneTab user={safeUser} onDeleteAccount={onDeleteAccount} />;
+    return <DangerZoneTab user={safeUser} onDeleteAccount={handleDeleteAccount} />;
   }
 
   return (
     <section className="sp-page">
       <style>{styles}</style>
-
-      <header className="sp-header">
-        <div className="sp-breadcrumb">Settings</div>
-        <div className="sp-header-right">
-          <button className="sp-icon-btn" type="button" aria-label="Notifications">
-            <BellIcon />
-          </button>
-          <button
-            className="sp-tenant-avatar"
-            type="button"
-            aria-label="Tenant profile"
-            onClick={() => onNavigate?.('settings')}
-          >
-            {initials}
-          </button>
-        </div>
-      </header>
 
       <div className="sp-body">
         <nav className="sp-vertical-nav" aria-label="Settings sections">
