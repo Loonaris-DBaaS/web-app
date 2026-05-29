@@ -9,6 +9,10 @@ on:
       - '.github/workflows/backend-deploy.yml'
   workflow_dispatch:
 
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
 env:
   ECR_REPOSITORY: ahmed-aws/loonaris
 
