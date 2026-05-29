@@ -1,35 +1,45 @@
-import api from './api';
+const API = import.meta.env.VITE_API_URL ?? 'http://localhost:3001';
 
-export async function login(email, password) {
-  const { data } = await api.post('/api/auth/login', { email, password });
-  if (data.data?.accessToken) {
-    localStorage.setItem('accessToken', data.data.accessToken);
+async function request(path, { method = 'GET', body, headers = {} } = {}) {
+  let res;
+  try {
+    res = await fetch(`${API}${path}`, {
+      credentials: 'include',
+      method,
+      headers: { 'Content-Type': 'application/json', ...headers },
+      body,
+    });
+  } catch {
+    throw new Error('Cannot reach the server. Make sure the backend is running on ' + API);
   }
-  return data.data;
-}
 
-export async function signup({ username, email, password, country }) {
-  const { data } = await api.post('/api/auth/signup', { username, email, password, country });
-  if (data.data?.accessToken) {
-    localStorage.setItem('accessToken', data.data.accessToken);
+  const text = await res.text();
+
+  if (!text) {
+    throw new Error(`Server returned an empty response (HTTP ${res.status})`);
   }
-  return data.data;
-}
 
-export async function logout() {
-  await api.post('/api/auth/logout');
-  localStorage.removeItem('accessToken');
-}
-
-export async function refreshAccessToken() {
-  const { data } = await api.post('/api/auth/refresh-token');
-  if (data.data?.accessToken) {
-    localStorage.setItem('accessToken', data.data.accessToken);
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    throw new Error(`Unexpected server response: ${text.slice(0, 120)}`);
   }
+
+  if (!data.success) throw new Error(data.message ?? 'Request failed');
   return data.data;
 }
 
-export async function getProfile() {
-  const { data } = await api.get('/api/auth/profile');
-  return data.data;
+function bearer(token) {
+  return { Authorization: `Bearer ${token}` };
 }
+
+export const authService = {
+  signup:        (body)        => request('/api/auth/signup',        { method: 'POST',  body: JSON.stringify(body) }),
+  login:         (body)        => request('/api/auth/login',         { method: 'POST',  body: JSON.stringify(body) }),
+  logout:        ()            => request('/api/auth/logout',        { method: 'POST' }),
+  refresh:       ()            => request('/api/auth/refresh-token', { method: 'POST' }),
+  getProfile:    (token)       => request('/api/auth/profile',       { headers: bearer(token) }),
+  updateProfile: (token, body) => request('/api/auth/profile',       { method: 'PATCH', body: JSON.stringify(body), headers: bearer(token) }),
+  getClusters:   (token)       => request('/api/clusters',           { headers: bearer(token) }),
+};
