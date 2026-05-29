@@ -20,7 +20,7 @@ app.use(cookieParser());
 // Liveness probe for the ALB target group / ECS — intentionally does NOT touch
 // the DB so the task reports healthy even before RDS is wired up.
 apiRouter.get('/health', (_req: Request, res: Response) => {
-  res.status(200).json({ status: 'ok', message: 'hello world from ci/cd' });
+  res.status(200).json({ status: 'ok', message: 'hello world from ci/cd v2' });
 });
 
 apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));

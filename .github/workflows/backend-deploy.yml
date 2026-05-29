@@ -46,8 +46,8 @@ jobs:
         run: |
           echo "Triggering ECS force-new-deployment…"
           aws ecs update-service \
-            --cluster loonaris-ecs-fargate-cluster \
-            --service loonaris-backend-service-p839kjg4 \
+            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+            --service ${{ vars.ECS_SERVICE_NAME }} \
             --force-new-deployment \
             --region ${{ vars.AWS_REGION }}
 
@@ -55,8 +55,8 @@ jobs:
         run: |
           echo "Waiting for ECS service to reach steady state…"
           aws ecs wait services-stable \
-            --cluster loonaris-ecs-fargate-cluster \
-            --services loonaris-backend-service-p839kjg4 \
+            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+            --services ${{ vars.ECS_SERVICE_NAME }} \
             --region ${{ vars.AWS_REGION }}
           echo "Deployment stable."
 
@@ -64,6 +64,6 @@ jobs:
         run: |
           echo "Checking /api/health…"
           curl -fsSL --retry 5 --retry-delay 10 \
-            http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com/api/health \
+            ${{ vars.ALB_URL }}/api/health \
             -o /tmp/health.json
           cat /tmp/health.json
