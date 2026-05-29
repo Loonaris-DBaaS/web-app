@@ -37,6 +37,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to ECR
+        id: build-push
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -47,14 +48,6 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Get pushed image digest
-        id: image-digest
-        run: |
-          DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' \
-            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }} | cut -d'@' -f2)
-          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
-          echo "Pushed digest: $DIGEST"
 
       - name: Register new task definition revision with exact digest
         id: register-td
@@ -68,20 +61,17 @@ jobs:
 
           echo "Current task definition: $TD_ARN"
 
-          # Copy current TD and update image to exact digest
+          # Copy current TD, strip read-only fields, update image to exact digest
+          DIGEST="${{ steps.build-push.outputs.digest }}"
+          NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${DIGEST}"
+          echo "New image URI: $NEW_IMAGE"
+
           aws ecs describe-task-definition \
             --task-definition "$TD_ARN" \
             --region ${{ vars.AWS_REGION }} \
-            --query 'taskDefinition' > /tmp/taskdef.json
-
-          # Build new container definition with exact digest
-          NEW_IMAGE="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}@${{ steps.image-digest.outputs.digest }}"
-          echo "New image URI: $NEW_IMAGE"
-
-          # Use jq to update image in container definitions
-          cat /tmp/taskdef.json | jq \
+            --query 'taskDefinition' | jq \
             --arg image "$NEW_IMAGE" \
-            '.containerDefinitions[0].image = $image' \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = $image' \
             > /tmp/new-taskdef.json
 
           # Register new revision
@@ -91,6 +81,7 @@ jobs:
             --query 'taskDefinition.taskDefinitionArn' --output text)
 
           echo "new-td-arn=$NEW_TD_ARN" >> $GITHUB_OUTPUT
+          echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "Registered new task definition: $NEW_TD_ARN"
 
       - name: Update ECS service and force deployment
@@ -106,7 +97,7 @@ jobs:
       - name: Wait for deployment and verify digest
         timeout-minutes: 6
         run: |
-          EXPECTED_DIGEST="${{ steps.image-digest.outputs.digest }}"
+          EXPECTED_DIGEST="${{ steps.register-td.outputs.digest }}"
           echo "Waiting for tasks with digest: $EXPECTED_DIGEST"
 
           for i in {1..36}; do
@@ -179,7 +170,7 @@ jobs:
           echo "  DEPLOYMENT SUCCESSFUL"
           echo "═══════════════════════════════════════════════════"
           echo "  Image:     ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.sha }}"
-          echo "  Digest:    ${{ steps.image-digest.outputs.digest }}"
+          echo "  Digest:    ${{ steps.register-td.outputs.digest }}"
           echo "  Task Def:  ${{ steps.register-td.outputs.new-td-arn }}"
           echo "  Cluster:   ${{ vars.ECS_CLUSTER_NAME }}"
           echo "  Service:   ${{ vars.ECS_SERVICE_NAME }}"
