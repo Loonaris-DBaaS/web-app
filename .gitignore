@@ -35,3 +35,6 @@ temp/
 .DS_Store
 .idea/
 .vscode/
+
+.claude/*
+!.claude/CLAUDE.md
