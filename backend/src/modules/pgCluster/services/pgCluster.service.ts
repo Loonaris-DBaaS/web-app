@@ -20,15 +20,10 @@ function parseStorageToGb(storage: string | null | undefined): number {
 }
 
 function inferClusterSize(resourceConfig: ResourceConfig | null | undefined): ClusterSize {
-  switch (resourceConfig?.desiredCpu) {
-    case '1':
-      return 'starter';
-    case '4':
-      return 'scale';
-    case '2':
-    default:
-      return 'pro';
-  }
+  const cpu = resourceConfig?.desiredCpu;
+  return (
+    (Object.entries(SIZE_SPECS).find(([, s]) => s.cpu === cpu)?.[0] as ClusterSize | undefined) ?? 'pro'
+  );
 }
 
 function toDeploymentMultiplier(deploymentOption: DeploymentOption, readReplicas: number): number {
@@ -92,8 +87,6 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
   const multiplier = toDeploymentMultiplier(dto.deploymentOption, replicas);
   const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
 
-  const { status } = await provisionCluster(clusterId, dto);
-
   const row = await prisma.project.create({
     data: {
       id: clusterId,
@@ -104,7 +97,7 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
       pgVersion: dto.pgVersion,
       deploymentOption: dto.deploymentOption,
       estimatedPrice,
-      status,
+      status: 'provisioning',
       resourceConfig: {
         create: {
           desiredReplicas: replicas,
@@ -115,6 +108,11 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
         },
       },
     },
+    include: { resourceConfig: true },
+  });
+
+  provisionCluster(clusterId, dto).catch(async () => {
+    await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
   });
 
   return toDto(row);
@@ -189,8 +187,10 @@ export async function deleteCluster(tenantId: string, clusterId: string): Promis
   const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;
 
-  await deprovisionCluster(row.k8sNamespace);
   await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  deprovisionCluster(row.k8sNamespace).catch(async () => {
+    await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
+  });
 
   return true;
 }

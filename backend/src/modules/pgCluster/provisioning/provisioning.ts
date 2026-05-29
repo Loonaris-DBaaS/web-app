@@ -29,9 +29,9 @@ export async function provisionCluster(
 /**
  * Deletes the CloudNativePG Cluster resource from Kubernetes.
  */
-export async function deprovisionCluster(externalId: string): Promise<void> {
+export async function deprovisionCluster(namespace: string): Promise<void> {
   // TODO: call the Kubernetes API to delete the Cluster CR
-  console.log(`[provisioning] Deleting cluster ${externalId} from CloudNativePG`);
+  console.log(`[provisioning] Deleting cluster in namespace ${namespace} from CloudNativePG`);
 }
 
 /**

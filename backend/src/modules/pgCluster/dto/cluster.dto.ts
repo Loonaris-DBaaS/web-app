@@ -1,4 +1,4 @@
-import { DeploymentOption, PgVersion } from './create-cluster.dto';
+import { ClusterSize, DeploymentOption, PgVersion } from './create-cluster.dto';
 
 export type ProjectStatus = 'provisioning' | 'running' | 'stopped' | 'error' | 'deleting';
 
