@@ -1,25 +1,19 @@
 import { Navigate } from 'react-router-dom';
 import AuthLayout from '../../layouts/AuthLayout';
 import DashboardLayout from '../../layouts/DashboardLayout';
-import Landing from '../../pages/Landing/Landing';
-import SignIn from '../../pages/SignIn/Signin';
-import SignUp from '../../pages/SignUp/Signup';
-import Test from '../../pages/Test/Test';
 import Database from '../../pages/Dashboard/Database';
 import DatabaseDetailPage from '../../pages/Dashboard/DatabaseDetailPage';
 import SettingsPage from '../../pages/Dashboard/SettingsPage';
 import Support from '../../pages/Dashboard/Support';
+import Landing from '../../pages/Landing/Landing';
+import SignIn from '../../pages/SignIn/Signin';
+import SignUp from '../../pages/SignUp/Signup';
+import Test from '../../pages/Test/Test';
 import ProtectedRoute from './ProtectedRoute';
 
 const routes = [
-  {
-    path: '/',
-    element: <Landing />,
-  },
-  {
-    path: '/test',
-    element: <Test />,
-  },
+  { path: '/', element: <Landing /> },
+  { path: '/test', element: <Test /> },
   {
     element: <ProtectedRoute />,
     children: [
@@ -44,4 +38,5 @@ const routes = [
     ],
   },
 ];
+
 export default routes;

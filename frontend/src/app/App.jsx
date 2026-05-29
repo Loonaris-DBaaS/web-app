@@ -1,5 +1,5 @@
 import { RouterProvider } from 'react-router-dom';
-import { AuthProvider } from '/src/hooks/useAuth';
+import { AuthProvider } from '../hooks/useAuth';
 import router from './router';
 
 export default function App() {

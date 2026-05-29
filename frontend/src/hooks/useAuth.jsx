@@ -1,58 +1,77 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import * as authService from '../services/auth.service';
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { authService } from '../services/auth.service';
 
 const AuthContext = createContext(null);
 
+// Access token lives 15 min; refresh silently at 14 min
+const REFRESH_INTERVAL_MS = 14 * 60 * 1000;
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [accessToken, setAccessToken] = useState(null);
   const [loading, setLoading] = useState(true);
+  const timer = useRef(null);
 
-  const loadUser = useCallback(async () => {
-    const token = localStorage.getItem('accessToken');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const profile = await authService.getProfile();
-      setUser(profile);
-    } catch {
-      // token may be expired; silent refresh will be handled by api interceptor
-      setUser(null);
-    } finally {
-      setLoading(false);
-    }
+  function scheduleRefresh(token) {
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      try {
+        const data = await authService.refresh();
+        setAccessToken(data.accessToken);
+        scheduleRefresh(data.accessToken);
+      } catch {
+        setUser(null);
+        setAccessToken(null);
+      }
+    }, REFRESH_INTERVAL_MS);
+  }
+
+  // Recover session from httpOnly refresh-token cookie on mount
+  useEffect(() => {
+    authService
+      .refresh()
+      .then(async (data) => {
+        setAccessToken(data.accessToken);
+        const profile = await authService.getProfile(data.accessToken);
+        setUser(profile);
+        scheduleRefresh(data.accessToken);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+
+    return () => clearTimeout(timer.current);
   }, []);
 
-  useEffect(() => {
-    loadUser();
-  }, [loadUser]);
-
-  const login = async (email, password) => {
-    const data = await authService.login(email, password);
-    setUser(data);
+  const login = useCallback(async (email, password) => {
+    const data = await authService.login({ email, password });
+    setAccessToken(data.accessToken);
+    setUser({ id: data.id, username: data.username, email: data.email, country: data.country, jobTitle: data.jobTitle, company: data.company, photoUrl: data.photoUrl });
+    scheduleRefresh(data.accessToken);
     return data;
-  };
+  }, []);
 
-  const signup = async (form) => {
-    const data = await authService.signup(form);
-    setUser(data);
-    return data;
-  };
+  const signup = useCallback(async (fields) => {
+    return authService.signup(fields);
+  }, []);
 
-  const logout = async () => {
-    try {
-      await authService.logout();
-    } catch {
-      // ignore network errors on logout
-    }
-    localStorage.removeItem('accessToken');
+  const logout = useCallback(async () => {
+    clearTimeout(timer.current);
+    await authService.logout().catch(() => {});
     setUser(null);
-  };
+    setAccessToken(null);
+  }, []);
 
-  const value = { user, loading, login, signup, logout, isAuthenticated: !!user };
+  const updateProfile = useCallback(async (fields) => {
+    const updated = await authService.updateProfile(accessToken, fields);
+    setUser((prev) => ({ ...prev, ...updated }));
+    return updated;
+  }, [accessToken]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, accessToken, loading, login, signup, logout, updateProfile }}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

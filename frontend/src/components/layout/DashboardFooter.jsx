@@ -9,7 +9,7 @@ export default function DashboardFooter({
   //     { label: 'Security', href: '/security' },
   //   ]}
   // /> 
-  companyName = 'Loonaris Cloud',
+  companyName = 'Loonaris',
   year = new Date().getFullYear(),
   links = [
     { label: 'Privacy Policy', href: '#' },
@@ -21,12 +21,11 @@ export default function DashboardFooter({
     <footer style={{
       width: '100%',
       padding: 'var(--space-10) var(--space-8)',
-      borderTop: '1px solid var(--outline-variant)',
       background: 'var(--surface-container-lowest)',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      gap: 'var(--space-4)',
+      justifyContent: 'space-between',
     }}>
 
       {/* Links */}
