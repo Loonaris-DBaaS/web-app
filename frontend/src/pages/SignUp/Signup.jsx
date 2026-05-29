@@ -1,7 +1,30 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import './Signup.css';
 
 export default function SignUp() {
+  const navigate = useNavigate();
+  const { signup } = useAuth();
+
+  const [form, setForm] = useState({ username: '', email: '', password: '', country: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await signup(form);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Signup failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="signup">
       {/* Free-tier badge */}
@@ -24,18 +47,26 @@ export default function SignUp() {
           </p>
         </div>
 
-        <form className="signup__form">
+        {error && (
+          <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form className="signup__form" onSubmit={handleSubmit}>
           <div className="signup__field">
-            <label htmlFor="name" className="signup__label label-md">
-              Full Name
+            <label htmlFor="username" className="signup__label label-md">
+              Username
             </label>
             <input
-              id="name"
-              name="name"
+              id="username"
+              name="username"
               type="text"
               required
-              placeholder="Alex Rivera"
+              placeholder="alexrivera"
               className="signup__input"
+              value={form.username}
+              onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
             />
           </div>
 
@@ -50,6 +81,8 @@ export default function SignUp() {
               required
               placeholder="alex@example.com"
               className="signup__input"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
             />
           </div>
 
@@ -64,11 +97,13 @@ export default function SignUp() {
               required
               placeholder="••••••••••••"
               className="signup__input"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
             />
           </div>
 
-          <button type="submit" className="signup__btn-primary gradient-primary">
-            Create account
+          <button type="submit" className="signup__btn-primary gradient-primary" disabled={loading}>
+            {loading ? 'Creating account…' : 'Create account'}
           </button>
         </form>
 

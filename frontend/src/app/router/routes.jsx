@@ -9,6 +9,7 @@ import Database from '../../pages/Dashboard/Database';
 import DatabaseDetailPage from '../../pages/Dashboard/DatabaseDetailPage';
 import SettingsPage from '../../pages/Dashboard/SettingsPage';
 import Support from '../../pages/Dashboard/Support';
+import ProtectedRoute from './ProtectedRoute';
 
 const routes = [
   {
@@ -16,18 +17,23 @@ const routes = [
     element: <Landing />,
   },
   {
-    path:'/test',
-    element:<Test />,
+    path: '/test',
+    element: <Test />,
   },
   {
-    path: '/dashboard',
-    element: <DashboardLayout />,
+    element: <ProtectedRoute />,
     children: [
-      { index: true, element: <Navigate to="/dashboard/databases" replace /> },
-      { path: 'databases', element: <Database /> },
-      { path: 'databases/:databaseId', element: <DatabaseDetailPage /> },
-      { path: 'settings', element: <SettingsPage /> },
-      { path: 'support', element: <Support /> },
+      {
+        path: '/dashboard',
+        element: <DashboardLayout />,
+        children: [
+          { index: true, element: <Navigate to="/dashboard/databases" replace /> },
+          { path: 'databases', element: <Database /> },
+          { path: 'databases/:databaseId', element: <DatabaseDetailPage /> },
+          { path: 'settings', element: <SettingsPage /> },
+          { path: 'support', element: <Support /> },
+        ],
+      },
     ],
   },
   {

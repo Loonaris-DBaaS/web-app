@@ -1,7 +1,30 @@
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
 import './Signin.css';
 
 export default function SignIn() {
+  const navigate = useNavigate();
+  const { login } = useAuth();
+
+  const [form, setForm] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      await login(form.email, form.password);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div className="signin">
       {/* Brand Header */}
@@ -19,7 +42,13 @@ export default function SignIn() {
           <p className="body-md">Enter your details to access your databases.</p>
         </div>
 
-        <form className="signin__form">
+        {error && (
+          <div style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.875rem' }}>
+            {error}
+          </div>
+        )}
+
+        <form className="signin__form" onSubmit={handleSubmit}>
           {/* Email */}
           <div className="signin__field">
             <label htmlFor="email" className="signin__label label-md">
@@ -31,6 +60,9 @@ export default function SignIn() {
               type="email"
               placeholder="name@company.com"
               className="signin__input"
+              value={form.email}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+              required
             />
           </div>
 
@@ -50,12 +82,15 @@ export default function SignIn() {
               type="password"
               placeholder="••••••••"
               className="signin__input"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+              required
             />
           </div>
 
           {/* Submit */}
-          <button type="submit" className="signin__btn-primary gradient-primary">
-            Sign in to Loonaris
+          <button type="submit" className="signin__btn-primary gradient-primary" disabled={loading}>
+            {loading ? 'Signing in…' : 'Sign in to Loonaris'}
           </button>
         </form>
 
