@@ -154,8 +154,8 @@ This script:
 - **Launch Type:** `FARGATE`
 - **Desired Count:** `2`
 - **Platform Version:** `LATEST` (currently `1.4.0`)
-- **Task Definition Family:** `loonaris-backend` (currently revision `9`)
-- **Active Task Definition ARN:** `arn:aws:ecs:eu-west-3:474741569968:task-definition/loonaris-backend:9`
+- **Task Definition Family:** `loonaris-backend` (currently revision `10`)
+- **Active Task Definition ARN:** `arn:aws:ecs:eu-west-3:474741569968:task-definition/loonaris-backend:10`
 - **Deployment Controller:** `ECS` with circuit breaker + rollback enabled
 - **Maximum Percent:** `200`
 - **Minimum Healthy Percent:** `100`
@@ -197,7 +197,7 @@ This script:
 | `JWT_REFRESH_SECRET` | `737983783_Qhgdhd` |
 | `CORS_ORIGIN` | `https://loonaris.tech,http://lonaris.tech` |
 
-> The task definition image must reference `:latest`, not a pinned digest. If it ever gets pinned to a digest (e.g. `@sha256:...`), `force-new-deployment` will reuse the old image even if ECR `latest` is overwritten. Re-register the task definition with `:latest` if that happens.
+> The CI/CD pipeline registers a **new task definition revision on every deploy** with the image pinned to the exact digest (`@sha256:...`) that was just pushed. This is the correct approach — never rely on `:latest` tag resolution in ECS because Fargate caches it. If you need to deploy manually, always register a new revision with the exact digest, not `:latest`.
 
 ---
 
