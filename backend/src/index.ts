@@ -24,9 +24,9 @@ app.get('/health', (_req: Request, res: Response) => {
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
-app.use('/auth', authRoutes);
-app.use('/clusters', pgClusterRoutes);
-app.use('/test', testAppRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/clusters', pgClusterRoutes);
+app.use('/api/test', testAppRoutes);
 
 // Global error handler
 app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Request, res: Response, _next: NextFunction) => {

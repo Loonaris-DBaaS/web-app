@@ -72,7 +72,7 @@ export const openApiSpec = {
     },
   },
   paths: {
-    '/auth/signup': {
+    '/api/auth/signup': {
       post: {
         tags: ['Auth'],
         summary: 'Register a new user',
@@ -86,7 +86,7 @@ export const openApiSpec = {
         },
       },
     },
-    '/auth/login': {
+    '/api/auth/login': {
       post: {
         tags: ['Auth'],
         summary: 'Login with email and password',
@@ -100,7 +100,7 @@ export const openApiSpec = {
         },
       },
     },
-    '/auth/refresh-token': {
+    '/api/auth/refresh-token': {
       post: {
         tags: ['Auth'],
         summary: 'Refresh access token (reads refreshToken cookie)',
@@ -110,14 +110,14 @@ export const openApiSpec = {
         },
       },
     },
-    '/auth/logout': {
+    '/api/auth/logout': {
       post: {
         tags: ['Auth'],
         summary: 'Logout and revoke refresh token',
         responses: { '200': { description: 'Logged out' } },
       },
     },
-    '/auth/profile': {
+    '/api/auth/profile': {
       get: {
         tags: ['Auth'],
         summary: 'Get current user profile',
@@ -148,7 +148,7 @@ export const openApiSpec = {
         responses: { '200': { description: 'Updated profile' }, '401': { description: 'Unauthorized' } },
       },
     },
-    '/auth/account': {
+    '/api/auth/account': {
       delete: {
         tags: ['Auth'],
         summary: 'Delete account',
@@ -156,7 +156,7 @@ export const openApiSpec = {
         responses: { '200': { description: 'Account deleted' }, '401': { description: 'Unauthorized' } },
       },
     },
-    '/test': {
+    '/api/test': {
       get: {
         tags: ['TestApp'],
         summary: 'List all test entries',
@@ -172,7 +172,7 @@ export const openApiSpec = {
         responses: { '201': { description: 'Created' } },
       },
     },
-    '/test/{id}': {
+    '/api/test/{id}': {
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'integer' } }],
       get: {
         tags: ['TestApp'],
