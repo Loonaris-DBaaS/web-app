@@ -16,11 +16,17 @@ app.use(cors({ origin: allowedOrigins, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
+// Liveness probe for the ALB target group / ECS — intentionally does NOT touch
+// the DB so the task reports healthy even before RDS is wired up.
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok' });
+});
+
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 
-app.use('/auth', authRoutes);
-app.use('/clusters', pgClusterRoutes);
-app.use('/test', testAppRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/clusters', pgClusterRoutes);
+app.use('/api/test', testAppRoutes);
 
 // Global error handler
 app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Request, res: Response, _next: NextFunction) => {
