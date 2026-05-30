@@ -1,4 +1,4 @@
-import { ClusterSize, DeploymentOption, PgVersion } from './create-cluster.dto';
+import { ClusterSize, PgVersion } from './create-cluster.dto';
 
 export type ProjectStatus = 'provisioning' | 'running' | 'stopped' | 'error' | 'deleting';
 
@@ -10,12 +10,11 @@ export interface ClusterDto {
   region: string;
   pgVersion: PgVersion;
   size: ClusterSize;
-  deploymentOption: DeploymentOption;
+  instances: number;
   status: ProjectStatus;
   cpu: string;
   ram: string;
   storage: string;
-  readReplicas: number;
   backup: boolean;
   autoscale: boolean;
   storageUsedGb: number;

@@ -8,7 +8,6 @@ export const REGIONS = [
 
 export const DEPLOYMENT_OPTIONS = [
   { id: 'multi-az-cluster',   name: 'Multi-AZ cluster',   details: 'RW + RO endpoints', description: 'Primary + read replicas across AZs.' },
-  { id: 'multi-az-instance',  name: 'Multi-AZ instance',  details: 'RW endpoint only',  description: 'Primary + standby replica for failover.' },
   { id: 'single-az-instance', name: 'Single-AZ instance', details: 'RW endpoint only',  description: 'Single instance without standby.' },
 ];
 
@@ -19,12 +18,6 @@ export const SIZES = [
   { id: 'pro',     name: 'Pro',     cpu: '2 vCPU', ram: '4 GB RAM',  storage: '50 GB SSD',  price: 79  },
   { id: 'scale',   name: 'Scale',   cpu: '4 vCPU', ram: '16 GB RAM', storage: '200 GB SSD', price: 199 },
 ];
-
-export const DEPLOYMENT_OPTION_MAP = {
-  'multi-az-cluster':   'MULTI_AZ_CLUSTER',
-  'multi-az-instance':  'MULTI_AZ_INSTANCE',
-  'single-az-instance': 'SINGLE_AZ_INSTANCE',
-};
 
 export const SIZE_DEFAULTS = {
   starter: { cpu: 1, ram: 2,  storage: 10  },

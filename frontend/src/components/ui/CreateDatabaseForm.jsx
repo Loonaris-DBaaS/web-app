@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { clusterService } from '../../services/api';
-import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES, DEPLOYMENT_OPTION_MAP } from '../../constants/database';
+import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -512,13 +512,8 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const size = SIZES.find((s) => s.id === selectedSize);
   const baseCost = size ? size.price : 79;
   const replicasCount = Number(readReplicas);
-  const deploymentMultiplier =
-    deploymentOption === "multi-az-cluster"
-      ? 1 + replicasCount
-      : deploymentOption === "multi-az-instance"
-        ? 2
-        : 1;
-  const totalCost = baseCost * deploymentMultiplier + (backup ? 5 : 0);
+  const instances = deploymentOption === "multi-az-cluster" ? replicasCount + 1 : 1;
+  const totalCost = baseCost * instances + (backup ? 5 : 0);
 
   const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
   const baseHost = `${previewName}.${region}.db.ourplatform.com`;
@@ -553,16 +548,14 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       region,
       pgVersion,
       size: selectedSize,
-      deploymentOption: DEPLOYMENT_OPTION_MAP[deploymentOption],
-      readReplicas: deploymentOption === "multi-az-cluster" ? replicasCount : 0,
+      instances,
       backup,
-      };
+    };
       try {
         await clusterService.createCluster(payload);
         setStatus("success");
         setToastVisible(true);
-        setTimeout(() => setToastVisible(false), 4000);
-        onSubmit?.();
+        setTimeout(() => { onSubmit?.(); }, 1800);
       } catch (err) {
         setStatus("idle");
     }

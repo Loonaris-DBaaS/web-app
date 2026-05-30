@@ -37,7 +37,7 @@ function toRow(project) {
     status: STATUS_MAP[project.status] ?? project.status,
     postgresVersion: project.pgVersion,
     region: project.region,
-    replicas: project.readReplicas ?? 0,
+    instances: project.instances ?? 1,
     storageUsedGb: project.storageUsage ?? 0,
   };
 }
@@ -49,13 +49,16 @@ export default function Database() {
   const [query, setQuery] = useState('');
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
-  useEffect(() => {
+  function fetchDatabases() {
     clusterService
       .getClusters()
       .then((data) => setDatabases((data ?? []).map(toRow)))
       .catch((err) => setFetchError(err.message));
-  }, []);
+  }
+
+  useEffect(() => { fetchDatabases(); }, []);
 
   const filteredDatabases = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -82,7 +85,8 @@ export default function Database() {
           buttonOnClick={() => setShowCreateForm(true)}
         />
 
-        {fetchError && <p className="body-sm" style={{ color: 'var(--error)', marginBottom: 'var(--space-4)' }}>{fetchError}</p>}
+        {fetchError  && <p className="body-sm" style={{ color: 'var(--error)',   marginBottom: 'var(--space-4)' }}>{fetchError}</p>}
+        {successMsg  && <p className="body-sm" style={{ color: 'var(--primary)', marginBottom: 'var(--space-4)', fontWeight: 600 }}>{successMsg}</p>}
 
         <div className="databases-stats-grid">
           <StorageUtilizationCard
@@ -117,7 +121,12 @@ export default function Database() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowCreateForm(false); }}
         >
           <CreateDatabaseForm
-            onSubmit={() => setShowCreateForm(false)}
+            onSubmit={() => {
+              setShowCreateForm(false);
+              fetchDatabases();
+              setSuccessMsg('Database created — provisioning in progress.');
+              setTimeout(() => setSuccessMsg(''), 5000);
+            }}
             onCancel={() => setShowCreateForm(false)}
           />
         </div>

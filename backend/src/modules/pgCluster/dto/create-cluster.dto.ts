@@ -1,14 +1,12 @@
 export type PgVersion = '16' | '17' | '18';
 export type ClusterSize = 'starter' | 'pro' | 'scale';
-export type DeploymentOption = 'MULTI_AZ_CLUSTER' | 'MULTI_AZ_INSTANCE' | 'SINGLE_AZ_INSTANCE';
 
 export interface CreateClusterDto {
   name: string;
   region: string;
   pgVersion: PgVersion;
   size: ClusterSize;
-  deploymentOption: DeploymentOption;
-  readReplicas?: number;
+  instances: number;
   backup?: boolean;
 }
 

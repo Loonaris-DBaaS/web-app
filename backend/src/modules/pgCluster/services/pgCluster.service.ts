@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import prisma from '@/lib/prisma';
 import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
-import { CreateClusterDto, SIZE_SPECS, DeploymentOption, type ClusterSize } from '../dto/create-cluster.dto';
+import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
@@ -17,10 +17,7 @@ function toGiSuffix(value: string | number): string {
 }
 
 function parseStorageToGb(storage: string | null | undefined): number {
-  if (!storage) {
-    return 0;
-  }
-
+  if (!storage) return 0;
   const match = storage.match(/(\d+(?:\.\d+)?)/);
   return match ? Number(match[1]) : 0;
 }
@@ -32,21 +29,8 @@ function inferClusterSize(resourceConfig: ResourceConfig | null | undefined): Cl
   );
 }
 
-function toDeploymentMultiplier(deploymentOption: DeploymentOption, readReplicas: number): number {
-  if (deploymentOption === 'MULTI_AZ_CLUSTER') {
-    return 1 + readReplicas;
-  }
-
-  if (deploymentOption === 'MULTI_AZ_INSTANCE') {
-    return 2;
-  }
-
-  return 1;
-}
-
 function toDto(p: ProjectWithResourceConfig): ClusterDto {
   const resourceConfig = p.resourceConfig;
-  const readReplicas = resourceConfig?.desiredReplicas ?? 1;
   const size = inferClusterSize(resourceConfig);
 
   return {
@@ -57,12 +41,11 @@ function toDto(p: ProjectWithResourceConfig): ClusterDto {
     region: p.region,
     pgVersion: p.pgVersion as ClusterDto['pgVersion'],
     size,
-    deploymentOption: p.deploymentOption as DeploymentOption,
+    instances: resourceConfig?.instances ?? 1,
     status: p.status as ClusterDto['status'],
     cpu: resourceConfig?.desiredCpu ?? '',
     ram: resourceConfig?.desiredRam ?? '',
     storage: resourceConfig?.desiredStorage ?? '',
-    readReplicas,
     backup: resourceConfig?.enableBackup ?? false,
     autoscale: resourceConfig?.enableAutoscale ?? false,
     storageUsedGb: Number(p.storageUsage ?? 0),
@@ -96,14 +79,8 @@ export async function createCluster(
   const clusterId = randomUUID();
   const namespace = `project-${clusterId}`;
   const specs = SIZE_SPECS[dto.size];
-  const replicas = dto.readReplicas ?? 1;
-  const multiplier =
-    dto.deploymentOption === 'MULTI_AZ_CLUSTER'
-      ? 1 + replicas
-      : dto.deploymentOption === 'MULTI_AZ_INSTANCE'
-        ? 2
-        : 1;
-  const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
+  const instances = dto.instances ?? 1;
+  const estimatedPrice = specs.price * instances + (dto.backup ? 5 : 0);
 
   const baseKey = generateBaseKey();
   const keyHash = sha256Hex(baseKey);
@@ -123,12 +100,11 @@ export async function createCluster(
       k8sNamespace: namespace,
       region: dto.region,
       pgVersion: dto.pgVersion,
-      deploymentOption: dto.deploymentOption,
       estimatedPrice,
       status: provStatus,
       resourceConfig: {
         create: {
-          desiredReplicas: replicas,
+          instances,
           enableBackup: dto.backup ?? true,
           enableAutoscale: dto.size === 'scale',
           desiredStorage: specs.storage,
@@ -154,7 +130,12 @@ export async function createCluster(
     },
   });
 
-  return { ...toDto(row), apiKey };
+  const created = await prisma.project.findFirstOrThrow({
+    where: { id: row.id },
+    include: { resourceConfig: true },
+  });
+
+  return { ...toDto(created), apiKey };
 }
 
 export async function updateCluster(
@@ -167,17 +148,13 @@ export async function updateCluster(
     include: { resourceConfig: true },
   });
 
-  if (!row) {
-    return null;
-  }
+  if (!row) return null;
 
-  const nextDeploymentOption = dto.deploymentOption ?? (row.deploymentOption as DeploymentOption);
-  const nextReadReplicas = dto.readReplicas ?? row.resourceConfig?.desiredReplicas ?? 1;
+  const nextInstances = dto.instances ?? row.resourceConfig?.instances ?? 1;
   const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
   const nextCpu = dto.cpu ?? row.resourceConfig?.desiredCpu ?? '2';
   const estimatedPrice =
-    SIZE_SPECS[inferClusterSize({ ...row.resourceConfig, desiredCpu: nextCpu } as any)].price *
-      toDeploymentMultiplier(nextDeploymentOption, nextReadReplicas) +
+    SIZE_SPECS[inferClusterSize({ ...row.resourceConfig, desiredCpu: nextCpu } as any)].price * nextInstances +
     (nextBackup ? 5 : 0);
 
   const shouldReconcile =
@@ -185,8 +162,7 @@ export async function updateCluster(
     dto.ram !== undefined ||
     dto.storage !== undefined ||
     dto.pgVersion !== undefined ||
-    dto.deploymentOption !== undefined ||
-    dto.readReplicas !== undefined;
+    dto.instances !== undefined;
 
   const updated = await prisma.project.update({
     where: { id: clusterId },
@@ -194,26 +170,25 @@ export async function updateCluster(
       ...(dto.name !== undefined ? { name: dto.name } : {}),
       ...(dto.region !== undefined ? { region: dto.region } : {}),
       ...(dto.pgVersion !== undefined ? { pgVersion: dto.pgVersion } : {}),
-      ...(dto.deploymentOption !== undefined ? { deploymentOption: dto.deploymentOption } : {}),
       estimatedPrice,
       ...(shouldReconcile ? { status: 'provisioning' } : {}),
       resourceConfig: row.resourceConfig
         ? {
             update: {
+              ...(dto.instances !== undefined ? { instances: nextInstances } : {}),
               ...(dto.cpu !== undefined ? { desiredCpu: String(dto.cpu) } : {}),
               ...(dto.ram !== undefined ? { desiredRam: toGiSuffix(dto.ram) } : {}),
               ...(dto.storage !== undefined ? { desiredStorage: toGiSuffix(dto.storage) } : {}),
-              ...(dto.readReplicas !== undefined ? { desiredReplicas: nextReadReplicas } : {}),
               ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
               ...(dto.autoscale !== undefined ? { enableAutoscale: dto.autoscale } : {}),
             },
           }
         : {
             create: {
+              instances: nextInstances,
               desiredCpu: nextCpu,
-              desiredRam: dto.ram ?? '4Gi',
-              desiredStorage: dto.storage ?? '50Gi',
-              desiredReplicas: nextReadReplicas,
+              desiredRam: dto.ram ? toGiSuffix(dto.ram) : '4Gi',
+              desiredStorage: dto.storage ? toGiSuffix(dto.storage) : '50Gi',
               enableBackup: nextBackup,
               enableAutoscale: false,
             },

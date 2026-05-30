@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clusterService } from '../../services/api';
-import { DEPLOYMENT_OPTION_MAP } from '../../constants/database';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import ConnectionParameters from '../../components/ui/ConnectionParameters';
@@ -21,18 +20,19 @@ const styles = `
 
 function toDb(d) {
   return {
-    id:           d.id,
-    name:         d.name,
-    region:       d.region,
-    pgVersion:    d.pgVersion,
-    size:         d.size,
-    status:       d.status,
-    ha:           d.deploymentOption === 'MULTI_AZ_CLUSTER',
-    backup:       d.backup,
-    autoscale:    d.autoscale,
-    readReplicas: d.readReplicas,
-    createdAt:    d.createdAt,
-    instances:    d.instances ?? [],
+    id:        d.id,
+    name:      d.name,
+    region:    d.region,
+    pgVersion: d.pgVersion,
+    size:      d.size,
+    status:    d.status,
+    instances: d.instances ?? 1,
+    cpu:       d.cpu,
+    ram:       d.ram,
+    storage:   d.storage,
+    backup:    d.backup,
+    autoscale: d.autoscale,
+    createdAt: d.createdAt,
   };
 }
 
@@ -91,10 +91,7 @@ export default function DatabaseDetailPage({
     setActionError('');
     setSuccessMsg('');
     try {
-      const res = await clusterService.updateCluster(id, {
-        ...payload,
-        deploymentOption: DEPLOYMENT_OPTION_MAP[payload.deploymentOption] ?? payload.deploymentOption,
-      });
+      const res = await clusterService.updateCluster(id, payload);
       setDb(toDb(res.data));
       setSuccessMsg('Changes applied successfully.');
     } catch (err) {

@@ -23,7 +23,7 @@ export default function DatabasesTable({ rows, onViewDetails }) {
               <th>Status</th>
               <th>Postgres version</th>
               <th>Region</th>
-              <th>Replicas</th>
+              <th>Instances</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -43,7 +43,7 @@ export default function DatabasesTable({ rows, onViewDetails }) {
                   </td>
                   <td className="body-md">{db.postgresVersion}</td>
                   <td className="body-md">{db.region}</td>
-                  <td className="body-md">{db.replicas}</td>
+                  <td className="body-md">{db.instances}</td>
                   <td>
                     <Button
                       text="View details"

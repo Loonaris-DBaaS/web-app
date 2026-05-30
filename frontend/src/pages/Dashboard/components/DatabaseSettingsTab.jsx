@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Button from '../../../components/ui/Button';
-import { REGIONS, DEPLOYMENT_OPTIONS, SIZE_DEFAULTS, DEPLOYMENT_OPTION_MAP } from '../../../constants/database';
+import { REGIONS, DEPLOYMENT_OPTIONS, SIZE_DEFAULTS } from '../../../constants/database';
 
 
 const TARGET_VERSIONS = [
@@ -76,12 +76,12 @@ export default function DatabaseSettingsTab({
 }) {
   const sizeDefaults = SIZE_DEFAULTS[database.size] || SIZE_DEFAULTS.pro;
 
-  const [cpu, setCpu]                       = useState(sizeDefaults.cpu);
-  const [ram, setRam]                       = useState(sizeDefaults.ram);
-  const [storage, setStorage]               = useState(sizeDefaults.storage);
+  const [cpu, setCpu]       = useState(parseFloat(database.cpu)     || sizeDefaults.cpu);
+  const [ram, setRam]       = useState(parseFloat(database.ram)     || sizeDefaults.ram);
+  const [storage, setStorage] = useState(parseFloat(database.storage) || sizeDefaults.storage);
   const [region, setRegion]                 = useState(database.region || 'us-east-1');
-  const [deploymentOption, setDeployment]   = useState(database.ha ? 'multi-az-cluster' : 'single-az-instance');
-  const [readReplicas, setReadReplicas]     = useState(String(database.readReplicas ?? 1));
+  const [deploymentOption, setDeployment]   = useState(database.instances > 1 ? 'multi-az-cluster' : 'single-az-instance');
+  const [readReplicas, setReadReplicas]     = useState(String(database.instances > 1 ? database.instances - 1 : 1));
   const [backup, setBackup]                 = useState(database.backup ?? true);
   const [maxConnections, setMaxConnections] = useState(100);
   const [autoscale, setAutoscale]           = useState(database.autoscale ?? false);
@@ -309,7 +309,19 @@ export default function DatabaseSettingsTab({
           <Button
             text="Apply Changes"
             variant="primary"
-            onClick={() => onResize(database.id, { cpu, ram, storage, region, deploymentOption: DEPLOYMENT_OPTION_MAP[deploymentOption], readReplicas: deploymentOption === 'multi-az-cluster' ? Number(readReplicas) : 0, backup, autoscale, maxConnections, name: dbNameInput })}
+            onClick={() => {
+              const computedInstances = deploymentOption === 'multi-az-cluster' ? Number(readReplicas) + 1 : 1;
+              const payload = {};
+              if (dbNameInput !== database.name)                          payload.name      = dbNameInput;
+              if (region !== database.region)                             payload.region    = region;
+              if (computedInstances !== database.instances)               payload.instances = computedInstances;
+              if (Number(cpu)     !== parseFloat(database.cpu))           payload.cpu       = cpu;
+              if (Number(ram)     !== parseFloat(database.ram))           payload.ram       = ram;
+              if (Number(storage) !== parseFloat(database.storage))       payload.storage   = storage;
+              if (backup    !== database.backup)                          payload.backup    = backup;
+              if (autoscale !== database.autoscale)                       payload.autoscale = autoscale;
+              if (Object.keys(payload).length > 0) onResize(database.id, payload);
+            }}
           />
         </div>
       </article>
