@@ -35,7 +35,7 @@ export async function show(req: Request, res: Response, next: NextFunction) {
 export async function create(req: Request, res: Response, next: NextFunction) {
   const dto = req.body as CreateClusterDto;
 
-  if (!dto.name || !dto.region || !dto.pgVersion || !dto.size || !dto.instances) {
+  if (!dto.name || !dto.region || !dto.pgVersion || !dto.size) {
     res.status(400).json({ error: 'Missing required fields' });
     return;
   }

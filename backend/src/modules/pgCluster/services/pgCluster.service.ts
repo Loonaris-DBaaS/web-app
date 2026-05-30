@@ -89,9 +89,6 @@ export async function createCluster(
   const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
   const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
 
-  // const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
-  const provStatus = 'running' as const;
-
   const row = await prisma.project.create({
     data: {
       id: clusterId,
@@ -101,7 +98,7 @@ export async function createCluster(
       region: dto.region,
       pgVersion: dto.pgVersion,
       estimatedPrice,
-      status: provStatus,
+      status: 'provisioning',
       resourceConfig: {
         create: {
           instances,
@@ -129,6 +126,14 @@ export async function createCluster(
       },
     },
   });
+
+  provisionCluster(clusterId, namespace, dto)
+    .then(async ({ status }) => {
+      await prisma.project.update({ where: { id: clusterId }, data: { status } });
+    })
+    .catch(async () => {
+      await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
+    });
 
   const created = await prisma.project.findFirstOrThrow({
     where: { id: row.id },

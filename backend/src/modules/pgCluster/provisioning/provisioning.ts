@@ -57,7 +57,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
     kind: 'Cluster',
     metadata: { name: 'instance-db', namespace },
     spec: {
-      instances: 2,
+      instances: dto.instances ?? 1,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
       tolerations: [{ key: 'dedicated', operator: 'Equal', value: 'tenant', effect: 'NoSchedule' }],
