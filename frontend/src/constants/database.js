@@ -20,6 +20,12 @@ export const SIZES = [
   { id: 'scale',   name: 'Scale',   cpu: '4 vCPU', ram: '16 GB RAM', storage: '200 GB SSD', price: 199 },
 ];
 
+export const DEPLOYMENT_OPTION_MAP = {
+  'multi-az-cluster':   'MULTI_AZ_CLUSTER',
+  'multi-az-instance':  'MULTI_AZ_INSTANCE',
+  'single-az-instance': 'SINGLE_AZ_INSTANCE',
+};
+
 export const SIZE_DEFAULTS = {
   starter: { cpu: 1, ram: 2,  storage: 10  },
   pro:     { cpu: 2, ram: 4,  storage: 50  },

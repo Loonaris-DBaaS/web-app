@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import Button from '../../../components/ui/Button';
-import { REGIONS, DEPLOYMENT_OPTIONS, SIZE_DEFAULTS } from '../../../constants/database';
+import { REGIONS, DEPLOYMENT_OPTIONS, SIZE_DEFAULTS, DEPLOYMENT_OPTION_MAP } from '../../../constants/database';
 
 
 const TARGET_VERSIONS = [
@@ -81,10 +81,10 @@ export default function DatabaseSettingsTab({
   const [storage, setStorage]               = useState(sizeDefaults.storage);
   const [region, setRegion]                 = useState(database.region || 'us-east-1');
   const [deploymentOption, setDeployment]   = useState(database.ha ? 'multi-az-cluster' : 'single-az-instance');
-  const [readReplicas, setReadReplicas]     = useState('1');
+  const [readReplicas, setReadReplicas]     = useState(String(database.readReplicas ?? 1));
   const [backup, setBackup]                 = useState(database.backup ?? true);
   const [maxConnections, setMaxConnections] = useState(100);
-  const [autoscale, setAutoscale]           = useState(true);
+  const [autoscale, setAutoscale]           = useState(database.autoscale ?? false);
   const [deleteText, setDeleteText]         = useState('');
 
   const canDelete = deleteText === database.name;
@@ -309,7 +309,7 @@ export default function DatabaseSettingsTab({
           <Button
             text="Apply Changes"
             variant="primary"
-            onClick={() => onResize(database.id, { cpu, ram, storage, region, deploymentOption, readReplicas: deploymentOption === 'multi-az-cluster' ? Number(readReplicas) : 0, backup, maxConnections, name: dbNameInput })}
+            onClick={() => onResize(database.id, { cpu, ram, storage, region, deploymentOption: DEPLOYMENT_OPTION_MAP[deploymentOption], readReplicas: deploymentOption === 'multi-az-cluster' ? Number(readReplicas) : 0, backup, autoscale, maxConnections, name: dbNameInput })}
           />
         </div>
       </article>

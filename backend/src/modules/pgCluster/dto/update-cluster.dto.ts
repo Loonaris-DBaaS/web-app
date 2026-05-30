@@ -10,4 +10,5 @@ export interface UpdateClusterDto {
   storage?: string;
   readReplicas?: number;
   backup?: boolean;
+  autoscale?: boolean;
 }

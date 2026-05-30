@@ -47,7 +47,10 @@ api.interceptors.response.use(
 );
 export const clusterService = {
   getClusters: () => api.get('/api/clusters').then((res) => res.data.data),
+  getCluster:   (id)    => api.get(`/api/clusters/${id}`).then(res => res.data),
   createCluster: (body)  => api.post('/api/clusters', body).then(res => res.data),
+  updateCluster: (id, body) => api.patch(`/api/clusters/${id}`, body).then(res => res.data),
+  deleteCluster: (id)       => api.delete(`/api/clusters/${id}`),
 
 };
 export default api;

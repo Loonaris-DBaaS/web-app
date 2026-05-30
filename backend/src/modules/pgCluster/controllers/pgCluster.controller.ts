@@ -24,7 +24,7 @@ export async function show(req: Request, res: Response, next: NextFunction){
   try {
     const cluster = await pgClusterService.getCluster(tenantId(req), req.params['id'] as string);
     if (!cluster) {
-      res.status(404).json({ error: 'Cluster not found' });
+      res.status(404).json({ success: false, message: 'Cluster not found' });
       return;
     }
     res.json({ success: true, data: cluster });
@@ -87,7 +87,7 @@ export async function update(req: Request, res: Response, next: NextFunction) {
       return;
     }
 
-    res.json(cluster);
+    res.json({ success: true, data: cluster });
   } catch (err) {
     next(err);
   }

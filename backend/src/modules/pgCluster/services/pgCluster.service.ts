@@ -11,6 +11,11 @@ type ProjectWithResourceConfig = Project & {
   resourceConfig?: ResourceConfig | null;
 };
 
+function toGiSuffix(value: string | number): string {
+  const s = String(value);
+  return s.endsWith('Gi') ? s : `${s}Gi`;
+}
+
 function parseStorageToGb(storage: string | null | undefined): number {
   if (!storage) {
     return 0;
@@ -107,7 +112,8 @@ export async function createCluster(
   const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
   const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
 
-  const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
+  // const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
+  const provStatus = 'running' as const;
 
   const row = await prisma.project.create({
     data: {
@@ -119,7 +125,7 @@ export async function createCluster(
       pgVersion: dto.pgVersion,
       deploymentOption: dto.deploymentOption,
       estimatedPrice,
-      status: 'provisioning': provStatus,
+      status: provStatus,
       resourceConfig: {
         create: {
           desiredReplicas: replicas,
@@ -194,11 +200,12 @@ export async function updateCluster(
       resourceConfig: row.resourceConfig
         ? {
             update: {
-              ...(dto.cpu !== undefined ? { desiredCpu: dto.cpu } : {}),
-              ...(dto.ram !== undefined ? { desiredRam: dto.ram } : {}),
-              ...(dto.storage !== undefined ? { desiredStorage: dto.storage } : {}),
+              ...(dto.cpu !== undefined ? { desiredCpu: String(dto.cpu) } : {}),
+              ...(dto.ram !== undefined ? { desiredRam: toGiSuffix(dto.ram) } : {}),
+              ...(dto.storage !== undefined ? { desiredStorage: toGiSuffix(dto.storage) } : {}),
               ...(dto.readReplicas !== undefined ? { desiredReplicas: nextReadReplicas } : {}),
               ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
+              ...(dto.autoscale !== undefined ? { enableAutoscale: dto.autoscale } : {}),
             },
           }
         : {

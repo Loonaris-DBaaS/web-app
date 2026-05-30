@@ -1,7 +1,6 @@
 import { useState } from "react";
-import ConnectionParameters from "./ConnectionParameters";
 import { clusterService } from '../../services/api';
-import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
+import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES, DEPLOYMENT_OPTION_MAP } from '../../constants/database';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -519,11 +518,6 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       : deploymentOption === "multi-az-instance"
         ? 2
         : 1;
-  const deploymentOptionMap = {
-  "multi-az-cluster":   "MULTI_AZ_CLUSTER",
-  "multi-az-instance":  "MULTI_AZ_INSTANCE",
-  "single-az-instance": "SINGLE_AZ_INSTANCE",
-};
   const totalCost = baseCost * deploymentMultiplier + (backup ? 5 : 0);
 
   const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
@@ -559,7 +553,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       region,
       pgVersion,
       size: selectedSize,
-      deploymentOption:deploymentOptionMap[deploymentOption],
+      deploymentOption: DEPLOYMENT_OPTION_MAP[deploymentOption],
       readReplicas: deploymentOption === "multi-az-cluster" ? replicasCount : 0,
       backup,
       };
@@ -720,15 +714,6 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </label>
             </div>
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Connection string preview</div>
-
-            {/* Connection Preview */}
-            <ConnectionParameters
-              title="Connection preview"
-              connections={previewConnections}
-              showModeTabs={false}
-              description="Use these connection strings in your applications. Rotate credentials regularly and avoid exposing them in client-side code."
-            />
           </div>
 
           {/* Footer */}
