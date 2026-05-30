@@ -45,7 +45,6 @@ export default function DatabaseDetailPage({
   ];
 
   const [activeTab, setActiveTab] = useState('Connect');
-  const [selectedSize, setSelectedSize] = useState(db.size);
   const [dbNameInput, setDbNameInput] = useState(db.name);
   const [targetVersion, setTargetVersion] = useState(db.pgVersion);
 
@@ -110,8 +109,6 @@ export default function DatabaseDetailPage({
           {activeTab === 'Settings' && (
             <DatabaseSettingsTab
               database={db}
-              selectedSize={selectedSize}
-              setSelectedSize={setSelectedSize}
               dbNameInput={dbNameInput}
               setDbNameInput={setDbNameInput}
               targetVersion={targetVersion}
