@@ -15,6 +15,10 @@ concurrency:
 
 env:
   ECR_REPOSITORY: ahmed-aws/loonaris
+  BASTION_HOST: 13.39.112.107
+  BASTION_USER: ubuntu
+  RDS_HOST: database-loonaris-app.c3s68wa6ehdt.eu-west-3.rds.amazonaws.com
+  RDS_PORT: 5432
 
 jobs:
   deploy:
@@ -26,8 +30,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm ci
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -35,6 +47,61 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ vars.AWS_REGION }}
+
+      # The RDS instance is private. We create an SSH tunnel through the
+      # bastion host (which is whitelisted in the RDS security group) so
+      # the GitHub Actions runner can connect to the database.
+      - name: Run database migrations via bastion SSH tunnel
+        run: |
+          echo "Setting up SSH tunnel to RDS through bastion…"
+          mkdir -p ~/.ssh
+          echo "${{ secrets.BASTION_SSH_KEY }}" > ~/.ssh/bastion_key
+          chmod 600 ~/.ssh/bastion_key
+
+          # Start tunnel in background: local port 5433 → RDS:5432 via bastion
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -i ~/.ssh/bastion_key -L 5433:${{ env.RDS_HOST }}:${{ env.RDS_PORT }} \
+            ${{ env.BASTION_USER }}@${{ env.BASTION_HOST }} -f -N
+
+          TUNNEL_PID=$!
+          echo "SSH tunnel PID: $TUNNEL_PID"
+
+          # Wait briefly for tunnel to establish
+          sleep 2
+
+          # Verify tunnel is listening
+          if ! nc -z localhost 5433; then
+            echo "::error::SSH tunnel failed to establish"
+            exit 1
+          fi
+
+          echo "✓ SSH tunnel established (localhost:5433 → RDS:5432)"
+          echo ""
+          echo "Running Prisma migrations…"
+          cd backend
+
+          # Rewrite DATABASE_URL to point through the local tunnel
+          TUNNEL_DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          TUNNEL_DATABASE_URL="${TUNNEL_DATABASE_URL//${{ env.RDS_HOST }}:${{ env.RDS_PORT }}/localhost:5433}"
+
+          DATABASE_URL="$TUNNEL_DATABASE_URL" npx prisma migrate deploy
+
+          MIGRATE_EXIT=$?
+
+          # Kill tunnel
+          echo ""
+          echo "Closing SSH tunnel…"
+          kill $TUNNEL_PID 2>/dev/null || true
+
+          if [ $MIGRATE_EXIT -ne 0 ]; then
+            echo "::error::Migration failed"
+            exit 1
+          fi
+
+          echo "✓ Migrations applied successfully"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - name: Login to Amazon ECR
         id: login-ecr

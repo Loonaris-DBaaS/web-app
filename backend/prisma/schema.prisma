@@ -126,3 +126,13 @@ model TestApp {
 
   @@map("test_apps")
 }
+
+model TestItem {
+  id          String   @id @default(uuid())
+  title       String
+  description String?
+  completed   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("test_items")
+}
