@@ -30,21 +30,27 @@ The backend deploys automatically on every push to `main` that changes `backend/
 
 **What it does:**
 1. Checks out the repo
-2. Sets up Docker Buildx with GitHub Actions cache
+2. Installs backend dependencies (`npm ci`) to get the Prisma CLI
 3. Configures AWS credentials (from GitHub secrets)
-4. Logs into ECR
-5. Builds and pushes `…/ahmed-aws/loonaris:latest` **and** `…/loonaris:<git-sha>`
-6. Captures the exact digest of the pushed image
-7. Registers a new ECS task definition revision with the exact digest
-8. Updates the ECS service to use the new task definition + `force-new-deployment`
-9. Verifies running tasks actually use the pushed digest (not a cached old image)
-10. Verifies `/api/health` responds with `200` and valid JSON
+4. **Runs database migrations** (`npx prisma migrate deploy`) through an SSH tunnel via the bastion host to the private RDS instance
+5. Sets up Docker Buildx with GitHub Actions cache
+6. Logs into ECR
+7. Builds and pushes `…/ahmed-aws/loonaris:latest` **and** `…/loonaris:<git-sha>`
+8. Captures the exact digest of the pushed image
+9. Registers a new ECS task definition revision with the exact digest
+10. Updates the ECS service to use the new task definition + `force-new-deployment`
+11. Verifies running tasks actually use the pushed digest (not a cached old image)
+12. Verifies `/api/health` responds with `200` and valid JSON
+
+> **Why run migrations via bastion?** The RDS instance is private (`PubliclyAccessible: false`). GitHub Actions runners cannot connect directly. The bastion host (`i-0098c8d33fc342fb7`) is whitelisted in the RDS security group and sits in the same VPC. The workflow creates an SSH tunnel (`ssh -L 5433:rds:5432 bastion`) and runs `prisma migrate deploy` locally on the runner through that tunnel. This is cleaner than running migrations inside ECS containers because it doesn't require the Prisma CLI in the production Docker image.
 
 **Required GitHub secrets:**
 | Secret | Description |
 |---|---|
 | `AWS_ACCESS_KEY_ID` | IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+| `BASTION_SSH_KEY` | Private SSH key for the bastion host (`bastion-key.pem`) |
+| `DATABASE_URL` | Production PostgreSQL connection string (includes password) |
 
 **Required GitHub variables:**
 | Variable | Value |
