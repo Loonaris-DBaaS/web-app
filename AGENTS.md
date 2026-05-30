@@ -201,7 +201,7 @@ This script:
 | `DATABASE_URL` | `postgresql://loonarispg:loonarisA123@database-loonaris-app.c3s68wa6ehdt.eu-west-3.rds.amazonaws.com:5432/loonarisdb` |
 | `JWT_SECRET` | `7371GSBS_Qhgdhd` |
 | `JWT_REFRESH_SECRET` | `737983783_Qhgdhd` |
-| `CORS_ORIGIN` | `https://loonaris.tech,http://lonaris.tech` |
+| `CORS_ORIGIN` | `https://loonaris.tech,https://www.loonaris.tech` |
 
 > The CI/CD pipeline registers a **new task definition revision on every deploy** with the image pinned to the exact digest (`@sha256:...`) that was just pushed. This is the correct approach — never rely on `:latest` tag resolution in ECS because Fargate caches it. If you need to deploy manually, always register a new revision with the exact digest, not `:latest`.
 

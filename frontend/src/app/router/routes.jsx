@@ -3,6 +3,7 @@ import AuthLayout from '../../layouts/AuthLayout';
 import DashboardLayout from '../../layouts/DashboardLayout';
 import Database from '../../pages/Dashboard/Database';
 import DatabaseDetailPage from '../../pages/Dashboard/DatabaseDetailPage';
+import ErrorPage from '../../pages/ErrorPage/ErrorPage';
 import SettingsPage from '../../pages/Dashboard/SettingsPage';
 import Support from '../../pages/Dashboard/Support';
 import Landing from '../../pages/Landing/Landing';
@@ -12,14 +13,16 @@ import Test from '../../pages/Test/Test';
 import ProtectedRoute from './ProtectedRoute';
 
 const routes = [
-  { path: '/', element: <Landing /> },
-  { path: '/test', element: <Test /> },
+  { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
+  { path: '/test', element: <Test />, errorElement: <ErrorPage /> },
   {
     element: <ProtectedRoute />,
+    errorElement: <ErrorPage />,
     children: [
       {
         path: '/dashboard',
         element: <DashboardLayout />,
+        errorElement: <ErrorPage />,
         children: [
           { index: true, element: <Navigate to="/dashboard/databases" replace /> },
           { path: 'databases', element: <Database /> },
@@ -32,6 +35,7 @@ const routes = [
   },
   {
     element: <AuthLayout />,
+    errorElement: <ErrorPage />,
     children: [
       { path: '/signin', element: <SignIn /> },
       { path: '/signup', element: <SignUp /> },
