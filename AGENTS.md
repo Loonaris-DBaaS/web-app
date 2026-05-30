@@ -428,6 +428,30 @@ All config files are versioned in the repo:
 
 ---
 
+---
+
+## 13. Known Debugging History — Backend / Database
+
+**2026-05-30 — Signup fails with `tenant.job_title does not exist`**
+
+**Symptom:** `POST /api/auth/signup` returned `400` with Prisma error:
+```
+Invalid `prisma.tenant.findUnique()` invocation: The column `tenant.job_title` does not exist in the current database.
+```
+
+**Root cause:** Schema drift. The `tenant` table was created by migration `20260524134856_port_auth_and_project_model` with only these columns: `id`, `email`, `username`, `country`, `password_hash`, `photo_url`, `created_at`. However, the current `schema.prisma` also defines `jobTitle` (→ `job_title`) and `company` on the `Tenant` model. The Prisma Client was generated from the current schema and tried to query these columns, but they didn't exist in the production RDS database because no subsequent migrations had been created or applied for them.
+
+**Fix applied:**
+- Created migration `20260530103000_add_job_title_to_tenant` with: `ALTER TABLE "tenant" ADD COLUMN "job_title" TEXT;`
+- Created migration `20260530103500_add_company_to_tenant` with: `ALTER TABLE "tenant" ADD COLUMN "company" TEXT;`
+- Applied both migrations to production RDS using SSH tunnel through the Nginx EC2 (since RDS is not publicly accessible)
+- Inserted migration records into `_prisma_migrations` manually so `prisma migrate deploy` tracks them
+- Verified signup returns `200` and creates the user successfully
+
+**Key lesson:** Whenever the Prisma schema is updated with new fields on existing models, a migration MUST be created and applied to production. Use `prisma migrate dev --create-only` locally, commit the migration file, and ensure CI/CD or manual deploy applies it via `prisma migrate deploy`.
+
+---
+
 ## 12. Golden Rules for Agents (Frontend)
 
 1. **Never modify Nginx SSL config manually** — Certbot manages it. Use `sudo certbot renew --dry-run` to test.
