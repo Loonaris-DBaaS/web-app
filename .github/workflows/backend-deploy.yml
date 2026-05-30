@@ -79,7 +79,12 @@ jobs:
           echo ""
           echo "Running Prisma migrations…"
           cd backend
-          DATABASE_URL="${{ secrets.DATABASE_URL }}" npx prisma migrate deploy
+
+          # Rewrite DATABASE_URL to point through the local tunnel
+          TUNNEL_DATABASE_URL="${{ secrets.DATABASE_URL }}"
+          TUNNEL_DATABASE_URL="${TUNNEL_DATABASE_URL//${{ env.RDS_HOST }}:${{ env.RDS_PORT }}/localhost:5433}"
+
+          DATABASE_URL="$TUNNEL_DATABASE_URL" npx prisma migrate deploy
 
           MIGRATE_EXIT=$?
 
