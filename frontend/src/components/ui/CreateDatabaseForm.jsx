@@ -1,6 +1,6 @@
 import { useState } from "react";
-import ConnectionParameters from "./ConnectionParameters";
-
+import { clusterService } from '../../services/api';
+import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -461,43 +461,6 @@ const styles = `
     flex-shrink: 0;
   }
 `;
-//to be changed with getting data from backend in future
-const SIZES = [
-  { id: "starter", name: "Starter", cpu: "1 vCPU", ram: "2 GB RAM", storage: "10 GB SSD", price: 29 },
-  { id: "pro",     name: "Pro",     cpu: "2 vCPU", ram: "4 GB RAM", storage: "50 GB SSD", price: 79 },
-  { id: "scale",   name: "Scale",   cpu: "4 vCPU", ram: "16 GB RAM", storage: "200 GB SSD", price: 199 },
-];
-//to be changed with getting data from backend in future
-const REGIONS = [
-  { value: "us-east-1",      label: "US East (N. Virginia)" },
-  { value: "us-west-2",      label: "US West (Oregon)" },
-  { value: "eu-west-1",      label: "EU (Ireland)" },
-  { value: "eu-central-1",   label: "EU (Frankfurt)" },
-  { value: "ap-southeast-1", label: "Asia Pacific (Singapore)" },
-];
-
-const PG_VERSIONS = ["18", "17", "16"];
-
-const DEPLOYMENT_OPTIONS = [
-  {
-    id: "multi-az-cluster",
-    name: "Multi-AZ cluster",
-    details: "RW + RO endpoints",
-    description: "Primary + read replicas across AZs.",
-  },
-  {
-    id: "multi-az-instance",
-    name: "Multi-AZ instance",
-    details: "RW endpoint only",
-    description: "Primary + standby replica for failover.",
-  },
-  {
-    id: "single-az-instance",
-    name: "Single-AZ instance",
-    details: "RW endpoint only",
-    description: "Single instance without standby.",
-  },
-];
 
 function DbIcon() {
   return (
@@ -549,13 +512,8 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const size = SIZES.find((s) => s.id === selectedSize);
   const baseCost = size ? size.price : 79;
   const replicasCount = Number(readReplicas);
-  const deploymentMultiplier =
-    deploymentOption === "multi-az-cluster"
-      ? 1 + replicasCount
-      : deploymentOption === "multi-az-instance"
-        ? 2
-        : 1;
-  const totalCost = baseCost * deploymentMultiplier + (backup ? 5 : 0);
+  const instances = deploymentOption === "multi-az-cluster" ? replicasCount + 1 : 1;
+  const totalCost = baseCost * instances + (backup ? 5 : 0);
 
   const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
   const baseHost = `${previewName}.${region}.db.ourplatform.com`;
@@ -581,37 +539,26 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
     if (nameError) validateName(val);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!validateName(dbName)) return;
     setStatus("loading");
 
     const payload = {
-      name: `db_${dbName.trim()}`,
+      name: `${dbName.trim()}`,
       region,
       pgVersion,
       size: selectedSize,
-      deploymentOption,
-      readReplicas: deploymentOption === "multi-az-cluster" ? replicasCount : 0,
+      instances,
       backup,
-      connectionStrings:
-        deploymentOption === "multi-az-cluster"
-          ? {
-              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
-              ro: `postgres://sk_live_xxxxxxxx@ro.${baseHost}`,
-              both: `postgres://sk_live_xxxxxxxx@cluster.${baseHost}`,
-            }
-          : {
-              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
-            },
-      estimatedCost: totalCost,
     };
-
-    setTimeout(() => {
-      setStatus("success");
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 4000);
-      onSubmit?.(payload);
-    }, 1800);
+      try {
+        await clusterService.createCluster(payload);
+        setStatus("success");
+        setToastVisible(true);
+        setTimeout(() => { onSubmit?.(); }, 1800);
+      } catch (err) {
+        setStatus("idle");
+    }
   }
 
   function handleCancel() {
@@ -760,15 +707,6 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </label>
             </div>
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Connection string preview</div>
-
-            {/* Connection Preview */}
-            <ConnectionParameters
-              title="Connection preview"
-              connections={previewConnections}
-              showModeTabs={false}
-              description="Use these connection strings in your applications. Rotate credentials regularly and avoid exposing them in client-side code."
-            />
           </div>
 
           {/* Footer */}

@@ -7,12 +7,6 @@ datasource db {
   provider = "postgresql"
 }
 
-enum DeploymentOption {
-  MULTI_AZ_CLUSTER
-  MULTI_AZ_INSTANCE
-  SINGLE_AZ_INSTANCE
-}
-
 enum ProjectStatus {
   provisioning
   running
@@ -57,7 +51,6 @@ model Project {
   k8sNamespace     String           @unique @map("k8s_namespace")
   pgVersion        String           @map("pg_version")
   region           String
-  deploymentOption DeploymentOption @map("deployment_option")
   estimatedPrice   Float            @default(0) @map("estimated_price")
   price            Float            @default(0)
   cpuUsage         Float            @default(0) @map("cpu_usage")
@@ -79,7 +72,7 @@ model Project {
 
 model ResourceConfig {
   id              String   @id @default(uuid())
-  desiredReplicas Int      @map("desired_replicas")
+  instances       Int      @default(1)
   enableBackup    Boolean  @default(false) @map("enable_backup")
   enableAutoscale Boolean  @default(false) @map("enable_autoscale")
   enablePitr      Boolean  @default(false) @map("enable_pitr")

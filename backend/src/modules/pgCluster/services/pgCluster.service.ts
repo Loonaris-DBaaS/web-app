@@ -1,12 +1,38 @@
 import { randomUUID } from 'crypto';
 import prisma from '@/lib/prisma';
 import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
-import { CreateClusterDto, SIZE_SPECS, DeploymentOption } from '../dto/create-cluster.dto';
+import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
+import { UpdateClusterDto } from '../dto/update-cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
-import type { Project } from '@/generated/prisma/client';
+import type { Project, ResourceConfig } from '@/generated/prisma/client';
 
-function toDto(p: Project): ClusterDto {
+type ProjectWithResourceConfig = Project & {
+  resourceConfig?: ResourceConfig | null;
+};
+
+function toGiSuffix(value: string | number): string {
+  const s = String(value);
+  return s.endsWith('Gi') ? s : `${s}Gi`;
+}
+
+function parseStorageToGb(storage: string | null | undefined): number {
+  if (!storage) return 0;
+  const match = storage.match(/(\d+(?:\.\d+)?)/);
+  return match ? Number(match[1]) : 0;
+}
+
+function inferClusterSize(resourceConfig: ResourceConfig | null | undefined): ClusterSize {
+  const cpu = resourceConfig?.desiredCpu;
+  return (
+    (Object.entries(SIZE_SPECS).find(([, s]) => s.cpu === cpu)?.[0] as ClusterSize | undefined) ?? 'pro'
+  );
+}
+
+function toDto(p: ProjectWithResourceConfig): ClusterDto {
+  const resourceConfig = p.resourceConfig;
+  const size = inferClusterSize(resourceConfig);
+
   return {
     id: p.id,
     tenantId: p.tenantId,
@@ -14,8 +40,16 @@ function toDto(p: Project): ClusterDto {
     k8sNamespace: p.k8sNamespace,
     region: p.region,
     pgVersion: p.pgVersion as ClusterDto['pgVersion'],
-    deploymentOption: p.deploymentOption as DeploymentOption,
+    size,
+    instances: resourceConfig?.instances ?? 1,
     status: p.status as ClusterDto['status'],
+    cpu: resourceConfig?.desiredCpu ?? '',
+    ram: resourceConfig?.desiredRam ?? '',
+    storage: resourceConfig?.desiredStorage ?? '',
+    backup: resourceConfig?.enableBackup ?? false,
+    autoscale: resourceConfig?.enableAutoscale ?? false,
+    storageUsedGb: Number(p.storageUsage ?? 0),
+    provisionedStorageGb: parseStorageToGb(resourceConfig?.desiredStorage),
     estimatedPrice: p.estimatedPrice,
     createdAt: p.createdAt.toISOString(),
   };
@@ -25,12 +59,16 @@ export async function listClusters(tenantId: string): Promise<ClusterDto[]> {
   const rows = await prisma.project.findMany({
     where: { tenantId },
     orderBy: { createdAt: 'desc' },
+    include: { resourceConfig: true },
   });
   return rows.map(toDto);
 }
 
 export async function getCluster(tenantId: string, clusterId: string): Promise<ClusterDto | null> {
-  const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
+  const row = await prisma.project.findFirst({
+    where: { id: clusterId, tenantId },
+    include: { resourceConfig: true },
+  });
   return row ? toDto(row) : null;
 }
 
@@ -41,14 +79,8 @@ export async function createCluster(
   const clusterId = randomUUID();
   const namespace = `project-${clusterId}`;
   const specs = SIZE_SPECS[dto.size];
-  const replicas = dto.readReplicas ?? 1;
-  const multiplier =
-    dto.deploymentOption === 'MULTI_AZ_CLUSTER'
-      ? 1 + replicas
-      : dto.deploymentOption === 'MULTI_AZ_INSTANCE'
-        ? 2
-        : 1;
-  const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
+  const instances = dto.instances ?? 1;
+  const estimatedPrice = specs.price * instances + (dto.backup ? 5 : 0);
 
   const baseKey = generateBaseKey();
   const keyHash = sha256Hex(baseKey);
@@ -57,7 +89,8 @@ export async function createCluster(
   const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
   const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
 
-  const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
+  // const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
+  const provStatus = 'running' as const;
 
   const row = await prisma.project.create({
     data: {
@@ -67,13 +100,13 @@ export async function createCluster(
       k8sNamespace: namespace,
       region: dto.region,
       pgVersion: dto.pgVersion,
-      deploymentOption: dto.deploymentOption,
       estimatedPrice,
       status: provStatus,
       resourceConfig: {
         create: {
-          desiredReplicas: replicas,
+          instances,
           enableBackup: dto.backup ?? true,
+          enableAutoscale: dto.size === 'scale',
           desiredStorage: specs.storage,
           desiredRam: specs.ram,
           desiredCpu: specs.cpu,
@@ -97,15 +130,84 @@ export async function createCluster(
     },
   });
 
-  return { ...toDto(row), apiKey };
+  const created = await prisma.project.findFirstOrThrow({
+    where: { id: row.id },
+    include: { resourceConfig: true },
+  });
+
+  return { ...toDto(created), apiKey };
+}
+
+export async function updateCluster(
+  tenantId: string,
+  clusterId: string,
+  dto: UpdateClusterDto,
+): Promise<ClusterDto | null> {
+  const row = await prisma.project.findFirst({
+    where: { id: clusterId, tenantId },
+    include: { resourceConfig: true },
+  });
+
+  if (!row) return null;
+
+  const nextInstances = dto.instances ?? row.resourceConfig?.instances ?? 1;
+  const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
+  const nextCpu = dto.cpu ?? row.resourceConfig?.desiredCpu ?? '2';
+  const estimatedPrice =
+    SIZE_SPECS[inferClusterSize({ ...row.resourceConfig, desiredCpu: nextCpu } as any)].price * nextInstances +
+    (nextBackup ? 5 : 0);
+
+  const shouldReconcile =
+    dto.cpu !== undefined ||
+    dto.ram !== undefined ||
+    dto.storage !== undefined ||
+    dto.pgVersion !== undefined ||
+    dto.instances !== undefined;
+
+  const updated = await prisma.project.update({
+    where: { id: clusterId },
+    data: {
+      ...(dto.name !== undefined ? { name: dto.name } : {}),
+      ...(dto.region !== undefined ? { region: dto.region } : {}),
+      ...(dto.pgVersion !== undefined ? { pgVersion: dto.pgVersion } : {}),
+      estimatedPrice,
+      ...(shouldReconcile ? { status: 'provisioning' } : {}),
+      resourceConfig: row.resourceConfig
+        ? {
+            update: {
+              ...(dto.instances !== undefined ? { instances: nextInstances } : {}),
+              ...(dto.cpu !== undefined ? { desiredCpu: String(dto.cpu) } : {}),
+              ...(dto.ram !== undefined ? { desiredRam: toGiSuffix(dto.ram) } : {}),
+              ...(dto.storage !== undefined ? { desiredStorage: toGiSuffix(dto.storage) } : {}),
+              ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
+              ...(dto.autoscale !== undefined ? { enableAutoscale: dto.autoscale } : {}),
+            },
+          }
+        : {
+            create: {
+              instances: nextInstances,
+              desiredCpu: nextCpu,
+              desiredRam: dto.ram ? toGiSuffix(dto.ram) : '4Gi',
+              desiredStorage: dto.storage ? toGiSuffix(dto.storage) : '50Gi',
+              enableBackup: nextBackup,
+              enableAutoscale: false,
+            },
+          },
+    },
+    include: { resourceConfig: true },
+  });
+
+  return toDto(updated);
 }
 
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {
   const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;
 
-  await deprovisionCluster(row.k8sNamespace);
   await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  deprovisionCluster(row.k8sNamespace).catch(async () => {
+    await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
+  });
 
   return true;
 }

@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { clusterService } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import ConnectionParameters from '../../components/ui/ConnectionParameters';
@@ -17,6 +18,24 @@ const styles = `
   }
 `;
 
+function toDb(d) {
+  return {
+    id:        d.id,
+    name:      d.name,
+    region:    d.region,
+    pgVersion: d.pgVersion,
+    size:      d.size,
+    status:    d.status,
+    instances: d.instances ?? 1,
+    cpu:       d.cpu,
+    ram:       d.ram,
+    storage:   d.storage,
+    backup:    d.backup,
+    autoscale: d.autoscale,
+    createdAt: d.createdAt,
+  };
+}
+
 export default function DatabaseDetailPage({
   database,
   onNavigate,
@@ -25,45 +44,64 @@ export default function DatabaseDetailPage({
   onResize,
 }) {
   const { databaseId } = useParams();
-  
-  const db = database || {
-    id: databaseId || 'db_1',
-    name: 'db_payments',
-    region: 'us-east-1',
-    pgVersion: '16',
-    size: 'pro',
-    status: 'active',
-    ha: true,
-    backup: true,
-    createdAt: '2026-03-01T10:00:00Z',
-  };
+  const navigate = useNavigate();
+  const [db, setDb]           = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError]         = useState('');
+  const [actionError, setActionError] = useState('');
+  const [successMsg, setSuccessMsg]   = useState('');
+  const [activeTab, setActiveTab]     = useState('Connect');
+  const [dbNameInput, setDbNameInput] = useState('');
+  const [targetVersion, setTargetVersion] = useState('');
 
-  const instances = db.instances || [
-    { id: 'inst_1', name: 'Production Main', version: '16.2', region: 'us-east-1', usedStorage: 20, totalStorage: 100, status: 'RUNNING' },
-    { id: 'inst_2', name: 'Replica EU',      version: '16.2', region: 'eu-west-1',  usedStorage: 18, totalStorage: 100, status: 'RUNNING' },
-    { id: 'inst_3', name: 'Replica Asia',    version: '16.2', region: 'ap-south-1', usedStorage: 5,  totalStorage: 100, status: 'STOPPED' },
-  ];
+  useEffect(() => {
+    clusterService.getCluster(databaseId)
+      .then(res => setDb(toDb(res.data)))
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, [databaseId]);
 
-  const [activeTab, setActiveTab] = useState('Connect');
-  const [selectedSize, setSelectedSize] = useState(db.size);
-  const [dbNameInput, setDbNameInput] = useState(db.name);
-  const [targetVersion, setTargetVersion] = useState(db.pgVersion);
+  useEffect(() => {
+    if (db) {
+      setDbNameInput(db.name);
+      setTargetVersion(db.pgVersion);
+    }
+  }, [db]);
 
   function handleNavigate(page) {
     onNavigate?.(page);
   }
 
-  function handleDelete(id) {
-    onDelete?.(id);
+  async function handleDelete(id) {
+    setActionError('');
+    setSuccessMsg('');
+    try {
+      await clusterService.deleteCluster(id);
+      navigate('/dashboard/databases');
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? err.message);
+    }
   }
 
   function handleUpgrade(id, version) {
     onUpgrade?.(id, version);
   }
 
-  function handleResize(id, size) {
-    onResize?.(id, size);
+  async function handleResize(id, payload) {
+    setActionError('');
+    setSuccessMsg('');
+    try {
+      const res = await clusterService.updateCluster(id, payload);
+      setDb(toDb(res.data));
+      setSuccessMsg('Changes applied successfully.');
+    } catch (err) {
+      setActionError(err.response?.data?.error ?? err.message);
+    }
   }
+
+  if (loading) return <p>Loading…</p>;
+  if (error)   return <p>Error: {error}</p>;
+  if (!db)     return null;
 
   return (
     <>
@@ -75,6 +113,16 @@ export default function DatabaseDetailPage({
         />
 
         <main className="ddp-main">
+          {successMsg && (
+            <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)', background: 'var(--success-container, #dcfce7)', color: 'var(--on-success-container, #166534)', fontSize: 'var(--text-body-sm-size)', fontWeight: 500 }}>
+              {successMsg}
+            </div>
+          )}
+          {actionError && (
+            <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)', background: 'var(--error-container)', color: 'var(--on-error-container)', fontSize: 'var(--text-body-sm-size)', fontWeight: 500 }}>
+              {actionError}
+            </div>
+          )}
           <DatabaseTabNavigation
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -93,7 +141,7 @@ export default function DatabaseDetailPage({
 
           {activeTab === 'Replicas' && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)' }}>
-              {instances.map((inst) => (
+              {db.instances.map((inst) => (
                 <InstanceContainer
                   key={inst.id}
                   name={inst.name}
@@ -110,8 +158,6 @@ export default function DatabaseDetailPage({
           {activeTab === 'Settings' && (
             <DatabaseSettingsTab
               database={db}
-              selectedSize={selectedSize}
-              setSelectedSize={setSelectedSize}
               dbNameInput={dbNameInput}
               setDbNameInput={setDbNameInput}
               targetVersion={targetVersion}

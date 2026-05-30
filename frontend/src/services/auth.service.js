@@ -41,5 +41,4 @@ export const authService = {
   refresh:       ()            => request('/api/auth/refresh-token', { method: 'POST' }),
   getProfile:    (token)       => request('/api/auth/profile',       { headers: bearer(token) }),
   updateProfile: (token, body) => request('/api/auth/profile',       { method: 'PATCH', body: JSON.stringify(body), headers: bearer(token) }),
-  getClusters:   (token)       => request('/api/clusters',           { headers: bearer(token) }),
 };

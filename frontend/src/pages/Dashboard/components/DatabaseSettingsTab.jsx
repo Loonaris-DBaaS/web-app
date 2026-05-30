@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import Button from '../../../components/ui/Button';
+import { REGIONS, DEPLOYMENT_OPTIONS, SIZE_DEFAULTS } from '../../../constants/database';
 
-const SIZE_OPTIONS = [
-  { id: 'starter', label: 'Starter', ram: '0.5GB RAM' },
-  { id: 'pro',     label: 'Pro',     ram: '4GB RAM'   },
-  { id: 'scale',   label: 'Scale',   ram: '16GB RAM'  },
-];
 
 const TARGET_VERSIONS = [
   { value: '14', label: 'PostgreSQL 15.2 (Current)'     },
@@ -70,8 +66,6 @@ function SectionHeader({ icon, title, description }) {
 
 export default function DatabaseSettingsTab({
   database,
-  selectedSize,
-  setSelectedSize,
   dbNameInput,
   setDbNameInput,
   targetVersion,
@@ -80,9 +74,18 @@ export default function DatabaseSettingsTab({
   onUpgrade,
   onDelete,
 }) {
-  const [deleteText, setDeleteText]         = useState('');
+  const sizeDefaults = SIZE_DEFAULTS[database.size] || SIZE_DEFAULTS.pro;
+
+  const [cpu, setCpu]       = useState(parseFloat(database.cpu)     || sizeDefaults.cpu);
+  const [ram, setRam]       = useState(parseFloat(database.ram)     || sizeDefaults.ram);
+  const [storage, setStorage] = useState(parseFloat(database.storage) || sizeDefaults.storage);
+  const [region, setRegion]                 = useState(database.region || 'us-east-1');
+  const [deploymentOption, setDeployment]   = useState(database.instances > 1 ? 'multi-az-cluster' : 'single-az-instance');
+  const [readReplicas, setReadReplicas]     = useState(String(database.instances > 1 ? database.instances - 1 : 1));
+  const [backup, setBackup]                 = useState(database.backup ?? true);
   const [maxConnections, setMaxConnections] = useState(100);
-  const [autoscale, setAutoscale]           = useState(true);
+  const [autoscale, setAutoscale]           = useState(database.autoscale ?? false);
+  const [deleteText, setDeleteText]         = useState('');
 
   const canDelete = deleteText === database.name;
 
@@ -97,117 +100,228 @@ export default function DatabaseSettingsTab({
           description="Scale your instance size and manage connection parameters."
         />
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-8)' }}>
-
-          {/* Left column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <div>
-              <span style={labelStyle}>Instance Size</span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
-                {SIZE_OPTIONS.map((size) => {
-                  const active = selectedSize === size.id;
-                  return (
-                    <button
-                      key={size.id}
-                      type="button"
-                      onClick={() => setSelectedSize(size.id)}
-                      style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        padding: 'var(--space-3)',
-                        border: `2px solid ${active ? 'var(--primary-container)' : 'var(--outline-variant)'}`,
-                        borderRadius: 'var(--radius-md)',
-                        background: active ? 'var(--primary-fixed)' : 'transparent',
-                        cursor: 'pointer',
-                        transition: 'all var(--duration-fast) var(--ease-out)',
-                        color: active ? 'var(--primary)' : 'var(--on-surface)',
-                        fontFamily: 'var(--font-sans)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, marginBottom: '2px' }}>{size.label}</span>
-                      <span style={{ fontSize: '0.625rem', color: 'var(--on-surface-variant)' }}>{size.ram}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle} htmlFor="ddp-max-conn">Max Connections</label>
-              <input
-                id="ddp-max-conn"
-                type="number"
-                value={maxConnections}
-                onChange={(e) => setMaxConnections(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+        {/* Region + DB Name */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 'var(--space-6)', marginBottom: 'var(--space-6)' }}>
+          <div>
+            <label style={labelStyle} htmlFor="mod-region">Region</label>
+            <select
+              id="mod-region"
+              value={region}
+              onChange={(e) => setRegion(e.target.value)}
+              style={{
+                ...inputStyle,
+                appearance: 'none',
+                cursor: 'pointer',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2342474e' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px center',
+                paddingRight: '36px',
+              }}
+            >
+              {REGIONS.map((r) => (
+                <option key={r.value} value={r.value}>{r.label}</option>
+              ))}
+            </select>
           </div>
-
-          {/* Right column */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
-            <div>
-              <span style={labelStyle}>Storage Autoscale</span>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: 'var(--space-4)',
-                background: 'var(--surface-container-low)',
-                borderRadius: 'var(--radius-sm)',
-              }}>
-                <span style={{ fontSize: 'var(--text-body-sm-size)', fontWeight: 500 }}>Enable automatic disk growth</span>
-                <button
-                  type="button"
-                  onClick={() => setAutoscale((v) => !v)}
-                  style={{
-                    position: 'relative',
-                    display: 'inline-flex',
-                    height: '24px',
-                    width: '44px',
-                    alignItems: 'center',
-                    borderRadius: 'var(--radius-full)',
-                    background: autoscale ? 'var(--primary)' : 'var(--outline-variant)',
-                    border: 'none',
-                    cursor: 'pointer',
-                    transition: 'background var(--duration-base) var(--ease-out)',
-                    flexShrink: 0,
-                  }}
-                  aria-checked={autoscale}
-                  role="switch"
-                >
-                  <span style={{
-                    display: 'inline-block',
-                    height: '16px',
-                    width: '16px',
-                    borderRadius: '50%',
-                    background: '#fff',
-                    transform: autoscale ? 'translateX(24px)' : 'translateX(4px)',
-                    transition: 'transform var(--duration-base) var(--ease-out)',
-                  }} />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <label style={labelStyle} htmlFor="ddp-db-name">Database Name</label>
-              <input
-                id="ddp-db-name"
-                type="text"
-                value={dbNameInput}
-                onChange={(e) => setDbNameInput(e.target.value)}
-                style={inputStyle}
-              />
-            </div>
+          <div>
+            <label style={labelStyle} htmlFor="ddp-db-name">Database Name</label>
+            <input
+              id="ddp-db-name"
+              type="text"
+              value={dbNameInput}
+              onChange={(e) => setDbNameInput(e.target.value)}
+              style={inputStyle}
+            />
           </div>
         </div>
 
-        <div style={{ marginTop: 'var(--space-8)', display: 'flex', justifyContent: 'flex-end' }}>
+        {/* CPU / RAM / Storage / Max Connections */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+          <div>
+            <label style={labelStyle} htmlFor="mod-cpu">vCPU</label>
+            <input id="mod-cpu" type="number" min="1" max="64" value={cpu} onChange={(e) => setCpu(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle} htmlFor="mod-ram">RAM (GB)</label>
+            <input id="mod-ram" type="number" min="1" max="512" value={ram} onChange={(e) => setRam(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle} htmlFor="mod-storage">Storage (GB)</label>
+            <input id="mod-storage" type="number" min="10" max="65536" step="10" value={storage} onChange={(e) => setStorage(e.target.value)} style={inputStyle} />
+          </div>
+          <div>
+            <label style={labelStyle} htmlFor="ddp-max-conn">Max Connections</label>
+            <input id="ddp-max-conn" type="number" min="10" value={maxConnections} onChange={(e) => setMaxConnections(e.target.value)} style={inputStyle} />
+          </div>
+        </div>
+
+        {/* Storage Autoscale */}
+        <div style={{ marginBottom: 'var(--space-6)' }}>
+          <span style={labelStyle}>Storage Autoscale</span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--space-4)',
+            background: 'var(--surface-container-low)',
+            borderRadius: 'var(--radius-sm)',
+          }}>
+            <span style={{ fontSize: 'var(--text-body-sm-size)', fontWeight: 500 }}>Enable automatic disk growth</span>
+            <button
+              type="button"
+              onClick={() => setAutoscale((v) => !v)}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                height: '24px',
+                width: '44px',
+                alignItems: 'center',
+                borderRadius: 'var(--radius-full)',
+                background: autoscale ? 'var(--primary)' : 'var(--outline-variant)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background var(--duration-base) var(--ease-out)',
+                flexShrink: 0,
+              }}
+              aria-checked={autoscale}
+              role="switch"
+            >
+              <span style={{
+                display: 'inline-block',
+                height: '16px',
+                width: '16px',
+                borderRadius: '50%',
+                background: '#fff',
+                transform: autoscale ? 'translateX(24px)' : 'translateX(4px)',
+                transition: 'transform var(--duration-base) var(--ease-out)',
+              }} />
+            </button>
+          </div>
+        </div>
+
+        {/* Deployment Option */}
+        <div style={{ marginBottom: 'var(--space-4)' }}>
+          <span style={labelStyle}>Deployment Option</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--space-3)' }}>
+            {DEPLOYMENT_OPTIONS.map((opt) => {
+              const active = deploymentOption === opt.id;
+              return (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setDeployment(opt.id)}
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start',
+                    padding: 'var(--space-3)',
+                    border: `2px solid ${active ? 'var(--primary-container)' : 'var(--outline-variant)'}`,
+                    borderRadius: 'var(--radius-md)',
+                    background: active ? 'var(--primary-fixed)' : 'transparent',
+                    cursor: 'pointer',
+                    transition: 'all var(--duration-fast) var(--ease-out)',
+                    textAlign: 'left',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: active ? 'var(--primary)' : 'var(--on-surface)', marginBottom: '2px' }}>{opt.name}</span>
+                  <span style={{ fontSize: '0.625rem', color: 'var(--on-surface-variant)', lineHeight: 1.5, marginBottom: '4px' }}>{opt.description}</span>
+                  <span style={{ fontSize: '0.625rem', fontWeight: 600, color: active ? 'var(--primary-container)' : 'var(--outline)' }}>{opt.details}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Read Replicas — only for multi-az-cluster */}
+        {deploymentOption === 'multi-az-cluster' && (
+          <div style={{ marginBottom: 'var(--space-6)', maxWidth: '220px' }}>
+            <label style={labelStyle} htmlFor="mod-replicas">Read Replicas (max 3)</label>
+            <select
+              id="mod-replicas"
+              value={readReplicas}
+              onChange={(e) => setReadReplicas(e.target.value)}
+              style={{
+                ...inputStyle,
+                appearance: 'none',
+                cursor: 'pointer',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2342474e' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 12px center',
+                paddingRight: '36px',
+              }}
+            >
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+            </select>
+          </div>
+        )}
+
+        {/* Backup toggle */}
+        <div style={{ marginBottom: 'var(--space-8)' }}>
+          <span style={labelStyle}>Backups</span>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            padding: 'var(--space-4)',
+            background: 'var(--surface-container-low)',
+            borderRadius: 'var(--radius-sm)',
+          }}>
+            <div>
+              <p style={{ fontSize: 'var(--text-body-sm-size)', fontWeight: 600, margin: '0 0 2px 0', color: 'var(--on-surface)' }}>Automated S3 Backups</p>
+              <p style={{ fontSize: '0.7rem', color: 'var(--on-surface-variant)', margin: 0 }}>Daily point-in-time backups with 30-day retention via Barman. +$5/mo.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setBackup((v) => !v)}
+              style={{
+                position: 'relative',
+                display: 'inline-flex',
+                height: '24px',
+                width: '44px',
+                alignItems: 'center',
+                borderRadius: 'var(--radius-full)',
+                background: backup ? 'var(--primary)' : 'var(--outline-variant)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background var(--duration-base) var(--ease-out)',
+                flexShrink: 0,
+              }}
+              aria-checked={backup}
+              role="switch"
+            >
+              <span style={{
+                display: 'inline-block',
+                height: '16px',
+                width: '16px',
+                borderRadius: '50%',
+                background: '#fff',
+                transform: backup ? 'translateX(24px)' : 'translateX(4px)',
+                transition: 'transform var(--duration-base) var(--ease-out)',
+              }} />
+            </button>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           <Button
             text="Apply Changes"
             variant="primary"
-            onClick={() => onResize(database.id, selectedSize)}
+            onClick={() => {
+              const computedInstances = deploymentOption === 'multi-az-cluster' ? Number(readReplicas) + 1 : 1;
+              const payload = {};
+              if (dbNameInput !== database.name)                          payload.name      = dbNameInput;
+              if (region !== database.region)                             payload.region    = region;
+              if (computedInstances !== database.instances)               payload.instances = computedInstances;
+              if (Number(cpu)     !== parseFloat(database.cpu))           payload.cpu       = cpu;
+              if (Number(ram)     !== parseFloat(database.ram))           payload.ram       = ram;
+              if (Number(storage) !== parseFloat(database.storage))       payload.storage   = storage;
+              if (backup    !== database.backup)                          payload.backup    = backup;
+              if (autoscale !== database.autoscale)                       payload.autoscale = autoscale;
+              if (Object.keys(payload).length > 0) onResize(database.id, payload);
+            }}
           />
         </div>
       </article>
