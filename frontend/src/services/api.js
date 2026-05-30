@@ -45,5 +45,7 @@ api.interceptors.response.use(
     return Promise.reject(err);
   },
 );
-
+export const clusterService = {
+  getClusters: () => api.get('/api/clusters').then((res) => res.data.data),
+};
 export default api;

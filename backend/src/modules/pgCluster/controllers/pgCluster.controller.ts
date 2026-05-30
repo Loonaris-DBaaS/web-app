@@ -14,7 +14,7 @@ const VALID_DEPLOYMENT_OPTIONS: DeploymentOption[] = ['MULTI_AZ_CLUSTER', 'MULTI
 export async function index(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
     const clusters = await pgClusterService.listClusters(tenantId(req));
-    res.json(clusters);
+    res.json({ success: true, data: clusters });
   } catch (err) {
     next(err);
   }
@@ -27,7 +27,7 @@ export async function show(req: Request, res: Response, next: NextFunction): Pro
       res.status(404).json({ error: 'Cluster not found' });
       return;
     }
-    res.json(cluster);
+    res.json({ success: true, data: cluster });
   } catch (err) {
     next(err);
   }

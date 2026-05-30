@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { authService } from '../../services/auth.service';
+import { clusterService } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
 import StorageUtilizationCard from './components/StorageUtilizationCard';
@@ -51,12 +51,11 @@ export default function Database() {
   const [fetchError, setFetchError] = useState('');
 
   useEffect(() => {
-    if (!accessToken) return;
-    authService
-      .getClusters(accessToken)
+    clusterService
+      .getClusters()
       .then((data) => setDatabases((data ?? []).map(toRow)))
       .catch((err) => setFetchError(err.message));
-  }, [accessToken]);
+  }, []);
 
   const filteredDatabases = useMemo(() => {
     const normalized = query.trim().toLowerCase();
