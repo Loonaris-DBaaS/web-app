@@ -213,6 +213,15 @@ This script:
 | `security-group-bastion` | `sg-0057547c8ba014373` | TCP 22 from `0.0.0.0/0` |
 | `default` | `sg-05cc7b2e4624b5bd6` | All traffic from self (`sg-05cc7b2e4624b5bd6`) |
 
+**Bastion Host:**
+| Property | Value |
+|---|---|
+| Instance ID | `i-0098c8d33fc342fb7` |
+| Public IP | `13.39.112.107` |
+| Key Pair | `bastion-key` |
+| Security Group | `sg-0057547c8ba014373` |
+| Purpose | SSH jump host for accessing private RDS from outside the VPC |
+
 ---
 
 ## 7. Backend Route Design Pattern
@@ -444,11 +453,24 @@ Invalid `prisma.tenant.findUnique()` invocation: The column `tenant.job_title` d
 **Fix applied:**
 - Created migration `20260530103000_add_job_title_to_tenant` with: `ALTER TABLE "tenant" ADD COLUMN "job_title" TEXT;`
 - Created migration `20260530103500_add_company_to_tenant` with: `ALTER TABLE "tenant" ADD COLUMN "company" TEXT;`
-- Applied both migrations to production RDS using SSH tunnel through the Nginx EC2 (since RDS is not publicly accessible)
+- Applied both migrations to production RDS via the **bastion host** (since RDS is not publicly accessible)
 - Inserted migration records into `_prisma_migrations` manually so `prisma migrate deploy` tracks them
 - Verified signup returns `200` and creates the user successfully
 
-**Key lesson:** Whenever the Prisma schema is updated with new fields on existing models, a migration MUST be created and applied to production. Use `prisma migrate dev --create-only` locally, commit the migration file, and ensure CI/CD or manual deploy applies it via `prisma migrate deploy`.
+**Correct RDS access pattern (do not use the Nginx EC2):**
+The bastion host (`i-0098c8d33fc342fb7`, IP `13.39.112.107`, key `bastion-key`) is the designated jump host for RDS access. Its security group (`sg-0057547c8ba014373`) is already whitelisted in the RDS security group (`sg-09ed86f323511f146`) for port `5432`.
+
+Example:
+```bash
+# SSH tunnel via bastion
+ssh -i /path/to/bastion-key.pem -L 5433:database-loonaris-app.c3s68wa6ehdt.eu-west-3.rds.amazonaws.com:5432 ubuntu@13.39.112.107 -f -N
+
+# Or run psql directly on the bastion
+ssh -i /path/to/bastion-key.pem ubuntu@13.39.112.107 \
+  "psql 'postgresql://loonarispg:loonarisA123@database-loonaris-app.c3s68wa6ehdt.eu-west-3.rds.amazonaws.com:5432/loonarisdb' -c '...'"
+```
+
+**Key lesson:** Whenever the Prisma schema is updated with new fields on existing models, a migration MUST be created and applied to production. Use `prisma migrate dev --create-only` locally, commit the migration file, and ensure CI/CD or manual deploy applies it via `prisma migrate deploy`. Always use the **bastion host** for any production database operations — never use the Nginx EC2 for RDS access.
 
 ---
 
