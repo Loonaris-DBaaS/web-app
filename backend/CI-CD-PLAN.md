@@ -9,8 +9,10 @@
 Every merge to `main` that touches `backend/**` automatically:
 
 1. Builds a production Docker image
-2. Pushes it to Amazon ECR (overwriting `:latest`)
-3. Forces a new ECS deployment so Fargate pulls the fresh image
+2. Pushes it to Amazon ECR (tagged with `:latest` and the Git SHA)
+3. Registers a new ECS task definition revision pinning the exact image digest
+4. Updates the ECS service to use the new revision
+5. Verifies running tasks actually use the pushed image
 
 No manual `docker build`, `docker push`, or `aws ecs` commands required.
 
@@ -23,23 +25,19 @@ No manual `docker build`, `docker push`, or `aws ecs` commands required.
 │   GitHub     │ ────────────────────► │  GitHub Actions  │
 │   (repo)     │   (backend/** changed)│  (workflow)      │
 └──────────────┘                       └────────┬─────────┘
-                                              │
-                                              ▼
-                       ┌──────────────┐  ┌─────────────┐  ┌─────────────┐
-                       │   Checkout   │─►│ Build image │─►│ Push to ECR │
-                       └──────────────┘  └─────────────┘  └──────┬──────┘
-                                                                  │
-                                                                  ▼
-                                                            ┌─────────────┐
-                                                            │ Force ECS   │
-                                                            │ deployment  │
-                                                            └──────┬──────┘
-                                                                   │
-                                                                   ▼
-                                                            ┌─────────────┐
-                                                            │ ECS Fargate │
-                                                            │ (new tasks) │
-                                                            └─────────────┘
+                                                │
+                                                ▼
+              ┌──────────┐  ┌────────────┐  ┌────────────┐  ┌─────────────────┐
+              │ Checkout │─►│ Build+Push │─►│ Register   │─►│ Update Service  │
+              └──────────┘  │ (cached)   │  │ New TD     │  │ + Force Deploy  │
+                            └─────┬──────┘  └────────────┘  └────────┬────────┘
+                                  │                                    │
+                                  ▼                                    ▼
+                            ┌──────────┐                        ┌────────────┐
+                            │   ECR    │                        │ ECS Fargate│
+                            │ (:latest │                        │ (verified) │
+                            │ + sha)   │                        └────────────┘
+                            └──────────┘
 ```
 
 ---
@@ -51,7 +49,7 @@ The workflow runs on:
 - **Push to `main`** where changed files match `backend/**`
 - **Manual trigger** (`workflow_dispatch`) for on-demand deploys
 
-Why path-filtered? The repo also contains a frontend deployed to Azure via a separate workflow (`main_dbaas.yml`). We don't want backend deploys to fire when only frontend code changes.
+Why path-filtered? The repo also contains a frontend deployed to Azure via a separate workflow. We don't want backend deploys to fire when only frontend code changes.
 
 ---
 
@@ -59,55 +57,62 @@ Why path-filtered? The repo also contains a frontend deployed to Azure via a sep
 
 ### 4.1 Docker Build
 
-- Uses the multi-stage `Dockerfile` at `backend/Dockerfile`
+- Uses `docker/build-push-action@v6` with GitHub Actions cache (`type=gha`)
+- Multi-stage `Dockerfile` at `backend/Dockerfile`
 - Build context: `backend/` directory
-- Image tag: `:latest` (overwritten on every successful build)
-- Provenance disabled (`--provenance=false`) to avoid ECR manifest list issues
+- Tags pushed:
+  - `:latest` (for human reference)
+  - `:<git-sha>` (for traceability and rollback)
+- Provenance disabled (`provenance: false`) to avoid ECR manifest list issues
 
-### 4.2 ECR Push
+### 4.2 Docker Layer Caching
+
+The workflow uses `docker/setup-buildx-action` + `cache-from: type=gha` / `cache-to: type=gha,mode=max`. This caches Docker layers between GitHub Actions runs, dramatically speeding up builds when only application code changes (not base images or dependencies).
+
+### 4.3 ECR Push
 
 - Repository: `474741569968.dkr.ecr.eu-west-3.amazonaws.com/ahmed-aws/loonaris`
-- Tag: `latest`
+- Tags: `latest` + `<git-sha>`
 - Region: `eu-west-3`
-
-### 4.3 Why `:latest`?
-
-The ECS task definition references `:latest`, not a pinned digest. This means `force-new-deployment` always resolves the tag at pull time and gets the newest image. No task-definition revision churn for routine code changes.
-
-> ⚠️ If the task definition ever gets accidentally pinned to a digest (e.g. `@sha256:...`), the pipeline will keep redeploying the old image. See section 7.
 
 ---
 
 ## 5. Deploy Flow
 
-After the image is in ECR, the pipeline runs:
+After the image is in ECR, the pipeline:
 
-```bash
-aws ecs update-service \
-  --cluster loonaris-ecs-fargate-cluster \
-  --service loonaris-backend-service-p839kjg4 \
-  --force-new-deployment \
-  --region eu-west-3
-```
+1. **Captures the exact digest** of the pushed image
+2. **Registers a new task definition revision** with the image field set to the exact digest (`@sha256:...`)
+3. **Updates the ECS service** to use the new task definition revision
+4. **Forces a new deployment**
+5. **Polls running tasks** until at least the desired count of tasks are using the pushed digest
+6. **Verifies the health endpoint** returns valid JSON with `status: ok`
 
-ECS then:
-1. Starts new tasks (up to `max 200%` of desired count)
-2. New tasks pull `:latest` from ECR
-3. Health checks pass (`/api/health`)
-4. Old tasks are drained and stopped
-5. Service reaches steady state
+### Why exact digests instead of `:latest`?
+
+ECS Fargate **caches** the `:latest` tag resolution. Even after ECR `:latest` is overwritten with a new digest, ECS may continue pulling the old cached digest for newly scheduled tasks. This is a documented ECS behavior.
+
+By pinning the exact digest in the task definition, we guarantee ECS pulls the image we just built — no cache surprises.
 
 ---
 
-## 6. Required GitHub Secrets
+## 6. Required GitHub Secrets & Variables
 
-Configure these in **Settings → Secrets and variables → Actions**:
+### Secrets (Settings → Secrets and variables → Actions)
 
-| Secret | Description | Example |
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | IAM access key |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+
+### Variables (Settings → Secrets and variables → Actions → Variables tab)
+
+| Variable | Value | Used for |
 |---|---|---|
-| `AWS_ACCESS_KEY_ID` | IAM user access key | `AKIA...` |
-| `AWS_SECRET_ACCESS_KEY` | IAM user secret | `wJalrXUtnFEMI...` |
-| `AWS_REGION` | AWS region (can also be hardcoded) | `eu-west-3` |
+| `AWS_REGION` | `eu-west-3` | All AWS CLI calls |
+| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster` | ECS cluster |
+| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4` | ECS service |
+| `ALB_URL` | `http://loonaris-alb-...` | Health check verification |
 
 > **IAM permissions needed:**
 > - `ecr:GetAuthorizationToken`
@@ -118,45 +123,36 @@ Configure these in **Settings → Secrets and variables → Actions**:
 > - `ecr:UploadLayerPart`
 > - `ecr:CompleteLayerUpload`
 > - `ecr:PutImage`
+> - `ecs:DescribeTaskDefinition`
+> - `ecs:RegisterTaskDefinition`
 > - `ecs:DescribeServices`
 > - `ecs:UpdateService`
 
 ---
 
-## 7. Image Tag Strategy & Task Definition Safety
+## 7. Image Tag Strategy
 
 ### Normal deploy
-Build → Push `:latest` → `force-new-deployment` → done.
+Build → Push `:latest` + `:<git-sha>` → Register new TD with exact digest → Update service → done.
 
-### When the task definition gets pinned to a digest
-If someone (or a tool) edits the task definition and it ends up with:
-
-```
-image: .../loonaris@sha256:abc123...
-```
-
-instead of:
-
-```
-image: .../loonaris:latest
-```
-
-then `force-new-deployment` will **always redeploy the same old image**, even if ECR `:latest` was overwritten.
-
-**Fix:** Register a new task definition revision with image set back to `:latest`, then update the service to use it.
-
-**The CI pipeline does NOT automatically fix this.** It assumes the task definition is already correct. If you notice deploys not taking effect, check the task definition image field first.
+### Manual rollback
+1. Find the last known-good image digest in ECR
+2. Tag it as `:latest` locally and push (optional, for reference)
+3. Register a task definition revision with that exact digest
+4. Update the ECS service to use that revision
 
 ---
 
 ## 8. Rollback Strategy
 
-ECS circuit breaker + rollback is already enabled on the service. If the new tasks fail health checks repeatedly, ECS automatically rolls back to the previous stable deployment.
+ECS circuit breaker + rollback is enabled on the service. If new tasks fail health checks, ECS automatically rolls back to the previous stable task definition revision.
 
 For manual rollback:
-1. Find the last known-good image digest in ECR
-2. Tag it as `:latest` locally and push: `docker tag <digest> ...:latest && docker push ...:latest`
-3. Run `force-new-deployment`
+1. Find the previous task definition revision in the ECS console
+2. Update the service to use that revision
+3. `force-new-deployment`
+
+Because every deploy registers a new revision, rolling back is as simple as pointing the service at the previous revision.
 
 ---
 
@@ -185,9 +181,9 @@ Enable Amazon ECR basic scanning on the repository. The pipeline will not block 
 | 2 | Add `npm run lint` step | Low | Medium — enforce code style |
 | 3 | Run database migrations (`prisma migrate deploy`) as a pre-deploy step | Medium | High — schema changes need care |
 | 4 | Add a staging environment (separate ECS service + DB) | Medium | High — test before prod |
-| 5 | Tag every image with the Git SHA in addition to `:latest` | Low | Medium — easier rollbacks and traceability |
-| 6 | Add Slack / Discord webhook notification on success/failure | Low | Medium — team visibility |
-| 7 | Switch to OIDC for AWS auth | Medium | High — no long-lived secrets |
+| 5 | Add Slack / Discord webhook notification on success/failure | Low | Medium — team visibility |
+| 6 | Switch to OIDC for AWS auth | Medium | High — no long-lived secrets |
+| 7 | Add SSM Parameter Store for secrets instead of hardcoded env vars in TD | Medium | High — better security |
 
 ---
 
