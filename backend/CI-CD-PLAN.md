@@ -1,6 +1,7 @@
 # Backend CI/CD Plan — Loonaris
 
-> This document describes the continuous deployment pipeline for the Loonaris backend (ECS Fargate + ECR).
+> This document describes the continuous deployment pipeline for the Loonaris backend (ECS Fargate + ECR + RDS).
+> Last updated: 2026-05-30
 
 ---
 
@@ -8,13 +9,15 @@
 
 Every merge to `main` that touches `backend/**` automatically:
 
-1. Builds a production Docker image
-2. Pushes it to Amazon ECR (tagged with `:latest` and the Git SHA)
-3. Registers a new ECS task definition revision pinning the exact image digest
-4. Updates the ECS service to use the new revision
-5. Verifies running tasks actually use the pushed image
+1. Runs database migrations via SSH tunnel through the bastion host
+2. Builds a production Docker image
+3. Pushes it to Amazon ECR (tagged with `:latest` and the Git SHA)
+4. Registers a new ECS task definition revision pinning the exact image digest
+5. Scales ECS service to 0, updates to new task definition, scales back to 2
+6. Verifies running tasks actually use the pushed image
+7. Verifies the health endpoint returns `status: ok`
 
-No manual `docker build`, `docker push`, or `aws ecs` commands required.
+No manual `docker build`, `docker push`, or AWS console clicks required.
 
 ---
 
@@ -25,19 +28,27 @@ No manual `docker build`, `docker push`, or `aws ecs` commands required.
 │   GitHub     │ ────────────────────► │  GitHub Actions  │
 │   (repo)     │   (backend/** changed)│  (workflow)      │
 └──────────────┘                       └────────┬─────────┘
-                                                │
-                                                ▼
-              ┌──────────┐  ┌────────────┐  ┌────────────┐  ┌─────────────────┐
-              │ Checkout │─►│ Build+Push │─►│ Register   │─►│ Update Service  │
-              └──────────┘  │ (cached)   │  │ New TD     │  │ + Force Deploy  │
-                            └─────┬──────┘  └────────────┘  └────────┬────────┘
-                                  │                                    │
-                                  ▼                                    ▼
-                            ┌──────────┐                        ┌────────────┐
-                            │   ECR    │                        │ ECS Fargate│
-                            │ (:latest │                        │ (verified) │
-                            │ + sha)   │                        └────────────┘
-                            └──────────┘
+                                                 │
+                    ┌─────────────────────────────┼─────────────────────────────┐
+                    │                             │                             │
+                    ▼                             ▼                             ▼
+            ┌──────────────┐           ┌─────────────────┐           ┌──────────────────┐
+            │  Checkout    │           │  Install deps   │           │  SSH tunnel via  │
+            │  code        │           │  (npm ci)       │           │  bastion to RDS  │
+            └──────┬───────┘           └────────┬────────┘           └────────┬─────────┘
+                   │                              │                             │
+                   ▼                              ▼                             ▼
+            ┌──────────────┐           ┌─────────────────┐           ┌──────────────────┐
+            │  Build+Push  │           │  Register New   │           │  Scale ECS to 0  │
+            │  (cached)    │           │  Task Def       │           │  → update TD →   │
+            └──────┬───────┘           └────────┬────────┘           │  scale to 2      │
+                   │                              │                  └────────┬─────────┘
+                   ▼                              ▼                             │
+            ┌──────────┐                   ┌────────────┐                     │
+            │   ECR    │                   │ ECS Fargate│                     │
+            │ (:latest │                   │ (verified) │◄────────────────────┘
+            │ + sha)   │                   └────────────┘
+            └──────────┘
 ```
 
 ---
@@ -49,54 +60,75 @@ The workflow runs on:
 - **Push to `main`** where changed files match `backend/**`
 - **Manual trigger** (`workflow_dispatch`) for on-demand deploys
 
-Why path-filtered? The repo also contains a frontend deployed to Azure via a separate workflow. We don't want backend deploys to fire when only frontend code changes.
+Path-filtered so backend deploys don't fire when only frontend code changes.
 
 ---
 
-## 4. Build & Push Flow
+## 4. Database Migrations (Bastion SSH Tunnel)
 
-### 4.1 Docker Build
+**Why not run migrations inside the ECS container?**
+- The Prisma CLI is a `devDependency` — it is not included in the production Docker image.
+- The RDS instance is private. GitHub Actions runners cannot connect directly.
+- Running migrations as a one-off ECS task requires the Prisma CLI in the image, bloating it.
+
+**Solution:**
+The workflow creates an SSH tunnel through the bastion host:
+```bash
+ssh -L 5433:rds:5432 ubuntu@13.39.112.107
+```
+Then runs `npx prisma migrate deploy` locally on the GitHub Actions runner through `localhost:5433`.
+
+**Required secrets:**
+- `BASTION_SSH_KEY` — private key for `bastion-key.pem`
+- `DATABASE_URL` — full PostgreSQL connection string
+
+**If migrations fail, the workflow stops before building or pushing the image.** This prevents deploying code that expects a schema the database doesn't have.
+
+---
+
+## 5. Build & Push Flow
+
+### 5.1 Docker Build
 
 - Uses `docker/build-push-action@v6` with GitHub Actions cache (`type=gha`)
 - Multi-stage `Dockerfile` at `backend/Dockerfile`
 - Build context: `backend/` directory
 - Tags pushed:
   - `:latest` (for human reference)
-  - `:<git-sha>` (for traceability and rollback)
+  - `:<git-sha>` (for traceability)
 - Provenance disabled (`provenance: false`) to avoid ECR manifest list issues
 
-### 4.2 Docker Layer Caching
+### 5.2 Docker Layer Caching
 
-The workflow uses `docker/setup-buildx-action` + `cache-from: type=gha` / `cache-to: type=gha,mode=max`. This caches Docker layers between GitHub Actions runs, dramatically speeding up builds when only application code changes (not base images or dependencies).
+Uses `docker/setup-buildx-action` + `cache-from: type=gha` / `cache-to: type=gha,mode=max`. This caches Docker layers between runs, dramatically speeding up builds.
 
-### 4.3 ECR Push
+### 5.3 ECR Push
 
 - Repository: `474741569968.dkr.ecr.eu-west-3.amazonaws.com/ahmed-aws/loonaris`
-- Tags: `latest` + `<git-sha>`
 - Region: `eu-west-3`
 
 ---
 
-## 5. Deploy Flow
+## 6. Deploy Flow (Scale-to-Zero Workaround)
 
-After the image is in ECR, the pipeline:
+### Why scale to 0?
 
-1. **Captures the exact digest** of the pushed image
-2. **Registers a new task definition revision** with the image field set to the exact digest (`@sha256:...`)
-3. **Updates the ECS service** to use the new task definition revision
-4. **Forces a new deployment**
-5. **Polls running tasks** until at least the desired count of tasks are using the pushed digest
-6. **Verifies the health endpoint** returns valid JSON with `status: ok`
+AWS Fargate on-demand vCPU quota for this account is **4**. Each task uses **1 vCPU**. Rolling deployment would temporarily need **4 vCPUs** (2 old + 2 new), which hits the exact limit. ECS cannot place new tasks and the deployment hangs until the circuit breaker rolls it back.
+
+**Workaround:**
+1. Scale service to `0` (old tasks stop, freeing vCPUs)
+2. Update service to new task definition
+3. Scale service to `2` (new tasks start with guaranteed vCPU availability)
+
+**Trade-off:** ~30 seconds of downtime during deploy. Acceptable for this project.
 
 ### Why exact digests instead of `:latest`?
 
-ECS Fargate **caches** the `:latest` tag resolution. Even after ECR `:latest` is overwritten with a new digest, ECS may continue pulling the old cached digest for newly scheduled tasks. This is a documented ECS behavior.
-
-By pinning the exact digest in the task definition, we guarantee ECS pulls the image we just built — no cache surprises.
+ECS Fargate **caches** the `:latest` tag resolution. Even after ECR `:latest` is overwritten with a new digest, ECS may continue pulling the old cached digest. By pinning the exact digest in the task definition, we guarantee ECS pulls the image we just built.
 
 ---
 
-## 6. Required GitHub Secrets & Variables
+## 7. Required GitHub Secrets & Variables
 
 ### Secrets (Settings → Secrets and variables → Actions)
 
@@ -104,55 +136,34 @@ By pinning the exact digest in the task definition, we guarantee ECS pulls the i
 |---|---|
 | `AWS_ACCESS_KEY_ID` | IAM access key |
 | `AWS_SECRET_ACCESS_KEY` | IAM secret key |
+| `BASTION_SSH_KEY` | Private SSH key for bastion host (`bastion-key.pem`) |
+| `DATABASE_URL` | Production PostgreSQL connection string (includes password) |
+| `EC2_HOST` | Nginx EC2 public IP (`35.181.168.74`) |
+| `EC2_SSH_KEY` | Private SSH key for Nginx EC2 (`nginx-key.pem`) |
 
 ### Variables (Settings → Secrets and variables → Actions → Variables tab)
 
-| Variable | Value | Used for |
-|---|---|---|
-| `AWS_REGION` | `eu-west-3` | All AWS CLI calls |
-| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster` | ECS cluster |
-| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4` | ECS service |
-| `ALB_URL` | `http://loonaris-alb-...` | Health check verification |
+| Variable | Value |
+|---|---|
+| `AWS_REGION` | `eu-west-3` |
+| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster` |
+| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4` |
+| `ALB_URL` | `http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com` |
 
 > **IAM permissions needed:**
-> - `ecr:GetAuthorizationToken`
-> - `ecr:BatchCheckLayerAvailability`
-> - `ecr:GetDownloadUrlForLayer`
-> - `ecr:BatchGetImage`
-> - `ecr:InitiateLayerUpload`
-> - `ecr:UploadLayerPart`
-> - `ecr:CompleteLayerUpload`
-> - `ecr:PutImage`
-> - `ecs:DescribeTaskDefinition`
-> - `ecs:RegisterTaskDefinition`
-> - `ecs:DescribeServices`
-> - `ecs:UpdateService`
-
----
-
-## 7. Image Tag Strategy
-
-### Normal deploy
-Build → Push `:latest` + `:<git-sha>` → Register new TD with exact digest → Update service → done.
-
-### Manual rollback
-1. Find the last known-good image digest in ECR
-2. Tag it as `:latest` locally and push (optional, for reference)
-3. Register a task definition revision with that exact digest
-4. Update the ECS service to use that revision
+> - `ecr:*` (push images)
+> - `ecs:DescribeTaskDefinition`, `ecs:RegisterTaskDefinition`, `ecs:DescribeServices`, `ecs:UpdateService`, `ecs:ListTasks`, `ecs:DescribeTasks`
 
 ---
 
 ## 8. Rollback Strategy
 
-ECS circuit breaker + rollback is enabled on the service. If new tasks fail health checks, ECS automatically rolls back to the previous stable task definition revision.
+ECS circuit breaker + rollback is enabled. If new tasks fail health checks, ECS automatically rolls back to the previous stable task definition revision.
 
-For manual rollback:
+**Manual rollback:**
 1. Find the previous task definition revision in the ECS console
-2. Update the service to use that revision
-3. `force-new-deployment`
-
-Because every deploy registers a new revision, rolling back is as simple as pointing the service at the previous revision.
+2. Update the service to use that revision + `force-new-deployment`
+3. Because every deploy registers a new revision, rolling back is one click
 
 ---
 
@@ -161,35 +172,29 @@ Because every deploy registers a new revision, rolling back is as simple as poin
 ### AWS Credentials
 The workflow uses long-term IAM access keys stored as GitHub secrets.
 
-**Recommended upgrade:** Switch to OIDC (OpenID Connect) so GitHub Actions can assume an IAM role without storing long-lived credentials:
+**Recommended upgrade:** Switch to OIDC so GitHub Actions can assume an IAM role without storing long-lived credentials.
 
-1. Create an OIDC identity provider in IAM for `token.actions.githubusercontent.com`
-2. Create a role with the required ECR + ECS permissions
-3. Add a trust policy allowing only this repo's `main` branch
-4. Use `aws-actions/configure-aws-credentials@v4` with `role-to-assume`
+### Secrets in Task Definition
+Environment variables like `JWT_SECRET` and `DATABASE_URL` are currently stored in plain text in the ECS task definition.
 
-### Image Scanning
-Enable Amazon ECR basic scanning on the repository. The pipeline will not block on scan findings (to keep deploys fast), but you should review scan results in the ECR console.
+**Recommended upgrade:** Move them to AWS Systems Manager Parameter Store (SecureString) and reference by ARN.
 
 ---
 
-## 10. Future Improvements
+## 10. Related Files
 
-| # | Improvement | Effort | Impact |
-|---|---|---|---|
-| 1 | Add `npm run test` step before build | Low | High — catch regressions before deploy |
-| 2 | Add `npm run lint` step | Low | Medium — enforce code style |
-| 3 | Run database migrations (`prisma migrate deploy`) as a pre-deploy step | Medium | High — schema changes need care |
-| 4 | Add a staging environment (separate ECS service + DB) | Medium | High — test before prod |
-| 5 | Add Slack / Discord webhook notification on success/failure | Low | Medium — team visibility |
-| 6 | Switch to OIDC for AWS auth | Medium | High — no long-lived secrets |
-| 7 | Add SSM Parameter Store for secrets instead of hardcoded env vars in TD | Medium | High — better security |
+| File | Purpose |
+|---|---|
+| `.github/workflows/backend-deploy.yml` | The actual CI/CD workflow |
+| `.github/workflows/frontend-deploy.yml` | Frontend S3 + Nginx deploy |
+| `backend/Dockerfile` | Multi-stage Docker build |
+| `AGENTS.md` | Live infrastructure reference |
+| `DEPLOY_AWS.md` | Current architecture overview |
+| `infrastructure/frontend/` | Nginx config + IAM policies as code |
 
 ---
 
-## 11. Workflow File Location
-
-The actual GitHub Actions workflow lives at:
+## 11. Workflow File
 
 ```
 .github/workflows/backend-deploy.yml
@@ -200,14 +205,3 @@ This plan document lives at:
 ```
 backend/CI-CD-PLAN.md
 ```
-
----
-
-## 12. Related Files
-
-| File | Purpose |
-|---|---|
-| `backend/Dockerfile` | Multi-stage Docker build (builder + runner) |
-| `backend/local-tools/push-container-script.sh` | Manual build/push script (used before CI) |
-| `AGENTS.md` | Live AWS infrastructure documentation |
-| `.github/workflows/main_dbaas.yml` | Frontend Azure deploy workflow (separate) |
