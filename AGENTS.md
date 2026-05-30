@@ -322,3 +322,115 @@ Error opening a TLS connection: self-signed certificate in certificate chain
 3. **Health check path in the target group and the app must match exactly.**
 4. **All app routes live under `/api` — keep it that way.**
 5. **If ECS tasks are cycling (STOPPED with exit 137), check target group health first.**
+
+---
+
+## 10. Frontend Infrastructure (Nginx Reverse Proxy + S3)
+
+Added 2026-05-30.
+
+### Architecture
+
+```
+Internet ──▶ Nginx EC2 (SSL termination, Certbot)
+              ├── /api/* ──▶ ALB (HTTP) ──▶ ECS/Fargate (Backend)
+              └── /*      ──▶ /var/www/frontend (Static SPA from S3)
+```
+
+### EC2 Instance (Nginx Reverse Proxy)
+
+| Property | Value |
+|---|---|
+| Instance ID | `i-090a4dd00c0ee23e5` |
+| OS | Ubuntu 24.04 LTS |
+| Public IP | `35.181.168.74` |
+| Security Group | `sg-006944c1312d5588f` (`nginx-sg`) |
+| IAM Role | `ec2-nginx-role` (instance profile `ec2-nginx-profile`) |
+| SSH Key Pair | `nginx-key` |
+| Domain | `loonaris.tech`, `www.loonaris.tech` |
+| SSL | Let's Encrypt via Certbot (auto-renewal via `certbot.timer`) |
+
+**Security Group Rules (`nginx-sg`):**
+| Port | Source | Purpose |
+|---|---|---|
+| 22 | `0.0.0.0/0` | SSH |
+| 80 | `0.0.0.0/0` | HTTP (redirect to HTTPS) |
+| 443 | `0.0.0.0/0` | HTTPS (public traffic) |
+
+**Installed Packages:** nginx, certbot, python3-certbot-nginx, awscli v2.
+
+### S3 Bucket (Frontend Build Store)
+
+| Property | Value |
+|---|---|
+| Bucket | `loonaris-frontend-12345` |
+| ARN | `arn:aws:s3:::loonaris-frontend-12345` |
+| Region | `eu-west-3` |
+
+The EC2 role has read-only access. The bucket policy grants access to `arn:aws:iam::474741569968:role/ec2-nginx-role`.
+
+### Nginx Reverse Proxy Behavior
+
+- **SSL terminates on the EC2** (port 443). Certbot manages certificates.
+- **HTTP → HTTPS redirect** for matching `Host` headers.
+- **`/api/*`** is proxied to the ALB (`http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com`) over plain HTTP.
+- **`/*`** serves static files from `/var/www/frontend` with SPA fallback (`try_files $uri $uri/ /index.html`).
+
+### Frontend CI/CD
+
+**Workflow:** `.github/workflows/frontend-deploy.yml`
+
+Triggers on `frontend/**` changes to `main`:
+1. `npm ci && npm run build`
+2. `aws s3 sync ./frontend/dist s3://loonaris-frontend-12345 --delete`
+3. SSH to EC2: `aws s3 sync s3://... /var/www/frontend --delete && sudo nginx -s reload`
+4. Verify `https://loonaris.tech/` and `https://loonaris.tech/api/health`
+
+**Required GitHub secrets:**
+| Secret | Description |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | IAM access key (can reuse backend secret) |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key (can reuse backend secret) |
+| `EC2_HOST` | `35.181.168.74` |
+| `EC2_SSH_KEY` | Private key for `nginx-key` PEM |
+
+### DNS
+
+`loonaris.tech` and `www.loonaris.tech` A-record → `35.181.168.74`
+
+### Infrastructure as Code
+
+All config files are versioned in the repo:
+- `infrastructure/frontend/nginx/loonaris.conf`
+- `infrastructure/frontend/iam/ec2-trust-policy.json`
+- `infrastructure/frontend/iam/s3-read-policy.json`
+- `infrastructure/frontend/iam/s3-bucket-policy.json`
+- `infrastructure/frontend/README.md`
+
+---
+
+## 11. Known Debugging History — Frontend
+
+**2026-05-30 — `https://loonaris.tech/` returns 403 Forbidden**
+
+**Symptom:** After configuring Nginx and SSL, the root URL returned `403 Forbidden`.
+
+**Root cause:** `/var/www/frontend/index.html` did not exist. The directory was empty because the frontend build had never been synced from S3 to the EC2.
+
+**Fix applied:**
+- Built the frontend locally (`npm run build` in `frontend/`)
+- Uploaded the `dist/` folder to S3: `aws s3 sync ./frontend/dist s3://loonaris-frontend-12345 --delete`
+- Synced from S3 to EC2: `aws s3 sync s3://loonaris-frontend-12345 /var/www/frontend --delete`
+- Reloaded Nginx: `sudo nginx -s reload`
+- Verified `https://loonaris.tech/` returns `200`
+
+**Key lesson:** The Nginx reverse proxy config is correct, but the frontend deploy workflow must be run (or a manual sync done) to populate `/var/www/frontend` before the site will serve content.
+
+---
+
+## 12. Golden Rules for Agents (Frontend)
+
+1. **Never modify Nginx SSL config manually** — Certbot manages it. Use `sudo certbot renew --dry-run` to test.
+2. **The EC2 must have the IAM instance profile attached** for S3 sync to work without long-term credentials.
+3. **If you see 403 on `/`**, the frontend files are missing — run the S3 sync.
+4. **If you see 404 on `/api/...`**, check the ALB target group health first.
