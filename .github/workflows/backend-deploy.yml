@@ -155,24 +155,52 @@ jobs:
           echo "digest=$DIGEST" >> $GITHUB_OUTPUT
           echo "Registered new task definition: $NEW_TD_ARN"
 
-      - name: Update ECS service and force deployment
+      # AWS Fargate vCPU quota is 4. Each task uses 1 vCPU.
+      # Rolling deployment needs 4 vCPUs (2 old + 2 new), which hits the limit.
+      # Workaround: scale to 0 → update task def → scale back to 2.
+      # This causes ~30s of downtime but guarantees the deploy succeeds.
+      - name: Update ECS service (scale-to-zero workaround for vCPU limit)
         run: |
-          echo "Updating ECS service to new task definition…"
+          EXPECTED_DIGEST="${{ steps.register-td.outputs.digest }}"
+          echo "Expected digest: $EXPECTED_DIGEST"
+          echo ""
+
+          echo "Step 1: Scaling service to 0…"
+          aws ecs update-service \
+            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+            --service ${{ vars.ECS_SERVICE_NAME }} \
+            --desired-count 0 \
+            --region ${{ vars.AWS_REGION }} >/dev/null
+
+          echo "Step 2: Waiting for tasks to stop (up to 2 minutes)…"
+          for i in {1..24}; do
+            sleep 5
+            RUNNING=$(aws ecs list-tasks \
+              --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+              --service-name ${{ vars.ECS_SERVICE_NAME }} \
+              --desired-status RUNNING \
+              --region ${{ vars.AWS_REGION }} \
+              --query 'taskArns | length(@)' --output text)
+            if [ "$RUNNING" = "0" ]; then
+              echo "  ✓ All tasks stopped"
+              break
+            fi
+            echo "  Check $i: $RUNNING tasks still running…"
+          done
+
+          echo ""
+          echo "Step 3: Updating to new task definition and scaling to 2…"
           aws ecs update-service \
             --cluster ${{ vars.ECS_CLUSTER_NAME }} \
             --service ${{ vars.ECS_SERVICE_NAME }} \
             --task-definition ${{ steps.register-td.outputs.new-td-arn }} \
+            --desired-count 2 \
             --force-new-deployment \
-            --region ${{ vars.AWS_REGION }}
+            --region ${{ vars.AWS_REGION }} >/dev/null
 
-      - name: Wait for deployment and verify digest
-        timeout-minutes: 6
-        run: |
-          EXPECTED_DIGEST="${{ steps.register-td.outputs.digest }}"
-          echo "Waiting for tasks with digest: $EXPECTED_DIGEST"
-
-          for i in {1..36}; do
-            sleep 10
+          echo "Step 4: Waiting for new tasks to start (up to 4 minutes)…"
+          for i in {1..48}; do
+            sleep 5
 
             TASKS=$(aws ecs list-tasks \
               --cluster ${{ vars.ECS_CLUSTER_NAME }} \
@@ -182,7 +210,7 @@ jobs:
               --query 'taskArns' --output text)
 
             if [ -z "$TASKS" ] || [ "$TASKS" = "None" ]; then
-              echo "Check $i: No running tasks yet…"
+              echo "  Check $i: No running tasks yet…"
               continue
             fi
 
@@ -196,9 +224,9 @@ jobs:
 
               if [ "$DIGEST" = "$EXPECTED_DIGEST" ]; then
                 MATCH=$((MATCH + 1))
-                echo "Check $i: ✓ Task $task has correct digest ($MATCH/2)"
+                echo "  Check $i: ✓ Task $task has correct digest ($MATCH/2)"
               else
-                echo "Check $i: ✗ Task $task has wrong digest: $DIGEST"
+                echo "  Check $i: ✗ Task $task has wrong digest: $DIGEST"
               fi
             done
 
