@@ -289,9 +289,12 @@ This means the ALB health check path must be `/api/health`, not `/health`.
 
 **Root cause:** AWS account default Fargate on-demand vCPU quota was 4. Each task uses 1 vCPU. During rolling deployment, ECS temporarily needs 4 vCPUs (2 old + 2 new), which hit the limit.
 
-**Fix applied:**
-- Requested quota increase to 8 vCPUs via AWS Service Quotas.
-- As a workaround, scaled service to 0 then back to 2 to force a clean deploy without needing concurrent old+new tasks.
+**Fix applied (2026-05-30):**
+- Quota increase request to 8 vCPUs via AWS Service Quotas was never processed / applied.
+- Updated CI/CD workflow (`.github/workflows/backend-deploy.yml`) to **scale the service to 0**, update the task definition, then **scale back to 2**.
+- This avoids the vCPU limit entirely (never need concurrent old+new tasks).
+- Trade-off: ~30 seconds of downtime during deploy. Acceptable for a school project.
+- Workflow step: `Update ECS service (scale-to-zero workaround for vCPU limit)`
 
 ---
 
