@@ -178,3 +178,4 @@ For React components, a single-line comment above the export is sufficient when 
 - All database access must go through a **service** function; controllers must not query the database directly.
 - Secrets and configuration live in `.env`; never hard-code credentials. Always provide a `.env.example` with placeholder values.
 - Export the Express `app` separately from `server.listen()` to allow testing without starting the HTTP server.
+- **Never write Prisma migration SQL files manually.** Always use `npx prisma migrate dev --create-only` to generate migrations from schema changes, then `npx prisma migrate deploy` to apply them. Manual migration SQL leads to schema drift and production bugs.

@@ -7,6 +7,10 @@ import crypto from 'crypto';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
+function sha256Hex(input: string): string {
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
+
 const TENANTS = [
   { email: 'alice@example.com',  username: 'alice',  country: 'FR', password: 'Password123!' },
   { email: 'bob@example.com',    username: 'bob',    country: 'US', password: 'Password456!' },
@@ -16,11 +20,11 @@ const TENANTS = [
 ];
 
 const PROJECTS = [
-  { name: 'Alice Production DB', namespace: 'alice-prod-ns',    pg: '16', region: 'eu-west-1',    deploy: DeploymentOption.MULTI_AZ_CLUSTER,   est: 120.5, replicas: 3, storage: '100Gi', ram: '8Gi',  cpu: '4'   },
-  { name: 'Bob Staging DB',      namespace: 'bob-staging-ns',   pg: '15', region: 'us-east-1',    deploy: DeploymentOption.SINGLE_AZ_INSTANCE, est: 45.0,  replicas: 1, storage: '20Gi',  ram: '2Gi',  cpu: '1'   },
-  { name: 'Carol Analytics DB',  namespace: 'carol-analytics',  pg: '16', region: 'eu-central-1', deploy: DeploymentOption.MULTI_AZ_INSTANCE,  est: 80.0,  replicas: 2, storage: '80Gi',  ram: '16Gi', cpu: '8'   },
-  { name: 'Dave Dev DB',         namespace: 'dave-dev-ns',      pg: '14', region: 'us-west-2',    deploy: DeploymentOption.SINGLE_AZ_INSTANCE, est: 20.0,  replicas: 1, storage: '10Gi',  ram: '1Gi',  cpu: '0.5' },
-  { name: 'Eve Data Warehouse',  namespace: 'eve-warehouse-ns', pg: '16', region: 'ap-southeast-1',deploy: DeploymentOption.MULTI_AZ_CLUSTER,  est: 200.0, replicas: 5, storage: '500Gi', ram: '32Gi', cpu: '16'  },
+  { name: 'Alice Production DB', pg: '16', region: 'eu-west-1',    deploy: DeploymentOption.MULTI_AZ_CLUSTER,   est: 120.5, replicas: 3, storage: '100Gi', ram: '8Gi',  cpu: '4'   },
+  { name: 'Bob Staging DB',      pg: '16', region: 'us-east-1',    deploy: DeploymentOption.SINGLE_AZ_INSTANCE, est: 45.0,  replicas: 1, storage: '20Gi',  ram: '2Gi',  cpu: '1'   },
+  { name: 'Carol Analytics DB', pg: '16', region: 'eu-central-1', deploy: DeploymentOption.MULTI_AZ_INSTANCE,  est: 80.0,  replicas: 2, storage: '80Gi',  ram: '16Gi', cpu: '8'   },
+  { name: 'Dave Dev DB',         pg: '16', region: 'us-west-2',    deploy: DeploymentOption.SINGLE_AZ_INSTANCE, est: 20.0,  replicas: 1, storage: '10Gi',  ram: '1Gi',  cpu: '0.5' },
+  { name: 'Eve Data Warehouse',  pg: '16', region: 'ap-southeast-1', deploy: DeploymentOption.MULTI_AZ_CLUSTER, est: 200.0, replicas: 5, storage: '500Gi', ram: '32Gi', cpu: '16'  },
 ];
 
 async function main() {
@@ -51,18 +55,25 @@ async function main() {
   console.log(`✓ ${tenants.length} refresh tokens`);
 
   const projects = await Promise.all(
-    PROJECTS.map((p, i) =>
-      prisma.project.upsert({
-        where: { k8sNamespace: p.namespace },
+    PROJECTS.map((p, i) => {
+      const clusterId = crypto.randomUUID();
+      const namespace = `project-${clusterId}`;
+      const baseKey = crypto.randomBytes(32).toString('hex');
+      const keyHash = sha256Hex(baseKey);
+
+      return prisma.project.upsert({
+        where: { k8sNamespace: namespace },
         update: {},
         create: {
+          id: clusterId,
           name: p.name,
-          k8sNamespace: p.namespace,
+          k8sNamespace: namespace,
           pgVersion: p.pg,
           region: p.region,
           deploymentOption: p.deploy,
           estimatedPrice: p.est,
           tenantId: tenants[i].id,
+          status: 'running',
           resourceConfig: {
             create: {
               desiredReplicas: p.replicas,
@@ -74,23 +85,24 @@ async function main() {
           },
           poolers: {
             create: {
-              roPoolerLink: `postgres://ro.${p.namespace}.internal:5432/postgres`,
-              rwPoolerLink: `postgres://rw.${p.namespace}.internal:5432/postgres`,
+              rwHost: `pooler-rw-svc.${namespace}.svc.cluster.local`,
+              rwPort: 5432,
+              roHost: `pooler-ro-svc.${namespace}.svc.cluster.local`,
+              roPort: 5432,
             },
           },
           apiKeys: {
             create: {
-              keyHash: crypto.createHash('sha256').update(`secret-${p.namespace}`).digest('hex'),
-              prefix: `lnr_${TENANTS[i].username}_`,
+              keyHash,
+              prefix: 'sk_live_',
               duration: 90,
             },
           },
         },
-      }),
-    ),
+      });
+    }),
   );
   console.log(`✓ ${projects.length} projects`);
-
   console.log('\nSeed completed.');
 }
 

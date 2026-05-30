@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import swaggerUi from 'swagger-ui-express';
 import { openApiSpec } from './config/openapi';
 import authRoutes from './modules/auth/routes';
+import internalRoutes from './modules/internal/routes';
 import pgClusterRoutes from './modules/pgCluster/routes';
 import testAppRoutes from './modules/testApp/routes';
 
@@ -25,31 +26,43 @@ apiRouter.get('/health', (_req: Request, res: Response) => {
 
 apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 apiRouter.use('/auth', authRoutes);
+apiRouter.use('/internal', internalRoutes);
 apiRouter.use('/clusters', pgClusterRoutes);
 apiRouter.use('/test', testAppRoutes);
 
 app.use('/api', apiRouter);
 
 // Global error handler
-app.use((err: Error & { code?: string; meta?: { target?: string[] } }, _req: Request, res: Response, _next: NextFunction) => {
-  console.error(err);
+app.use(
+  (
+    err: Error & { code?: string; meta?: { target?: string[] } },
+    _req: Request,
+    res: Response,
+    _next: NextFunction,
+  ) => {
+    console.error(err);
 
-  if (err.code === 'P2002') {
-    const field = err.meta?.target?.[0] ?? 'field';
-    res.status(400).json({ success: false, message: `${field} already exists` });
-    return;
-  }
-  if (err.code === 'P2025') {
-    res.status(404).json({ success: false, message: 'Record not found' });
-    return;
-  }
-  if (err.message.includes('Invalid') || err.message.includes('already') || err.message.includes('required')) {
-    res.status(400).json({ success: false, message: err.message });
-    return;
-  }
+    if (err.code === 'P2002') {
+      const field = err.meta?.target?.[0] ?? 'field';
+      res.status(400).json({ success: false, message: `${field} already exists` });
+      return;
+    }
+    if (err.code === 'P2025') {
+      res.status(404).json({ success: false, message: 'Record not found' });
+      return;
+    }
+    if (
+      err.message.includes('Invalid') ||
+      err.message.includes('already') ||
+      err.message.includes('required')
+    ) {
+      res.status(400).json({ success: false, message: err.message });
+      return;
+    }
 
-  res.status(500).json({ success: false, message: 'Internal server error' });
-});
+    res.status(500).json({ success: false, message: 'Internal server error' });
+  },
+);
 
 app.listen(PORT, () => {
   console.log(`Backend running on http://localhost:${PORT}`);

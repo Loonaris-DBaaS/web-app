@@ -1,5 +1,6 @@
 import { randomUUID } from 'crypto';
 import prisma from '@/lib/prisma';
+import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
 import { CreateClusterDto, SIZE_SPECS, DeploymentOption, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
@@ -83,13 +84,30 @@ export async function getCluster(tenantId: string, clusterId: string): Promise<C
   return row ? toDto(row) : null;
 }
 
-export async function createCluster(tenantId: string, dto: CreateClusterDto): Promise<ClusterDto> {
+export async function createCluster(
+  tenantId: string,
+  dto: CreateClusterDto,
+): Promise<ClusterDto & { apiKey: string }> {
   const clusterId = randomUUID();
-  const namespace = `tenant-${tenantId.slice(0, 8)}-${clusterId.slice(0, 8)}`;
+  const namespace = `project-${clusterId}`;
   const specs = SIZE_SPECS[dto.size];
   const replicas = dto.readReplicas ?? 1;
-  const multiplier = toDeploymentMultiplier(dto.deploymentOption, replicas);
+  const multiplier =
+    dto.deploymentOption === 'MULTI_AZ_CLUSTER'
+      ? 1 + replicas
+      : dto.deploymentOption === 'MULTI_AZ_INSTANCE'
+        ? 2
+        : 1;
   const estimatedPrice = specs.price * multiplier + (dto.backup ? 5 : 0);
+
+  const baseKey = generateBaseKey();
+  const keyHash = sha256Hex(baseKey);
+  const apiKey = formatApiKey(baseKey, 'rw');
+
+  const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
+  const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
+
+  const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
 
   const row = await prisma.project.create({
     data: {
@@ -101,7 +119,7 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
       pgVersion: dto.pgVersion,
       deploymentOption: dto.deploymentOption,
       estimatedPrice,
-      status: 'provisioning',
+      status: 'provisioning': provStatus,
       resourceConfig: {
         create: {
           desiredReplicas: replicas,
@@ -112,15 +130,25 @@ export async function createCluster(tenantId: string, dto: CreateClusterDto): Pr
           desiredCpu: specs.cpu,
         },
       },
+      poolers: {
+        create: {
+          rwHost,
+          rwPort: 5432,
+          roHost,
+          roPort: 5432,
+        },
+      },
+      apiKeys: {
+        create: {
+          keyHash,
+          prefix: 'sk_live_',
+          duration: 90,
+        },
+      },
     },
-    include: { resourceConfig: true },
   });
 
-  provisionCluster(clusterId, dto).catch(async () => {
-    await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
-  });
-
-  return toDto(row);
+  return { ...toDto(row), apiKey };
 }
 
 export async function updateCluster(
