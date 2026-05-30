@@ -1,6 +1,6 @@
 import { useState } from "react";
 import ConnectionParameters from "./ConnectionParameters";
-
+import { clusterService } from '../../services/api';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -555,6 +555,11 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       : deploymentOption === "multi-az-instance"
         ? 2
         : 1;
+  const deploymentOptionMap = {
+  "multi-az-cluster":   "MULTI_AZ_CLUSTER",
+  "multi-az-instance":  "MULTI_AZ_INSTANCE",
+  "single-az-instance": "SINGLE_AZ_INSTANCE",
+};
   const totalCost = baseCost * deploymentMultiplier + (backup ? 5 : 0);
 
   const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
@@ -581,37 +586,28 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
     if (nameError) validateName(val);
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!validateName(dbName)) return;
     setStatus("loading");
 
     const payload = {
-      name: `db_${dbName.trim()}`,
+      name: `${dbName.trim()}`,
       region,
       pgVersion,
       size: selectedSize,
-      deploymentOption,
+      deploymentOption:deploymentOptionMap[deploymentOption],
       readReplicas: deploymentOption === "multi-az-cluster" ? replicasCount : 0,
       backup,
-      connectionStrings:
-        deploymentOption === "multi-az-cluster"
-          ? {
-              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
-              ro: `postgres://sk_live_xxxxxxxx@ro.${baseHost}`,
-              both: `postgres://sk_live_xxxxxxxx@cluster.${baseHost}`,
-            }
-          : {
-              rw: `postgres://sk_live_xxxxxxxx@rw.${baseHost}`,
-            },
-      estimatedCost: totalCost,
-    };
-
-    setTimeout(() => {
-      setStatus("success");
-      setToastVisible(true);
-      setTimeout(() => setToastVisible(false), 4000);
-      onSubmit?.(payload);
-    }, 1800);
+      };
+      try {
+        await clusterService.createCluster(payload);
+        setStatus("success");
+        setToastVisible(true);
+        setTimeout(() => setToastVisible(false), 4000);
+        onSubmit?.();
+      } catch (err) {
+        setStatus("idle");
+    }
   }
 
   function handleCancel() {

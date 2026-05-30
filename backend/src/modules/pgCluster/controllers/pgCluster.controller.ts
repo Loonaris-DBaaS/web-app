@@ -11,7 +11,7 @@ const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'pro', 'scale'];
 const VALID_DEPLOYMENT_OPTIONS: DeploymentOption[] = ['MULTI_AZ_CLUSTER', 'MULTI_AZ_INSTANCE', 'SINGLE_AZ_INSTANCE'];
 
-export async function index(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function index(req: Request, res: Response, next: NextFunction){
   try {
     const clusters = await pgClusterService.listClusters(tenantId(req));
     res.json({ success: true, data: clusters });
@@ -20,7 +20,7 @@ export async function index(req: Request, res: Response, next: NextFunction): Pr
   }
 }
 
-export async function show(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function show(req: Request, res: Response, next: NextFunction){
   try {
     const cluster = await pgClusterService.getCluster(tenantId(req), req.params['id'] as string);
     if (!cluster) {
@@ -33,7 +33,7 @@ export async function show(req: Request, res: Response, next: NextFunction): Pro
   }
 }
 
-export async function create(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function create(req: Request, res: Response, next: NextFunction) {
   const dto = req.body as CreateClusterDto;
 
   if (!dto.name || !dto.region || !dto.pgVersion || !dto.size || !dto.deploymentOption) {
@@ -56,13 +56,13 @@ export async function create(req: Request, res: Response, next: NextFunction): P
 
   try {
     const cluster = await pgClusterService.createCluster(tenantId(req), dto);
-    res.status(202).json(cluster); // 202 Accepted — provisioning is async
+    res.status(202).json({success: true, data: cluster }); // 202 Accepted — provisioning is async
   } catch (err) {
     next(err);
   }
 }
 
-export async function update(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function update(req: Request, res: Response, next: NextFunction) {
   const dto = req.body as UpdateClusterDto;
 
   if (
@@ -93,7 +93,7 @@ export async function update(req: Request, res: Response, next: NextFunction): P
   }
 }
 
-export async function remove(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
     const deleted = await pgClusterService.deleteCluster(tenantId(req), req.params['id'] as string);
     if (!deleted) {

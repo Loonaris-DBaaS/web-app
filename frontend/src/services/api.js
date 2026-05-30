@@ -47,5 +47,7 @@ api.interceptors.response.use(
 );
 export const clusterService = {
   getClusters: () => api.get('/api/clusters').then((res) => res.data.data),
+  createCluster: (body)  => api.post('/api/clusters', body).then(res => res.data),
+
 };
 export default api;

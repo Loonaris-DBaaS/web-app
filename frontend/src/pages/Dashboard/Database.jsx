@@ -37,7 +37,7 @@ function toRow(project) {
     status: STATUS_MAP[project.status] ?? project.status,
     postgresVersion: project.pgVersion,
     region: project.region,
-    replicas: project.resourceConfig?.desiredReplicas ?? 0,
+    replicas: project.readReplicas ?? 0,
     storageUsedGb: project.storageUsage ?? 0,
   };
 }
