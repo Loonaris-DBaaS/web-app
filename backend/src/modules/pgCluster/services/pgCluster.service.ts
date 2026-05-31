@@ -89,8 +89,10 @@ export async function createCluster(
   const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
   const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
 
-  // const { status: provStatus } = await provisionCluster(clusterId, namespace, dto);
-  const provStatus = 'running' as const;
+  // Provisioning (CNPG health polling) can take minutes, so we don't block the
+  // HTTP request. The project starts in `provisioning` and is updated once the
+  // background provision finishes (see fire-and-forget call below).
+  const provStatus = 'provisioning' as const;
 
   const row = await prisma.project.create({
     data: {
@@ -134,6 +136,19 @@ export async function createCluster(
     where: { id: row.id },
     include: { resourceConfig: true },
   });
+
+  // Fire-and-forget: provision in EKS in the background and persist the final
+  // status (running / error) once CNPG health polling completes.
+  void provisionCluster(clusterId, namespace, dto)
+    .then(({ status }) =>
+      prisma.project.update({ where: { id: clusterId }, data: { status } }),
+    )
+    .catch(async (err) => {
+      console.error(`[provisioning] background provision failed for ${clusterId}:`, err);
+      await prisma.project
+        .update({ where: { id: clusterId }, data: { status: 'error' } })
+        .catch(() => undefined);
+    });
 
   return { ...toDto(created), apiKey };
 }

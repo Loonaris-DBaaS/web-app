@@ -13,7 +13,47 @@ function getK8sClient(): {
   customApi: k8s.CustomObjectsApi;
 } {
   const kc = new k8s.KubeConfig();
-  kc.loadFromDefault();
+
+  const clusterEndpoint = process.env.K8S_CLUSTER_ENDPOINT;
+  const clusterCa = process.env.K8S_CLUSTER_CA;
+  const clusterName = process.env.K8S_CLUSTER_NAME;
+  const awsRegion = process.env.K8S_AWS_REGION;
+
+  if (clusterEndpoint && clusterCa && clusterName && awsRegion) {
+    kc.loadFromOptions({
+      clusters: [
+        {
+          name: clusterName,
+          caData: clusterCa,
+          server: clusterEndpoint,
+        },
+      ],
+      users: [
+        {
+          name: 'eks-token-user',
+          authProvider: {
+            name: 'aws',
+            config: {
+              clusterName,
+              region: awsRegion,
+              accessKeyId: process.env.K8S_AWS_ACCESS_KEY_ID,
+              secretAccessKey: process.env.K8S_AWS_SECRET_ACCESS_KEY,
+            },
+          },
+        },
+      ],
+      contexts: [
+        {
+          name: 'eks-context',
+          cluster: clusterName,
+          user: 'eks-token-user',
+        },
+      ],
+      currentContext: 'eks-context',
+    });
+  } else {
+    kc.loadFromDefault();
+  }
 
   return {
     coreApi: kc.makeApiClient(k8s.CoreV1Api),
@@ -60,7 +100,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       instances: 2,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
-      tolerations: [{ key: 'dedicated', operator: 'Equal', value: 'tenant', effect: 'NoSchedule' }],
+      nodeSelector: { role: 'tenant' },
       topologySpreadConstraints: [
         {
           maxSkew: 1,
@@ -89,9 +129,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       template: {
         metadata: { labels: { app: 'pgbouncer-rw' } },
         spec: {
-          tolerations: [
-            { key: 'dedicated', operator: 'Equal', value: 'tenant', effect: 'NoSchedule' },
-          ],
+          nodeSelector: { role: 'tenant' },
           containers: [
             {
               name: 'pgbouncer',
@@ -131,9 +169,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       template: {
         metadata: { labels: { app: 'pgbouncer-ro' } },
         spec: {
-          tolerations: [
-            { key: 'dedicated', operator: 'Equal', value: 'tenant', effect: 'NoSchedule' },
-          ],
+          nodeSelector: { role: 'tenant' },
           containers: [
             {
               name: 'pgbouncer',
