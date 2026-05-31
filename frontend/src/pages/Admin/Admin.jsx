@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
-import { adminService, buildConnectionString } from '../../services/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { adminService, buildConnectionString, GATEWAY_HOST } from '../../services/api';
 import { PG_VERSIONS, SIZES } from '../../constants/database';
 
 const statusColor = {
@@ -12,6 +12,17 @@ const statusColor = {
 
 const POLL_MS = 5000;
 const TOKEN_KEY = 'adminToken';
+
+// CNPG resource names are deterministic (see provisioning.ts buildManifests):
+// one Cluster `instance-db` and two Poolers per namespace.
+const k8s = (ns) => ({
+  namespace: ns,
+  cnpgCluster: 'instance-db',
+  poolerRw: 'pooler-rw',
+  poolerRo: 'pooler-ro',
+  rwHost: `pooler-rw.${ns}.svc.cluster.local`,
+  roHost: `pooler-ro.${ns}.svc.cluster.local`,
+});
 
 export default function Admin() {
   const [authed, setAuthed] = useState(() => !!localStorage.getItem(TOKEN_KEY));
@@ -29,6 +40,13 @@ export default function Admin() {
   const [form, setForm] = useState({ name: '', size: 'starter', pgVersion: '17' });
   const [creating, setCreating] = useState(false);
   const [created, setCreated] = useState(null); // { name, apiKey, connStr } — shown once
+
+  // UI state
+  const [selected, setSelected] = useState(() => new Set()); // selected cluster ids
+  const [expanded, setExpanded] = useState(() => new Set()); // expanded detail rows
+  const [groupByUser, setGroupByUser] = useState(true);
+  const [bulkBusy, setBulkBusy] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('all');
 
   const doLogin = async (e) => {
     e.preventDefault();
@@ -49,6 +67,7 @@ export default function Admin() {
     localStorage.removeItem(TOKEN_KEY);
     setAuthed(false);
     setClusters([]);
+    setSelected(new Set());
   };
 
   const load = useCallback(async () => {
@@ -71,6 +90,13 @@ export default function Admin() {
     const t = setInterval(load, POLL_MS);
     return () => clearInterval(t);
   }, [authed, load]);
+
+  // Drop selections/expansions for clusters that no longer exist.
+  useEffect(() => {
+    const ids = new Set(clusters.map((c) => c.id));
+    setSelected((prev) => new Set([...prev].filter((id) => ids.has(id))));
+    setExpanded((prev) => new Set([...prev].filter((id) => ids.has(id))));
+  }, [clusters]);
 
   const create = async (e) => {
     e.preventDefault();
@@ -105,6 +131,83 @@ export default function Admin() {
 
   const copy = (text) => navigator.clipboard?.writeText(text);
 
+  // --- filtering / grouping -----------------------------------------------
+  const filtered = useMemo(
+    () => (statusFilter === 'all' ? clusters : clusters.filter((c) => c.status === statusFilter)),
+    [clusters, statusFilter],
+  );
+
+  const groups = useMemo(() => {
+    const byOwner = new Map();
+    for (const c of filtered) {
+      const key = c.tenant?.id || c.tenantId || 'unknown';
+      if (!byOwner.has(key)) {
+        byOwner.set(key, {
+          tenantId: key,
+          email: c.tenant?.email || '—',
+          username: c.tenant?.username || '—',
+          clusters: [],
+        });
+      }
+      byOwner.get(key).clusters.push(c);
+    }
+    return [...byOwner.values()].sort((a, b) => a.email.localeCompare(b.email));
+  }, [filtered]);
+
+  // --- selection helpers ---------------------------------------------------
+  const visibleIds = useMemo(() => filtered.map((c) => c.id), [filtered]);
+  const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selected.has(id));
+  const someSelected = selected.size > 0 && !allSelected;
+
+  const toggleOne = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const toggleAllVisible = () =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) visibleIds.forEach((id) => next.delete(id));
+      else visibleIds.forEach((id) => next.add(id));
+      return next;
+    });
+
+  const toggleGroup = (ids, on) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => (on ? next.add(id) : next.delete(id)));
+      return next;
+    });
+
+  const toggleExpand = (id) =>
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const names = clusters.filter((c) => ids.includes(c.id)).map((c) => c.name);
+    if (!window.confirm(`Delete ${ids.length} cluster(s)? This destroys their databases.\n\n${names.join(', ')}`)) return;
+    setBulkBusy(true);
+    const failed = [];
+    for (const id of ids) {
+      try {
+        await adminService.deleteCluster(id);
+      } catch {
+        failed.push(id);
+      }
+    }
+    setSelected(new Set(failed));
+    setBulkBusy(false);
+    await load();
+    if (failed.length) alert(`${failed.length} deletion(s) failed.`);
+  };
+
   const input = { padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 14 };
 
   // --- Login screen ---
@@ -127,20 +230,143 @@ export default function Admin() {
     );
   }
 
-  const th = { textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', fontSize: 13 };
-  const td = { padding: '8px 10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 };
+  const th = { textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', fontSize: 13, color: '#475569' };
+  const td = { padding: '8px 10px', borderBottom: '1px solid #f1f5f9', fontSize: 13, verticalAlign: 'top' };
+  const mono = { fontFamily: 'monospace', fontSize: 11 };
+
+  const statusCounts = clusters.reduce((acc, c) => ((acc[c.status] = (acc[c.status] || 0) + 1), acc), {});
+  const owners = new Set(clusters.map((c) => c.tenant?.id || c.tenantId)).size;
+
+  const StatusBadge = ({ status }) => (
+    <span style={{
+      display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+      color: statusColor[status] || '#111', background: `${statusColor[status] || '#111'}1a`,
+    }}>{status}</span>
+  );
+
+  const CopyField = ({ label, value }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <span style={{ fontSize: 11, color: '#64748b' }}>{label}</span>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+        <code style={{ ...mono, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 4, padding: '3px 6px', wordBreak: 'break-all' }}>{value}</code>
+        <button onClick={() => copy(value)} style={{ fontSize: 11, padding: '2px 6px', cursor: 'pointer' }}>Copy</button>
+      </div>
+    </div>
+  );
+
+  const DetailPanel = ({ c }) => {
+    const m = k8s(c.k8sNamespace);
+    return (
+      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, padding: 14, margin: '4px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <strong style={{ fontSize: 12, color: '#334155', textTransform: 'uppercase', letterSpacing: 0.4 }}>Owner</strong>
+          <div style={{ fontSize: 13 }}>{c.tenant?.username || '—'}</div>
+          <div style={{ fontSize: 13, color: '#475569' }}>{c.tenant?.email || '—'}</div>
+          <CopyField label="Tenant ID" value={c.tenant?.id || c.tenantId} />
+
+          <strong style={{ fontSize: 12, color: '#334155', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 8 }}>Configuration</strong>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            Size <b>{c.size}</b> · PG <b>{c.pgVersion}</b> · {c.instances} instance(s) · {c.region}
+          </div>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            {c.cpu} vCPU · {c.ram} RAM · {c.storage} disk
+          </div>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            Backup {c.backup ? 'on' : 'off'} · Autoscale {c.autoscale ? 'on' : 'off'}
+            {' · '}Storage {c.storageUsedGb}/{c.provisionedStorageGb} GB
+          </div>
+          <div style={{ fontSize: 13, color: '#475569' }}>
+            ${c.estimatedPrice}/mo · created {new Date(c.createdAt).toLocaleString()}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <strong style={{ fontSize: 12, color: '#334155', textTransform: 'uppercase', letterSpacing: 0.4 }}>Kubernetes</strong>
+          <CopyField label="Namespace" value={m.namespace} />
+          <CopyField label="CNPG Cluster" value={m.cnpgCluster} />
+          <CopyField label="Poolers" value={`${m.poolerRw}, ${m.poolerRo}`} />
+          <CopyField label="RW service" value={m.rwHost} />
+          <CopyField label="RO service" value={m.roHost} />
+          <span style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>kubectl</span>
+          <code style={{ ...mono, background: '#0f172a', color: '#e2e8f0', borderRadius: 4, padding: '6px 8px', wordBreak: 'break-all' }}>
+            kubectl -n {m.namespace} get cluster,pooler,pods
+          </code>
+          <span style={{ fontSize: 11, color: '#64748b' }}>Public endpoint (gateway)</span>
+          <code style={{ ...mono, background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 4, padding: '3px 6px' }}>{GATEWAY_HOST}:5432</code>
+        </div>
+      </div>
+    );
+  };
+
+  const ClusterRow = ({ c }) => {
+    const isOpen = expanded.has(c.id);
+    return (
+      <>
+        <tr style={selected.has(c.id) ? { background: '#eef2ff' } : undefined}>
+          <td style={td}>
+            <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleOne(c.id)} />
+          </td>
+          <td style={td}>
+            <button onClick={() => toggleExpand(c.id)} title="Details"
+              style={{ border: 0, background: 'transparent', cursor: 'pointer', fontSize: 12, color: '#475569', marginRight: 6 }}>
+              {isOpen ? '▾' : '▸'}
+            </button>
+            <b>{c.name}</b>
+          </td>
+          <td style={td}><StatusBadge status={c.status} /></td>
+          {!groupByUser && (
+            <td style={td}>
+              <div>{c.tenant?.username}</div>
+              <div style={{ color: '#64748b', fontSize: 12 }}>{c.tenant?.email}</div>
+            </td>
+          )}
+          <td style={{ ...td, color: '#475569' }}>{c.size} · PG{c.pgVersion} · {c.region}</td>
+          <td style={{ ...td, ...mono }}>{c.k8sNamespace}</td>
+          <td style={td}>
+            <button onClick={() => remove(c)} disabled={busyId === c.id}
+              style={{ padding: '4px 10px', color: '#fff', background: '#dc2626', border: 0, borderRadius: 4, cursor: 'pointer' }}>
+              {busyId === c.id ? '…' : 'Delete'}
+            </button>
+          </td>
+        </tr>
+        {isOpen && (
+          <tr>
+            <td style={{ padding: '0 10px' }} colSpan={groupByUser ? 6 : 7}><DetailPanel c={c} /></td>
+          </tr>
+        )}
+      </>
+    );
+  };
+
+  const colSpanAll = groupByUser ? 6 : 7;
 
   // --- Dashboard ---
   return (
-    <div style={{ maxWidth: 1100, margin: '40px auto', padding: '0 16px', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ maxWidth: 1200, margin: '40px auto', padding: '0 16px', fontFamily: 'system-ui, sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 22 }}>Admin — Clusters ({clusters.length})</h1>
+        <h1 style={{ fontSize: 22 }}>Admin — Clusters</h1>
         <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={load} disabled={loading} style={{ padding: '6px 14px', cursor: 'pointer' }}>
             {loading ? 'Loading…' : 'Refresh'}
           </button>
           <button onClick={adminLogout} style={{ padding: '6px 14px', cursor: 'pointer' }}>Log out</button>
         </div>
+      </div>
+
+      {/* Summary stats */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+        {[
+          { label: 'Clusters', val: clusters.length },
+          { label: 'Owners', val: owners },
+          { label: 'Running', val: statusCounts.running || 0, color: statusColor.running },
+          { label: 'Provisioning', val: statusCounts.provisioning || 0, color: statusColor.provisioning },
+          { label: 'Error', val: statusCounts.error || 0, color: statusColor.error },
+        ].map((s) => (
+          <div key={s.label} style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '8px 14px', minWidth: 90 }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: s.color || '#111' }}>{s.val}</div>
+            <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
+          </div>
+        ))}
       </div>
 
       {created && (
@@ -195,39 +421,80 @@ export default function Admin() {
 
       {err && <p style={{ color: '#dc2626' }}>{err}</p>}
 
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 16 }}>
+      {/* Toolbar: grouping, filter, bulk actions */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 18, flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#475569' }}>
+          <input type="checkbox" checked={groupByUser} onChange={(e) => setGroupByUser(e.target.checked)} />
+          Group by user
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#475569' }}>
+          Status
+          <select style={{ ...input, padding: '4px 8px', fontSize: 13 }} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="all">all</option>
+            {['running', 'provisioning', 'error', 'deleting', 'stopped'].map((s) => (
+              <option key={s} value={s}>{s} ({statusCounts[s] || 0})</option>
+            ))}
+          </select>
+        </label>
+        <div style={{ flex: 1 }} />
+        {selected.size > 0 && (
+          <>
+            <span style={{ fontSize: 13, color: '#475569' }}>{selected.size} selected</span>
+            <button onClick={() => setSelected(new Set())} style={{ padding: '6px 12px', cursor: 'pointer' }}>Clear</button>
+            <button onClick={bulkDelete} disabled={bulkBusy}
+              style={{ padding: '6px 14px', color: '#fff', background: '#dc2626', border: 0, borderRadius: 6, cursor: 'pointer' }}>
+              {bulkBusy ? 'Deleting…' : `Delete ${selected.size} selected`}
+            </button>
+          </>
+        )}
+      </div>
+
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 12 }}>
         <thead>
           <tr>
+            <th style={{ ...th, width: 36 }}>
+              <input type="checkbox" checked={allSelected}
+                ref={(el) => el && (el.indeterminate = someSelected)}
+                onChange={toggleAllVisible} title="Select all" />
+            </th>
             <th style={th}>Name</th>
             <th style={th}>Status</th>
-            <th style={th}>Owner</th>
+            {!groupByUser && <th style={th}>Owner</th>}
+            <th style={th}>Config</th>
             <th style={th}>Namespace</th>
-            <th style={th}>ID</th>
             <th style={th}></th>
           </tr>
         </thead>
         <tbody>
-          {clusters.map((c) => (
-            <tr key={c.id}>
-              <td style={td}>{c.name}</td>
-              <td style={{ ...td, color: statusColor[c.status] || '#111', fontWeight: 600 }}>{c.status}</td>
-              <td style={td}>{c.tenant?.email}</td>
-              <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }}>{c.k8sNamespace}</td>
-              <td style={{ ...td, fontFamily: 'monospace', fontSize: 11 }}>{c.id}</td>
-              <td style={td}>
-                <button
-                  onClick={() => remove(c)}
-                  disabled={busyId === c.id}
-                  style={{ padding: '4px 10px', color: '#fff', background: '#dc2626', border: 0, borderRadius: 4, cursor: 'pointer' }}
-                >
-                  {busyId === c.id ? '…' : 'Delete'}
-                </button>
-              </td>
-            </tr>
-          ))}
-          {!loading && clusters.length === 0 && (
-            <tr><td style={td} colSpan={6}>No clusters.</td></tr>
+          {!loading && filtered.length === 0 && (
+            <tr><td style={td} colSpan={colSpanAll}>No clusters.</td></tr>
           )}
+
+          {groupByUser
+            ? groups.map((g) => {
+                const ids = g.clusters.map((c) => c.id);
+                const allG = ids.every((id) => selected.has(id));
+                const someG = ids.some((id) => selected.has(id)) && !allG;
+                return (
+                  <>
+                    <tr key={`g-${g.tenantId}`} style={{ background: '#f8fafc' }}>
+                      <td style={{ ...td, borderBottom: '2px solid #e5e7eb' }}>
+                        <input type="checkbox" checked={allG}
+                          ref={(el) => el && (el.indeterminate = someG)}
+                          onChange={(e) => toggleGroup(ids, e.target.checked)} />
+                      </td>
+                      <td style={{ ...td, borderBottom: '2px solid #e5e7eb' }} colSpan={colSpanAll - 1}>
+                        <b>{g.username}</b>
+                        <span style={{ color: '#64748b' }}> · {g.email}</span>
+                        <span style={{ color: '#94a3b8', fontSize: 12 }}> · {g.clusters.length} cluster(s)</span>
+                        <span style={{ ...mono, color: '#94a3b8', marginLeft: 8 }}>{g.tenantId}</span>
+                      </td>
+                    </tr>
+                    {g.clusters.map((c) => <ClusterRow key={c.id} c={c} />)}
+                  </>
+                );
+              })
+            : filtered.map((c) => <ClusterRow key={c.id} c={c} />)}
         </tbody>
       </table>
     </div>
