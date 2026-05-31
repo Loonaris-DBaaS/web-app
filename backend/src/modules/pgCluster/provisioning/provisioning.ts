@@ -1,6 +1,33 @@
 import * as k8s from '@kubernetes/client-node';
+import aws4 from 'aws4';
 import { CreateClusterDto, SIZE_SPECS } from '../dto/create-cluster.dto';
 import { ProjectStatus } from '../dto/cluster.dto';
+
+/**
+ * Mints a short-lived EKS bearer token (the same scheme `aws eks get-token`
+ * produces): a presigned STS GetCallerIdentity URL, base64url-encoded behind
+ * the `k8s-aws-v1.` prefix. Needed because @kubernetes/client-node v1.x removed
+ * the built-in `aws` authProvider, so we sign the request ourselves.
+ */
+function getEksBearerToken(clusterName: string, region: string): string {
+  const opts = aws4.sign(
+    {
+      service: 'sts',
+      region,
+      method: 'GET',
+      host: `sts.${region}.amazonaws.com`,
+      path: '/?Action=GetCallerIdentity&Version=2011-06-15&X-Amz-Expires=60',
+      headers: { 'X-K8s-Aws-Id': clusterName },
+      signQuery: true,
+    },
+    {
+      accessKeyId: process.env.K8S_AWS_ACCESS_KEY_ID as string,
+      secretAccessKey: process.env.K8S_AWS_SECRET_ACCESS_KEY as string,
+    },
+  );
+  const url = `https://${opts.host as string}${opts.path as string}`;
+  return `k8s-aws-v1.${Buffer.from(url).toString('base64url')}`;
+}
 
 export interface ProvisionResult {
   externalId: string;
@@ -31,15 +58,7 @@ function getK8sClient(): {
       users: [
         {
           name: 'eks-token-user',
-          authProvider: {
-            name: 'aws',
-            config: {
-              clusterName,
-              region: awsRegion,
-              accessKeyId: process.env.K8S_AWS_ACCESS_KEY_ID,
-              secretAccessKey: process.env.K8S_AWS_SECRET_ACCESS_KEY,
-            },
-          },
+          token: getEksBearerToken(clusterName, awsRegion),
         },
       ],
       contexts: [
