@@ -27,7 +27,7 @@ export interface ClusterDto {
 export interface ApiKeyRotatedDto {
   apiKey: string;
   rwConnectionString: string;
-  roConnectionString: string;
+  roConnectionString: string | null;
 }
 
 // Returned ONLY from createCluster (HTTP 202): the full cluster plus the

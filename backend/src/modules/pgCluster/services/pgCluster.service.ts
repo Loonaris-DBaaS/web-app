@@ -98,7 +98,10 @@ export async function createCluster(
   // display; both full connection strings are persisted below.
   const apiKey = formatApiKey(baseKey, 'rw');
   const rwConnectionString = buildConnectionString(apiKey);
-  const roConnectionString = buildConnectionString(formatApiKey(baseKey, 'ro'));
+  // Single-AZ clusters have no read replica, so no RO pooler exists.
+  const roConnectionString = instances > 1
+    ? buildConnectionString(formatApiKey(baseKey, 'ro'))
+    : null;
 
   // CNPG creates a ClusterIP Service named after each Pooler resource.
   const rwHost = `pooler-rw.${namespace}.svc.cluster.local`;
@@ -181,7 +184,7 @@ export async function regenerateApiKey(
 ): Promise<ApiKeyRotatedDto | null> {
   const project = await prisma.project.findFirst({
     where: { id: clusterId, tenantId },
-    include: { apiKeys: true },
+    include: { apiKeys: true, resourceConfig: true },
   });
   if (!project) return null;
 
@@ -189,7 +192,9 @@ export async function regenerateApiKey(
   const keyHash = sha256Hex(baseKey);
   const apiKey = formatApiKey(baseKey, 'rw');
   const rwConnectionString = buildConnectionString(apiKey);
-  const roConnectionString = buildConnectionString(formatApiKey(baseKey, 'ro'));
+  const roConnectionString = (project.resourceConfig?.instances ?? 1) > 1
+    ? buildConnectionString(formatApiKey(baseKey, 'ro'))
+    : null;
 
   const existing = project.apiKeys[0];
   if (existing) {

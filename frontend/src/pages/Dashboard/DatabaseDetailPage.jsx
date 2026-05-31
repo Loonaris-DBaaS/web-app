@@ -153,10 +153,12 @@ export default function DatabaseDetailPage({
                 <ConnectionParameters
                   showModeTabs={false}
                   title="Connection Strings"
-                  description="Read-write accepts writes; read-only routes to replicas. Keep these secret — anyone with them can access your database."
+                  description={db.instances > 1
+                    ? 'Read-write accepts writes; read-only routes to replicas. Keep these secret — anyone with them can access your database.'
+                    : 'Read-write accepts all connections. Keep this secret — anyone with it can access your database.'}
                   connections={[
                     { key: 'rw', label: 'Read-write', value: regen.rwConnectionString },
-                    { key: 'ro', label: 'Read-only',  value: regen.roConnectionString },
+                    ...(regen.roConnectionString ? [{ key: 'ro', label: 'Read-only', value: regen.roConnectionString }] : []),
                   ]}
                 />
                 <div>
@@ -181,7 +183,7 @@ export default function DatabaseDetailPage({
               }}>
                 <h3 style={{ margin: 0, fontSize: 'var(--text-title-md-size, 18px)', color: 'var(--on-surface)' }}>Connection strings</h3>
                 <p style={{ margin: 0, fontSize: 'var(--text-body-sm-size)', lineHeight: 'var(--text-body-md-height)', color: 'var(--on-surface-variant)' }}>
-                  Connection strings are shown <strong>only once</strong> at creation and are never stored, so they can’t be displayed here. Regenerate to issue a fresh read-write and read-only connection string — this immediately invalidates the previous key.
+                  Connection strings are shown <strong>only once</strong> at creation and are never stored, so they can’t be displayed here. Regenerate to issue a fresh {db.instances > 1 ? 'read-write and read-only connection string' : 'read-write connection string'} — this immediately invalidates the previous key.
                 </p>
                 <button
                   onClick={handleRegenerate}
