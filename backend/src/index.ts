@@ -7,6 +7,7 @@ import { openApiSpec } from './config/openapi';
 import authRoutes from './modules/auth/routes';
 import internalRoutes from './modules/internal/routes';
 import pgClusterRoutes from './modules/pgCluster/routes';
+import adminRoutes from './modules/admin/routes';
 import testAppRoutes from './modules/testApp/routes';
 
 const app = express();
@@ -28,6 +29,7 @@ apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/internal', internalRoutes);
 apiRouter.use('/clusters', pgClusterRoutes);
+apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/test', testAppRoutes);
 
 app.use('/api', apiRouter);

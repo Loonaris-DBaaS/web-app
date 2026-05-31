@@ -216,6 +216,35 @@ export async function updateCluster(
   return toDto(updated);
 }
 
+// --- Admin (cross-tenant) helpers ---------------------------------------
+
+export async function listAllClusters(): Promise<(ClusterDto & {
+  tenant: { id: string; email: string; username: string };
+})[]> {
+  const rows = await prisma.project.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      resourceConfig: true,
+      tenant: { select: { id: true, email: true, username: true } },
+    },
+  });
+  return rows.map((r) => ({ ...toDto(r), tenant: r.tenant }));
+}
+
+export async function deleteAnyCluster(clusterId: string): Promise<boolean> {
+  const row = await prisma.project.findUnique({ where: { id: clusterId } });
+  if (!row) return false;
+
+  await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  deprovisionCluster(row.k8sNamespace).catch(async () => {
+    await prisma.project
+      .update({ where: { id: clusterId }, data: { status: 'error' } })
+      .catch(() => undefined);
+  });
+
+  return true;
+}
+
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {
   const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;

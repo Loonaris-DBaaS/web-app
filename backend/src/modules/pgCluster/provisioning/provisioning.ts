@@ -110,7 +110,12 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
     kind: 'Cluster',
     metadata: { name: 'instance-db', namespace },
     spec: {
-      instances: 2,
+      // Single instance for now: the tenant nodes are capped at max-pods=11
+      // (prefix delegation not yet reflected in kubelet --max-pods), so a 2nd
+      // instance can't reliably schedule. Bump back to 2 once the higher-
+      // max-pods tenant node group exists. Topology spread relaxed to
+      // ScheduleAnyway so a single instance is never blocked.
+      instances: 1,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
       nodeSelector: { role: 'tenant' },
@@ -118,7 +123,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
         {
           maxSkew: 1,
           topologyKey: 'topology.kubernetes.io/zone',
-          whenUnsatisfiable: 'DoNotSchedule',
+          whenUnsatisfiable: 'ScheduleAnyway',
           labelSelector: { matchLabels: { 'cnpg.io/cluster': 'instance-db' } },
         },
       ],
@@ -137,6 +142,9 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
   // the pgbouncer auth user), which is what makes scram-authenticated clients
   // work — unlike the hand-rolled edoburu pgbouncer. CNPG creates a ClusterIP
   // Service named after each Pooler (pooler-rw / pooler-ro).
+  // No spec.template: CNPG validation requires a full pod template (with
+  // containers) if one is given, so we let CNPG generate the pgbouncer
+  // deployment with its defaults and schedule with the default scheduler.
   const poolerRw = {
     apiVersion: 'postgresql.cnpg.io/v1',
     kind: 'Pooler',
@@ -145,7 +153,6 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       cluster: { name: 'instance-db' },
       instances: 1,
       type: 'rw',
-      template: { spec: { nodeSelector: { role: 'tenant' } } },
       pgbouncer: { poolMode: 'transaction' },
     },
   };
@@ -158,7 +165,6 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       cluster: { name: 'instance-db' },
       instances: 1,
       type: 'ro',
-      template: { spec: { nodeSelector: { role: 'tenant' } } },
       pgbouncer: { poolMode: 'transaction' },
     },
   };
@@ -232,29 +238,23 @@ async function applyManifests(namespace: string, dto: CreateClusterDto): Promise
     }
   }
 
-  const deployManifests = [manifests[3], manifests[5]] as k8s.V1Deployment[];
-  const serviceManifests = [manifests[4], manifests[6]] as k8s.V1Service[];
-
-  for (const manifest of deployManifests) {
+  // CNPG Pooler custom resources (pooler-rw, pooler-ro). CNPG reconciles each
+  // into a pgbouncer Deployment + ClusterIP Service named after the Pooler.
+  const poolerManifests = [manifests[3], manifests[4]];
+  for (const manifest of poolerManifests) {
+    const name = (manifest as { metadata: { name: string } }).metadata.name;
     try {
-      await appsApi.createNamespacedDeployment({ namespace, body: manifest });
-      console.log(`[provisioning] Created Deployment ${manifest.metadata?.name} in ${namespace}`);
+      await customApi.createNamespacedCustomObject({
+        group: 'postgresql.cnpg.io',
+        version: 'v1',
+        namespace,
+        plural: 'poolers',
+        body: manifest,
+      });
+      console.log(`[provisioning] Created Pooler ${name} in ${namespace}`);
     } catch (err: any) {
       if (err?.response?.statusCode === 409) {
-        console.log(`[provisioning] Deployment ${manifest.metadata?.name} already exists`);
-      } else {
-        throw err;
-      }
-    }
-  }
-
-  for (const manifest of serviceManifests) {
-    try {
-      await coreApi.createNamespacedService({ namespace, body: manifest });
-      console.log(`[provisioning] Created Service ${manifest.metadata?.name} in ${namespace}`);
-    } catch (err: any) {
-      if (err?.response?.statusCode === 409) {
-        console.log(`[provisioning] Service ${manifest.metadata?.name} already exists`);
+        console.log(`[provisioning] Pooler ${name} already exists`);
       } else {
         throw err;
       }
@@ -269,7 +269,10 @@ async function applyManifests(namespace: string, dto: CreateClusterDto): Promise
 const CNPG_PHASE_HEALTHY = 'Cluster in healthy state';
 
 const POLL_INTERVAL_MS = 5000;
-const POLL_TIMEOUT_MS = 300000;
+// Cold provisioning on the small tenant nodes (image pull + EBS + initdb) can
+// take ~5 min to reach "Cluster in healthy state"; 5 min was too tight and
+// flipped healthy clusters to error. 10 min gives comfortable headroom.
+const POLL_TIMEOUT_MS = 600000;
 const MAX_POLLS = Math.floor(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
 
 async function pollClusterHealth(namespace: string): Promise<ProjectStatus> {
@@ -284,7 +287,9 @@ async function pollClusterHealth(namespace: string): Promise<ProjectStatus> {
         plural: 'clusters',
         name: 'instance-db',
       });
-      const body = resp.body as any;
+      // @kubernetes/client-node v1.x returns the object directly (no .body
+      // wrapper); fall back to .body for older shapes.
+      const body = ((resp as any).body ?? resp) as any;
       const phase = body?.status?.phase;
 
       if (phase === CNPG_PHASE_HEALTHY) {
