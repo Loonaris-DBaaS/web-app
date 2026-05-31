@@ -12,16 +12,26 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const timer = useRef(null);
 
+  // Keep the token in BOTH React state and localStorage: the axios client in
+  // services/api.js authenticates requests by reading localStorage.accessToken,
+  // so login/refresh must persist it there or every request goes out
+  // unauthenticated (401 → bounced to /signin).
+  function applyAccessToken(token) {
+    setAccessToken(token);
+    if (token) localStorage.setItem('accessToken', token);
+    else localStorage.removeItem('accessToken');
+  }
+
   function scheduleRefresh(token) {
     clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       try {
         const data = await authService.refresh();
-        setAccessToken(data.accessToken);
+        applyAccessToken(data.accessToken);
         scheduleRefresh(data.accessToken);
       } catch {
         setUser(null);
-        setAccessToken(null);
+        applyAccessToken(null);
       }
     }, REFRESH_INTERVAL_MS);
   }
@@ -31,12 +41,12 @@ export function AuthProvider({ children }) {
     authService
       .refresh()
       .then(async (data) => {
-        setAccessToken(data.accessToken);
+        applyAccessToken(data.accessToken);
         const profile = await authService.getProfile(data.accessToken);
         setUser(profile);
         scheduleRefresh(data.accessToken);
       })
-      .catch(() => {})
+      .catch(() => applyAccessToken(null))
       .finally(() => setLoading(false));
 
     return () => clearTimeout(timer.current);
@@ -44,7 +54,7 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const data = await authService.login({ email, password });
-    setAccessToken(data.accessToken);
+    applyAccessToken(data.accessToken);
     setUser({ id: data.id, username: data.username, email: data.email, country: data.country, jobTitle: data.jobTitle, company: data.company, photoUrl: data.photoUrl, isAdmin: data.isAdmin });
     scheduleRefresh(data.accessToken);
     return data;
@@ -58,7 +68,7 @@ export function AuthProvider({ children }) {
     clearTimeout(timer.current);
     await authService.logout().catch(() => {});
     setUser(null);
-    setAccessToken(null);
+    applyAccessToken(null);
   }, []);
 
   const updateProfile = useCallback(async (fields) => {
