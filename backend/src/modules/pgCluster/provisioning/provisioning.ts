@@ -120,6 +120,11 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       instances,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
+      // One fixed limit for every CNPG pod regardless of plan — tenant nodes have
+      // limited capacity shared across all tenants. No requests on purpose (we
+      // oversubscribe; the limit just caps each pod's ceiling). Fits c5.xlarge
+      // (4 vCPU/8GB) with up to 3 instances + 2 poolers per cluster.
+      resources: { limits: { cpu: '500m', memory: '1Gi' } },
       nodeSelector: { role: 'tenant' },
       topologySpreadConstraints: [
         {

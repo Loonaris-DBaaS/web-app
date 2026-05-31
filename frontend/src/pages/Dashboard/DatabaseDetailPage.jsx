@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clusterService } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
-import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import ConnectionParameters from '../../components/ui/ConnectionParameters';
 import DatabaseMetricsTab from './components/DatabaseMetricsTab';
 import DatabaseSettingsTab from './components/DatabaseSettingsTab';
@@ -27,8 +26,6 @@ function toDb(d) {
     size:      d.size,
     status:    d.status,
     instances: d.instances ?? 1,
-    cpu:       d.cpu,
-    ram:       d.ram,
     storage:   d.storage,
     backup:    d.backup,
     autoscale: d.autoscale,
@@ -204,17 +201,34 @@ export default function DatabaseDetailPage({
 
           {activeTab === 'Replicas' && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)' }}>
-              {db.instances.map((inst) => (
-                <InstanceContainer
-                  key={inst.id}
-                  name={inst.name}
-                  version={inst.version}
-                  region={inst.region}
-                  usedStorage={inst.usedStorage}
-                  totalStorage={inst.totalStorage}
-                  status={inst.status}
-                />
+              {Array.from({ length: db.instances }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    background: 'var(--surface-container-lowest)',
+                    borderRadius: 'var(--radius-xl)',
+                    padding: 'var(--space-6)',
+                    minWidth: 240,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 'var(--space-2)',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                  }}
+                >
+                  <span style={{ fontSize: 'var(--text-title-md-size, 16px)', fontWeight: 700, color: 'var(--on-surface)' }}>
+                    instance-db-{i + 1}
+                  </span>
+                  <span style={{ fontSize: 'var(--text-body-sm-size)', color: 'var(--on-surface-variant)' }}>
+                    {i === 0 ? 'Primary · read-write' : 'Replica · read-only'}
+                  </span>
+                  <span style={{ fontSize: 'var(--text-body-sm-size)', color: 'var(--on-surface-variant)' }}>
+                    {db.region} · PostgreSQL {db.pgVersion}
+                  </span>
+                </div>
               ))}
+              <p style={{ width: '100%', margin: 0, fontSize: 'var(--text-body-sm-size)', color: 'var(--on-surface-variant)' }}>
+                {db.instances} instance{db.instances === 1 ? '' : 's'} total. Live per-instance metrics are added separately.
+              </p>
             </div>
           )}
 

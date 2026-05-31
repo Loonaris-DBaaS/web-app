@@ -12,8 +12,6 @@ export interface ClusterDto {
   size: ClusterSize;
   instances: number;
   status: ProjectStatus;
-  cpu: string;
-  ram: string;
   storage: string;
   backup: boolean;
   autoscale: boolean;
