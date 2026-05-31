@@ -12,6 +12,7 @@ import SignUp from '../../pages/SignUp/Signup';
 import Test from '../../pages/Test/Test';
 import Admin from '../../pages/Admin/Admin';
 import ProtectedRoute from './ProtectedRoute';
+import GuestRoute from './GuestRoute';
 
 const routes = [
   { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
@@ -36,11 +37,16 @@ const routes = [
     ],
   },
   {
-    element: <AuthLayout />,
+    element: <GuestRoute />,
     errorElement: <ErrorPage />,
     children: [
-      { path: '/signin', element: <SignIn /> },
-      { path: '/signup', element: <SignUp /> },
+      {
+        element: <AuthLayout />,
+        children: [
+          { path: '/signin', element: <SignIn /> },
+          { path: '/signup', element: <SignUp /> },
+        ],
+      },
     ],
   },
 ];
