@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { clusterService } from '../../services/api';
-import { REGIONS, DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
+import { DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
 const styles = `
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
 
@@ -499,7 +499,7 @@ function SpinnerIcon() {
 
 export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const [dbName, setDbName] = useState("");
-  const [region, setRegion] = useState("us-east-1");
+  const region = "eu-west-3"; // single supported region (display-only)
   const [pgVersion, setPgVersion] = useState("17");
   const [selectedSize, setSelectedSize] = useState("pro");
   const [deploymentOption, setDeploymentOption] = useState("multi-az-cluster");
@@ -515,16 +515,8 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const instances = deploymentOption === "multi-az-cluster" ? replicasCount + 1 : 1;
   const totalCost = baseCost * instances + (backup ? 5 : 0);
 
-  const previewName = dbName.trim() ? `db_${dbName.trim()}` : "db_my_production_db";
-  const baseHost = `${previewName}.${region}.db.ourplatform.com`;
-  const previewConnections =
-    deploymentOption === "multi-az-cluster"
-      ? [
-          { key: "rw", label: "rw", value: `postgres://sk_live_••••••••@rw.${baseHost}` },
-          { key: "ro", label: "ro", value: `postgres://sk_live_••••••••@ro.${baseHost}` },
-          { key: "both", label: "both", value: `postgres://sk_live_••••••••@cluster.${baseHost}` },
-        ]
-      : [{ key: "rw", label: "rw", value: `postgres://sk_live_••••••••@rw.${baseHost}` }];
+  // The fake connection preview was removed — the real rw/ro connection strings
+  // are shown in the post-create modal once the cluster actually exists.
 
   function validateName(val) {
     if (!val.trim()) { setNameError("Database name is required."); return false; }
@@ -611,13 +603,9 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
             {/* Region + PG Version */}
             <div className="dbf-field-row">
               <div>
-                <label className="dbf-label">Region <span className="dbf-req">*</span></label>
-                <div className="dbf-select-wrap">
-                  <select className="dbf-select" value={region} onChange={(e) => setRegion(e.target.value)}>
-                    {REGIONS.map((r) => (
-                      <option key={r.value} value={r.value}>{r.label}</option>
-                    ))}
-                  </select>
+                <label className="dbf-label">Region</label>
+                <div className="dbf-input" style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}>
+                  EU (Paris) — eu-west-3
                 </div>
               </div>
               <div>
@@ -650,7 +638,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
                     onClick={() => setSelectedSize(s.id)}
                   >
                     <div className="dbf-size-name">{s.name}</div>
-                    <div className="dbf-size-specs">{s.cpu}<br />{s.ram}<br />{s.storage}</div>
+                    <div className="dbf-size-specs">{s.storage}</div>
                     <div className="dbf-size-price">${s.price} / mo</div>
                   </button>
                 ))}

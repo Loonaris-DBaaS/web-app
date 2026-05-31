@@ -10,8 +10,10 @@ export interface CreateClusterDto {
   backup?: boolean;
 }
 
-export const SIZE_SPECS: Record<ClusterSize, { cpu: string; ram: string; storage: string; price: number }> = {
-  starter: { cpu: '1',  ram: '2Gi',  storage: '10Gi',  price: 29  },
-  pro:     { cpu: '2',  ram: '4Gi',  storage: '50Gi',  price: 79  },
-  scale:   { cpu: '4',  ram: '16Gi', storage: '200Gi', price: 199 },
+// Plans differ only by storage (the real PVC size) and price. CPU/RAM are NOT
+// per-plan: every CNPG pod gets the same fixed resource limit (see provisioning).
+export const SIZE_SPECS: Record<ClusterSize, { storage: string; price: number }> = {
+  starter: { storage: '10Gi',  price: 29  },
+  pro:     { storage: '50Gi',  price: 79  },
+  scale:   { storage: '200Gi', price: 199 },
 };

@@ -58,7 +58,7 @@ This file tracks only what's **still missing**.
 
 | Gap | Detail | Status |
 |---|---|---|
-| Cluster creation form | `CreateDatabaseForm.jsx` exists but may not be wired to the `POST /api/clusters` endpoint with correct DTO format | **Needs verification** |
+| Cluster creation form | Wired to `POST /api/clusters`. **dev1:** removed fake per-plan CPU/RAM specs (one fixed pod limit now), removed the fake `*.db.ourplatform.com` connection preview, and the region is display-only **`eu-west-3`** (only supported region; backend rejects others with 400). Plan cards show name + price + storage only. | **Honest** |
 | Cluster detail page | `DatabaseDetailPage.jsx` and `DatabaseMetricsTab.jsx` show UI but metrics data is likely hardcoded/mock | **Mock data** |
 | API key display | After cluster creation, the frontend must show the `sk_live_` key to the user **once** (it won't be shown again) | **Not built** |
 | Connection parameters UI | `ConnectionParameters.jsx` component exists but likely not connected to real data | **Needs verification** |
@@ -84,6 +84,7 @@ This file tracks only what's **still missing**.
 
 | Gap | Detail | Status |
 |---|---|---|
+| CNPG pod resource limits | **dev1:** every `instance-db` pod now sets `resources.limits` = `cpu 500m / memory 1Gi` (no requests), identical for all plans/tenants, so no tenant can starve the shared tenant nodes. Previously pods had NO limits. | **Fixed** |
 | `provisionCluster()` now uses `KubeConfig.loadFromOptions()` with AWS auth provider | The `@kubernetes/client-node` client authenticates via Account 2 IAM user credentials from env vars. No kubeconfig file needed. | **Fixed** |
 | No error handling for partial K8s applies | If the Namespace is created but CNPG apply fails, the namespace is left orphaned. No rollback/cleanup mechanism | **Not built** |
 | No timeout on K8s API calls | The `@kubernetes/client-node` client uses default timeouts. Slow EKS API responses could hang the request | **Not configured** |
