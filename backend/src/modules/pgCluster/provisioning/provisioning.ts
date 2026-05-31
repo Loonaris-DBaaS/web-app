@@ -3,6 +3,26 @@ import aws4 from 'aws4';
 import { CreateClusterDto, SIZE_SPECS } from '../dto/create-cluster.dto';
 import { ProjectStatus } from '../dto/cluster.dto';
 
+function parseCpuToMillis(cpu: string): number {
+  if (cpu.endsWith('m')) return parseInt(cpu, 10);
+  return Math.round(parseFloat(cpu) * 1000);
+}
+
+function parseMemoryToBytes(memory: string): number {
+  const kiB = 1024, miB = kiB * 1024, giB = miB * 1024;
+  if (memory.endsWith('Ki')) return parseInt(memory) * kiB;
+  if (memory.endsWith('Mi')) return parseInt(memory) * miB;
+  if (memory.endsWith('Gi')) return parseInt(memory) * giB;
+  if (memory.endsWith('k'))  return parseInt(memory) * 1000;
+  if (memory.endsWith('M'))  return parseInt(memory) * 1_000_000;
+  if (memory.endsWith('G'))  return parseInt(memory) * 1_000_000_000;
+  return parseInt(memory, 10);
+}
+
+function parseSizeBytesToGb(size: string): number {
+  return parseMemoryToBytes(size) / (1024 ** 3);
+}
+
 /**
  * Mints a short-lived EKS bearer token (the same scheme `aws eks get-token`
  * produces): a presigned STS GetCallerIdentity URL, base64url-encoded behind
@@ -34,10 +54,11 @@ export interface ProvisionResult {
   status: ProjectStatus;
 }
 
-function getK8sClient(): {
+export function getK8sClient(): {
   coreApi: k8s.CoreV1Api;
   appsApi: k8s.AppsV1Api;
   customApi: k8s.CustomObjectsApi;
+  metricsClient: k8s.Metrics;
 } {
   const kc = new k8s.KubeConfig();
 
@@ -78,6 +99,7 @@ function getK8sClient(): {
     coreApi: kc.makeApiClient(k8s.CoreV1Api),
     appsApi: kc.makeApiClient(k8s.AppsV1Api),
     customApi: kc.makeApiClient(k8s.CustomObjectsApi),
+    metricsClient: new k8s.Metrics(kc),
   };
 }
 
@@ -401,17 +423,144 @@ export async function getClusterStatus(namespace: string): Promise<ProjectStatus
   }
 }
 
-export interface ClusterMetricsPoint {
-  timestamp: string;
-  cpuUsage: number;
-  memoryUsage: number;
-  storageUsage: number;
+export interface InstanceMetric {
+  name: string;
+  role: 'primary' | 'replica' | 'unknown';
+  ready: boolean;
+  node: string;
+  cpuMillis: number | null;
+  memoryBytes: number | null;
 }
 
-/**
- * Placeholder for future Kubernetes-backed metrics retrieval.
- */
-export async function getClusterMetrics(_externalId: string): Promise<ClusterMetricsPoint[]> {
-  // TODO: query Kubernetes / Prometheus and map the series to the dashboard model.
-  return [];
+export interface ClusterLiveMetrics {
+  phase: string;
+  instances: number;
+  readyInstances: number;
+  pods: InstanceMetric[];
+  provisionedStorageGb: number;
+  usedStorageGb: number | null;
+  timestamp: string;
+}
+
+export async function getClusterLiveMetrics(namespace: string): Promise<ClusterLiveMetrics | null> {
+  const { coreApi, customApi, metricsClient } = getK8sClient();
+
+  // Query CNPG Cluster CR status (phase, instance counts)
+  let phase = 'Unknown';
+  let totalInstances = 0;
+  let readyInstances = 0;
+  try {
+    const clusterResp = await customApi.getNamespacedCustomObject({
+      group: 'postgresql.cnpg.io',
+      version: 'v1',
+      namespace,
+      plural: 'clusters',
+      name: 'instance-db',
+    });
+    const clusterBody = ((clusterResp as any).body ?? clusterResp) as any;
+    phase = clusterBody?.status?.phase ?? 'Unknown';
+    totalInstances = clusterBody?.status?.instances ?? 0;
+    readyInstances = clusterBody?.status?.readyInstances ?? 0;
+  } catch (err) {
+    console.error(`[metrics] Failed to query CNPG cluster in ${namespace}:`, err);
+    return null;
+  }
+
+  // List pods by CNPG cluster label
+  let pods: k8s.V1Pod[] = [];
+  try {
+    const podList = await coreApi.listNamespacedPod({
+      namespace,
+      labelSelector: 'cnpg.io/cluster=instance-db',
+    });
+    pods = podList.items ?? [];
+  } catch (err) {
+    console.warn(`[metrics] Failed to list pods in ${namespace}:`, err);
+  }
+
+  // Pod CPU/memory from metrics-server (best-effort)
+  let podMetricItems: k8s.PodMetric[] = [];
+  try {
+    const metricsList = await metricsClient.getPodMetrics(namespace);
+    podMetricItems = metricsList.items;
+  } catch (err) {
+    console.warn(`[metrics] metrics-server unavailable for ${namespace}:`, err);
+  }
+
+  // Build per-instance metrics array
+  const instanceMetrics: InstanceMetric[] = pods.map((pod) => {
+    const name = pod.metadata?.name ?? 'unknown';
+    const labelRole = pod.metadata?.labels?.['cnpg.io/instanceRole'];
+    const role: InstanceMetric['role'] =
+      labelRole === 'primary' ? 'primary' : labelRole === 'replica' ? 'replica' : 'unknown';
+    const ready = (pod.status?.conditions ?? []).some(
+      (c) => c.type === 'Ready' && c.status === 'True',
+    );
+    const node = pod.spec?.nodeName ?? 'unknown';
+
+    const podMetric = podMetricItems.find((m) => m.metadata.name === name);
+    const cpuMillis = podMetric
+      ? podMetric.containers.reduce((sum, c) => sum + parseCpuToMillis(c.usage.cpu), 0)
+      : null;
+    const memoryBytes = podMetric
+      ? podMetric.containers.reduce((sum, c) => sum + parseMemoryToBytes(c.usage.memory), 0)
+      : null;
+
+    return { name, role, ready, node, cpuMillis, memoryBytes };
+  });
+
+  // Provisioned storage from PVC capacity (sum across all PVCs in namespace)
+  let provisionedStorageGb = 0;
+  try {
+    const pvcList = await coreApi.listNamespacedPersistentVolumeClaim({ namespace });
+    for (const pvc of pvcList.items) {
+      const capacity =
+        pvc.status?.capacity?.['storage'] ??
+        pvc.spec?.resources?.requests?.['storage'];
+      if (capacity) {
+        provisionedStorageGb += parseSizeBytesToGb(capacity);
+      }
+    }
+  } catch (err) {
+    console.warn(`[metrics] Failed to list PVCs in ${namespace}:`, err);
+  }
+
+  // Used storage via kubelet Summary API on the primary pod's node (best-effort)
+  let usedStorageGb: number | null = null;
+  const primaryPod = pods.find((p) => p.metadata?.labels?.['cnpg.io/instanceRole'] === 'primary');
+  if (primaryPod?.spec?.nodeName) {
+    try {
+      const statsJson = await coreApi.connectGetNodeProxyWithPath({
+        name: primaryPod.spec.nodeName,
+        path: 'stats/summary',
+      });
+      type KubeletSummary = {
+        pods?: Array<{
+          podRef: { name: string; namespace: string };
+          volume?: Array<{ pvcRef?: object; usedBytes?: number }>;
+        }>;
+      };
+      const stats = JSON.parse(statsJson) as KubeletSummary;
+      let totalUsedBytes = 0;
+      for (const podStat of stats.pods ?? []) {
+        if (podStat.podRef.namespace !== namespace) continue;
+        for (const vol of podStat.volume ?? []) {
+          if (vol.pvcRef) totalUsedBytes += vol.usedBytes ?? 0;
+        }
+      }
+      usedStorageGb = totalUsedBytes / (1024 ** 3);
+    } catch (err) {
+      console.warn(`[metrics] kubelet stats unavailable for ${namespace}:`, err);
+    }
+  }
+
+  return {
+    phase,
+    instances: totalInstances,
+    readyInstances,
+    pods: instanceMetrics,
+    provisionedStorageGb,
+    usedStorageGb,
+    timestamp: new Date().toISOString(),
+  };
 }

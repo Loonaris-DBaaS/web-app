@@ -4,7 +4,7 @@ import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
 import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto, ClusterCreatedDto, ApiKeyRotatedDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
-import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
+import { provisionCluster, deprovisionCluster, getClusterLiveMetrics, ClusterLiveMetrics } from '../provisioning/provisioning';
 import type { Project, ResourceConfig } from '@/generated/prisma/client';
 
 type ProjectWithResourceConfig = Project & {
@@ -260,6 +260,24 @@ export async function updateCluster(
   });
 
   return toDto(updated);
+}
+
+export async function getClusterMetrics(
+  tenantId: string,
+  clusterId: string,
+): Promise<ClusterLiveMetrics | null> {
+  const project = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
+  if (!project) return null;
+
+  const metrics = await getClusterLiveMetrics(project.k8sNamespace);
+
+  if (metrics?.usedStorageGb !== null && metrics?.usedStorageGb !== undefined) {
+    prisma.project
+      .update({ where: { id: clusterId }, data: { storageUsage: metrics.usedStorageGb } })
+      .catch((err) => console.warn('[metrics] Failed to persist storageUsage:', err));
+  }
+
+  return metrics;
 }
 
 // --- Admin (cross-tenant) helpers ---------------------------------------

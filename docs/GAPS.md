@@ -119,12 +119,32 @@ This file tracks only what's **still missing**.
 
 ## 8. Monitoring & Observability Gaps
 
+### What exists now (dev2-cnpg-monitoring)
+
+`GET /api/clusters/:id/metrics` (tenant-scoped, authenticated) returns live data polled from the EKS cluster:
+
+| Metric | Source | Notes |
+|---|---|---|
+| Cluster phase | CNPG `Cluster` CR `.status.phase` | "Cluster in healthy state" = Healthy |
+| Instance / ready counts | CNPG CR `.status.instances` + `.status.readyInstances` | — |
+| Per-pod role, ready, node | Pod labels (`cnpg.io/instanceRole`) + pod conditions | — |
+| Per-pod CPU & memory | metrics-server (`metrics.k8s.io/v1beta1`) | Falls back to null if metrics-server is unavailable |
+| Provisioned storage | PVC `.status.capacity.storage` (sum across namespace) | — |
+| Used storage | Kubelet Summary API via node proxy `/stats/summary` | Best-effort — null if kubelet stats are unavailable |
+
+The frontend `DatabaseMetricsTab` and `DatabaseDetailPage` Replicas tab poll this endpoint every 7 s.  
+`Project.storageUsage` is updated on each successful metric fetch (used by the dashboard storage card).  
+The dashboard storage card (`StorageUtilizationCard`) is driven from real per-cluster provisioned/used storage; the hardcoded `TOTAL_STORAGE_GB = 1200` has been removed.
+
+### What remains
+
 | Gap | Detail | Status |
 |---|---|---|
+| Connections & QPS | Requires the CNPG Prometheus exporter (`cnpg.io/v1 ClusterPodMonitor`). Not provisioned. | **Not built** |
 | No logging pipeline | No ELK, CloudWatch Logs, or Loki integration. Gateway and backend logs go to stdout only | **Not built** |
-| No metrics | No Prometheus, Grafana, or CloudWatch metrics. No visibility into gateway cache hit rates, connection counts, or provisioning latency | **Not built** |
 | No alerting | No PagerDuty, Slack, or SNS alerts for provisioning failures, gateway errors, or EKS node issues | **Not built** |
 | No distributed tracing | No OpenTelemetry or X-Ray. Cannot trace a request from frontend → backend → EKS API → CNPG | **Not built** |
+| Historical metrics | Endpoint returns a point-in-time snapshot. No time-series storage or chart data | **Not built** |
 
 ---
 

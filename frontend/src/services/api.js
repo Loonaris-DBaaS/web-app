@@ -52,7 +52,7 @@ export const clusterService = {
   updateCluster: (id, body) => api.patch(`/api/clusters/${id}`, body).then(res => res.data),
   deleteCluster: (id)       => api.delete(`/api/clusters/${id}`),
   regenerateKey: (id)       => api.post(`/api/clusters/${id}/regenerate-key`).then(res => res.data),
-
+  getMetrics:    (id)       => api.get(`/api/clusters/${id}/metrics`).then(res => res.data.data),
 };
 
 // The gateway's public endpoint (NLB). There is no db.loonaris.tech DNS yet, so
