@@ -56,6 +56,8 @@ export default function DatabaseDetailPage({
   const [regen, setRegen]             = useState(null); // { apiKey, rwConnectionString, roConnectionString } — shown once
   const [regenLoading, setRegenLoading] = useState(false);
   const [regenError, setRegenError]   = useState('');
+  const [metrics, setMetrics]         = useState(null);
+  const [metricsError, setMetricsError] = useState('');
 
   useEffect(() => {
     clusterService.getCluster(databaseId)
@@ -70,6 +72,19 @@ export default function DatabaseDetailPage({
       setTargetVersion(db.pgVersion);
     }
   }, [db]);
+
+  // Poll metrics endpoint every 7s while mounted; feeds both Metrics and Replicas tabs
+  useEffect(() => {
+    if (!db) return;
+    function fetchMetrics() {
+      clusterService.getMetrics(db.id)
+        .then((data) => { setMetrics(data); setMetricsError(''); })
+        .catch((err) => setMetricsError(err.message));
+    }
+    fetchMetrics();
+    const t = setInterval(fetchMetrics, 7000);
+    return () => clearInterval(t);
+  }, [db?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleNavigate(page) {
     onNavigate?.(page);
@@ -200,21 +215,46 @@ export default function DatabaseDetailPage({
             )
           )}
 
-          {activeTab === 'Metrics' && <DatabaseMetricsTab />}
+          {activeTab === 'Metrics' && (
+            <DatabaseMetricsTab metrics={metrics} error={metricsError} />
+          )}
 
           {activeTab === 'Replicas' && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)' }}>
-              {db.instances.map((inst) => (
-                <InstanceContainer
-                  key={inst.id}
-                  name={inst.name}
-                  version={inst.version}
-                  region={inst.region}
-                  usedStorage={inst.usedStorage}
-                  totalStorage={inst.totalStorage}
-                  status={inst.status}
-                />
-              ))}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+              {metricsError && (
+                <p className="body-sm" style={{ color: 'var(--error)' }}>Failed to load replica data: {metricsError}</p>
+              )}
+              {!metrics && !metricsError && (
+                <p className="body-sm" style={{ color: 'var(--on-surface-variant)' }}>Loading replica data…</p>
+              )}
+              {metrics && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                  {metrics.pods.map((pod) => (
+                    <InstanceContainer
+                      key={pod.name}
+                      name={pod.name}
+                      version={db.pgVersion}
+                      region={pod.node}
+                      usedStorage={
+                        metrics.usedStorageGb !== null && metrics.pods.length > 0
+                          ? Number((metrics.usedStorageGb / metrics.pods.length).toFixed(1))
+                          : 0
+                      }
+                      totalStorage={
+                        metrics.pods.length > 0
+                          ? Number((metrics.provisionedStorageGb / metrics.pods.length).toFixed(0))
+                          : metrics.provisionedStorageGb
+                      }
+                      status={pod.ready ? 'RUNNING' : 'STOPPED'}
+                    />
+                  ))}
+                  {metrics.pods.length === 0 && (
+                    <p className="body-sm" style={{ color: 'var(--on-surface-variant)' }}>
+                      No pod data available yet — cluster may still be provisioning.
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

@@ -99,6 +99,19 @@ export async function regenerateKey(req: Request, res: Response, next: NextFunct
   }
 }
 
+export async function getMetrics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const metrics = await pgClusterService.getClusterMetrics(tenantId(req), req.params['id'] as string);
+    if (!metrics) {
+      res.status(404).json({ success: false, message: 'Cluster not found' });
+      return;
+    }
+    res.json({ success: true, data: metrics });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
     const deleted = await pgClusterService.deleteCluster(tenantId(req), req.params['id'] as string);

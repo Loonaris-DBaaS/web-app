@@ -16,8 +16,6 @@ const STATUS_MAP = {
   deleting: 'Deleting',
 };
 
-const TOTAL_STORAGE_GB = 1200;
-
 const overlayStyle = {
   position: 'fixed',
   inset: 0,
@@ -38,7 +36,8 @@ function toRow(project) {
     postgresVersion: project.pgVersion,
     region: project.region,
     instances: project.instances ?? 1,
-    storageUsedGb: project.storageUsage ?? 0,
+    storageUsedGb: project.storageUsedGb ?? 0,
+    provisionedStorageGb: project.provisionedStorageGb ?? 0,
   };
 }
 
@@ -77,8 +76,9 @@ export default function Database() {
     );
   }, [query, databases]);
 
-  const usedStorageGb = databases.reduce((acc, db) => acc + db.storageUsedGb, 0);
-  const storagePercent = Math.round((usedStorageGb / TOTAL_STORAGE_GB) * 100);
+  const usedStorageGb = databases.reduce((acc, db) => acc + (db.storageUsedGb ?? 0), 0);
+  const totalStorageGb = databases.reduce((acc, db) => acc + (db.provisionedStorageGb ?? 0), 0);
+  const storagePercent = totalStorageGb > 0 ? Math.round((usedStorageGb / totalStorageGb) * 100) : 0;
   const healthyClusters = databases.filter((db) => db.status === 'Healthy').length;
 
   return (
@@ -97,7 +97,7 @@ export default function Database() {
         <div className="databases-stats-grid">
           <StorageUtilizationCard
             usedStorageGb={usedStorageGb}
-            totalStorageGb={TOTAL_STORAGE_GB}
+            totalStorageGb={totalStorageGb}
             percentage={storagePercent}
           />
           <ClusterHealthCard healthyClusters={healthyClusters} totalClusters={databases.length} />
