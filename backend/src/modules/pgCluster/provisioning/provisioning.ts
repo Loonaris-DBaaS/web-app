@@ -92,7 +92,7 @@ function generatePassword(): string {
 
 function buildManifests(namespace: string, dto: CreateClusterDto, password: string): object[] {
   const specs = SIZE_SPECS[dto.size];
-  const pgImage = `ghcr.io/cloudnativepg/postgresql:${dto.pgVersion}`;
+  const pgImage = `ghcr.io/cloudnative-pg/postgresql:${dto.pgVersion}`;
 
   const namespaceManifest = {
     apiVersion: 'v1',
