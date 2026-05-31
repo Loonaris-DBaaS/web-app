@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { adminService, buildConnectionString } from '../../services/api';
 import { PG_VERSIONS, SIZES } from '../../constants/database';
-import { useAuth } from '../../hooks/useAuth';
 
 const statusColor = {
   running: '#16a34a',
@@ -12,19 +11,45 @@ const statusColor = {
 };
 
 const POLL_MS = 5000;
+const TOKEN_KEY = 'adminToken';
 
 export default function Admin() {
-  const { user, logout } = useAuth();
+  const [authed, setAuthed] = useState(() => !!localStorage.getItem(TOKEN_KEY));
+
+  // Login form (hardcoded platform admin)
+  const [creds, setCreds] = useState({ email: '', password: '' });
+  const [loginErr, setLoginErr] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // Dashboard
   const [clusters, setClusters] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [busyId, setBusyId] = useState('');
-
-  // Create form
   const [form, setForm] = useState({ name: '', size: 'starter', pgVersion: '17' });
   const [creating, setCreating] = useState(false);
-  // The sk_live_ key is returned exactly once on create — surface it until dismissed.
-  const [created, setCreated] = useState(null); // { name, apiKey, connStr }
+  const [created, setCreated] = useState(null); // { name, apiKey, connStr } — shown once
+
+  const doLogin = async (e) => {
+    e.preventDefault();
+    setLoggingIn(true);
+    setLoginErr('');
+    try {
+      const { accessToken } = await adminService.login(creds.email, creds.password);
+      localStorage.setItem(TOKEN_KEY, accessToken);
+      setAuthed(true);
+    } catch (e2) {
+      setLoginErr(e2?.response?.data?.message || 'Login failed');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  const adminLogout = () => {
+    localStorage.removeItem(TOKEN_KEY);
+    setAuthed(false);
+    setClusters([]);
+  };
 
   const load = useCallback(async () => {
     try {
@@ -32,18 +57,20 @@ export default function Admin() {
       setClusters(data || []);
       setErr('');
     } catch (e) {
+      if (e?.response?.status === 401) { localStorage.removeItem(TOKEN_KEY); setAuthed(false); return; }
       setErr(e?.response?.data?.message || e.message || 'Failed to load');
     } finally {
       setLoading(false);
     }
   }, []);
 
-  // Initial load + auto-refresh so provisioning → running → (deleted) is visible.
+  // Load + auto-refresh while authed (shows provisioning → running → deleted).
   useEffect(() => {
+    if (!authed) return undefined;
     load();
     const t = setInterval(load, POLL_MS);
     return () => clearInterval(t);
-  }, [load]);
+  }, [authed, load]);
 
   const create = async (e) => {
     e.preventDefault();
@@ -52,11 +79,11 @@ export default function Admin() {
     setErr('');
     try {
       const cluster = await adminService.createCluster(form);
-      const apiKey = cluster.apiKey;
-      setCreated({ name: cluster.name, apiKey, connStr: buildConnectionString(apiKey) });
+      setCreated({ name: cluster.name, apiKey: cluster.apiKey, connStr: buildConnectionString(cluster.apiKey) });
       setForm({ name: '', size: 'starter', pgVersion: '17' });
       await load();
     } catch (e2) {
+      if (e2?.response?.status === 401) { adminLogout(); return; }
       setErr(e2?.response?.data?.message || e2.message || 'Create failed');
     } finally {
       setCreating(false);
@@ -78,24 +105,44 @@ export default function Admin() {
 
   const copy = (text) => navigator.clipboard?.writeText(text);
 
-  const th = { textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', fontSize: 13 };
-  const td = { padding: '8px 10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 };
   const input = { padding: '8px 10px', border: '1px solid #cbd5e1', borderRadius: 6, fontSize: 14 };
 
+  // --- Login screen ---
+  if (!authed) {
+    return (
+      <div style={{ maxWidth: 360, margin: '80px auto', padding: 24, fontFamily: 'system-ui, sans-serif', border: '1px solid #e5e7eb', borderRadius: 12 }}>
+        <h1 style={{ fontSize: 20, marginTop: 0 }}>Platform Admin</h1>
+        <form onSubmit={doLogin} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <input style={input} type="email" placeholder="Email" value={creds.email}
+            onChange={(e) => setCreds((c) => ({ ...c, email: e.target.value }))} />
+          <input style={input} type="password" placeholder="Password" value={creds.password}
+            onChange={(e) => setCreds((c) => ({ ...c, password: e.target.value }))} />
+          {loginErr && <p style={{ color: '#dc2626', fontSize: 13, margin: 0 }}>{loginErr}</p>}
+          <button type="submit" disabled={loggingIn}
+            style={{ padding: '10px', color: '#fff', background: '#4f46e5', border: 0, borderRadius: 6, cursor: 'pointer' }}>
+            {loggingIn ? 'Signing in…' : 'Sign in'}
+          </button>
+        </form>
+      </div>
+    );
+  }
+
+  const th = { textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', fontSize: 13 };
+  const td = { padding: '8px 10px', borderBottom: '1px solid #f1f5f9', fontSize: 13 };
+
+  // --- Dashboard ---
   return (
     <div style={{ maxWidth: 1100, margin: '40px auto', padding: '0 16px', fontFamily: 'system-ui, sans-serif' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <h1 style={{ fontSize: 22 }}>Admin — Clusters ({clusters.length})</h1>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 13, color: '#64748b' }}>{user?.email}</span>
+        <div style={{ display: 'flex', gap: 10 }}>
           <button onClick={load} disabled={loading} style={{ padding: '6px 14px', cursor: 'pointer' }}>
             {loading ? 'Loading…' : 'Refresh'}
           </button>
-          <button onClick={logout} style={{ padding: '6px 14px', cursor: 'pointer' }}>Log out</button>
+          <button onClick={adminLogout} style={{ padding: '6px 14px', cursor: 'pointer' }}>Log out</button>
         </div>
       </div>
 
-      {/* One-time API key + connection string after a create */}
       {created && (
         <div style={{ marginTop: 16, padding: 16, border: '1px solid #16a34a', borderRadius: 8, background: '#f0fdf4' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -122,7 +169,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* Create form */}
       <form onSubmit={create} style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 20, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           <label style={{ fontSize: 12, color: '#475569' }}>Name</label>

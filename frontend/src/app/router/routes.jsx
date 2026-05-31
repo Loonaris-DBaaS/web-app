@@ -12,16 +12,11 @@ import SignUp from '../../pages/SignUp/Signup';
 import Test from '../../pages/Test/Test';
 import Admin from '../../pages/Admin/Admin';
 import ProtectedRoute from './ProtectedRoute';
-import AdminRoute from './AdminRoute';
 
 const routes = [
   { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
   { path: '/test', element: <Test />, errorElement: <ErrorPage /> },
-  {
-    element: <AdminRoute />,
-    errorElement: <ErrorPage />,
-    children: [{ path: '/admin', element: <Admin /> }],
-  },
+  { path: '/admin', element: <Admin />, errorElement: <ErrorPage /> },
   {
     element: <ProtectedRoute />,
     errorElement: <ErrorPage />,

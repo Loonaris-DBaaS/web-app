@@ -65,10 +65,22 @@ export function buildConnectionString(apiKey, host = GATEWAY_HOST) {
   return `postgresql://${apiKey}@${host}:5432/app?sslmode=disable`;
 }
 
+// Admin uses its own token (platform admin — separate from any tenant session).
+const adminApi = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  headers: { 'Content-Type': 'application/json' },
+});
+adminApi.interceptors.request.use((config) => {
+  const t = localStorage.getItem('adminToken');
+  if (t) config.headers.Authorization = `Bearer ${t}`;
+  return config;
+});
+
 export const adminService = {
-  getClusters:   ()     => api.get('/api/admin/clusters').then((res) => res.data.data),
-  createCluster: (body) => api.post('/api/admin/clusters', body).then((res) => res.data.data),
-  deleteCluster: (id)   => api.delete(`/api/admin/clusters/${id}`),
+  login:         (email, password) => adminApi.post('/api/admin/login', { email, password }).then((res) => res.data.data),
+  getClusters:   ()     => adminApi.get('/api/admin/clusters').then((res) => res.data.data),
+  createCluster: (body) => adminApi.post('/api/admin/clusters', body).then((res) => res.data.data),
+  deleteCluster: (id)   => adminApi.delete(`/api/admin/clusters/${id}`),
 };
 
 export default api;

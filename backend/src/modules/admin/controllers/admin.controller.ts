@@ -2,9 +2,40 @@ import { Request, Response, NextFunction } from 'express';
 import * as pgClusterService from '@/modules/pgCluster/services/pgCluster.service';
 import type { CreateClusterDto, PgVersion, ClusterSize } from '@/modules/pgCluster/dto/create-cluster.dto';
 import prisma from '@/lib/prisma';
+import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
 
 const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'pro', 'scale'];
+
+// Platform admin is a single hardcoded credential (NOT a tenant). For now it
+// lives in code per product decision — move to a secret before real use.
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin1234';
+const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
+
+// POST /api/admin/login — hardcoded platform-admin login (public, no JWT).
+// On success, ensures a backing tenant row exists (so admin-created clusters
+// have an owner) and returns an 8h admin JWT whose isAdmin claim passes adminAuth.
+export async function login(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, password } = (req.body ?? {}) as { email?: string; password?: string };
+    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+      res.status(401).json({ success: false, message: 'Invalid admin credentials' });
+      return;
+    }
+    const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
+    const admin = await prisma.tenant.upsert({
+      where: { email: ADMIN_EMAIL },
+      update: { isAdmin: true },
+      create: { email: ADMIN_EMAIL, username: 'platform-admin', passwordHash, isAdmin: true },
+    });
+    const accessToken = jwt.sign({ id: admin.id, tenantId: admin.id, isAdmin: true }, JWT_SECRET, { expiresIn: '8h' });
+    res.status(200).json({ success: true, data: { accessToken, email: ADMIN_EMAIL } });
+  } catch (err) {
+    next(err);
+  }
+}
 
 // GET /api/admin/clusters — every tenant's clusters, with owner info.
 export async function listClusters(_req: Request, res: Response, next: NextFunction) {
