@@ -10,11 +10,13 @@ import Landing from '../../pages/Landing/Landing';
 import SignIn from '../../pages/SignIn/Signin';
 import SignUp from '../../pages/SignUp/Signup';
 import Test from '../../pages/Test/Test';
+import Admin from '../../pages/Admin/Admin';
 import ProtectedRoute from './ProtectedRoute';
 
 const routes = [
   { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
   { path: '/test', element: <Test />, errorElement: <ErrorPage /> },
+  { path: '/admin', element: <Admin />, errorElement: <ErrorPage /> },
   {
     element: <ProtectedRoute />,
     errorElement: <ErrorPage />,
