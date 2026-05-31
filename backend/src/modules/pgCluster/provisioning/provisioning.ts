@@ -324,6 +324,10 @@ async function applyManifests(namespace: string, dto: CreateClusterDto): Promise
   return password;
 }
 
+// CNPG reports this exact string in .status.phase when a cluster is healthy
+// (operator constant PhaseHealthy) — NOT the literal "Healthy".
+const CNPG_PHASE_HEALTHY = 'Cluster in healthy state';
+
 const POLL_INTERVAL_MS = 5000;
 const POLL_TIMEOUT_MS = 300000;
 const MAX_POLLS = Math.floor(POLL_TIMEOUT_MS / POLL_INTERVAL_MS);
@@ -343,7 +347,7 @@ async function pollClusterHealth(namespace: string): Promise<ProjectStatus> {
       const body = resp.body as any;
       const phase = body?.status?.phase;
 
-      if (phase === 'Healthy') {
+      if (phase === CNPG_PHASE_HEALTHY) {
         console.log(`[provisioning] Cluster in ${namespace} is Healthy`);
         return 'running';
       }
@@ -427,7 +431,7 @@ export async function getClusterStatus(namespace: string): Promise<ProjectStatus
     const body = resp.body as any;
     const phase = body?.status?.phase;
 
-    return phase === 'Healthy' ? 'running' : 'provisioning';
+    return phase === CNPG_PHASE_HEALTHY ? 'running' : 'provisioning';
   } catch {
     return 'error';
   }
