@@ -81,15 +81,6 @@ function getK8sClient(): {
   };
 }
 
-function generatePassword(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let password = '';
-  for (let i = 0; i < 24; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
 function buildManifests(namespace: string, dto: CreateClusterDto, password: string): object[] {
   const specs = SIZE_SPECS[dto.size];
   const pgImage = `ghcr.io/cloudnative-pg/postgresql:${dto.pgVersion}`;
@@ -141,99 +132,48 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
     },
   };
 
-  const pgbouncerRwDeployment = {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-    metadata: { name: 'pgbouncer-rw', namespace },
+  // CNPG-native Poolers. Omitting `pgbouncer.authQuery` triggers automatic CNPG
+  // auth integration (CNPG wires up auth_query against the cluster and manages
+  // the pgbouncer auth user), which is what makes scram-authenticated clients
+  // work — unlike the hand-rolled edoburu pgbouncer. CNPG creates a ClusterIP
+  // Service named after each Pooler (pooler-rw / pooler-ro).
+  const poolerRw = {
+    apiVersion: 'postgresql.cnpg.io/v1',
+    kind: 'Pooler',
+    metadata: { name: 'pooler-rw', namespace },
     spec: {
-      replicas: 1,
-      selector: { matchLabels: { app: 'pgbouncer-rw' } },
-      template: {
-        metadata: { labels: { app: 'pgbouncer-rw' } },
-        spec: {
-          nodeSelector: { role: 'tenant' },
-          containers: [
-            {
-              name: 'pgbouncer',
-              image: 'edoburu/pgbouncer:latest',
-              ports: [{ containerPort: 5432 }],
-              env: [
-                { name: 'DB_HOST', value: `instance-db-rw.${namespace}.svc.cluster.local` },
-                { name: 'DB_PORT', value: '5432' },
-                { name: 'DB_USER', value: 'cloud_user' },
-                { name: 'DB_PASSWORD', value: password },
-                { name: 'POOL_MODE', value: 'transaction' },
-              ],
-            },
-          ],
-        },
-      },
+      cluster: { name: 'instance-db' },
+      instances: 1,
+      type: 'rw',
+      template: { spec: { nodeSelector: { role: 'tenant' } } },
+      pgbouncer: { poolMode: 'transaction' },
     },
   };
 
-  const pgbouncerRwService = {
-    apiVersion: 'v1',
-    kind: 'Service',
-    metadata: { name: 'pooler-rw-svc', namespace },
+  const poolerRo = {
+    apiVersion: 'postgresql.cnpg.io/v1',
+    kind: 'Pooler',
+    metadata: { name: 'pooler-ro', namespace },
     spec: {
-      ports: [{ port: 5432, targetPort: 5432 }],
-      selector: { app: 'pgbouncer-rw' },
+      cluster: { name: 'instance-db' },
+      instances: 1,
+      type: 'ro',
+      template: { spec: { nodeSelector: { role: 'tenant' } } },
+      pgbouncer: { poolMode: 'transaction' },
     },
   };
 
-  const pgbouncerRoDeployment = {
-    apiVersion: 'apps/v1',
-    kind: 'Deployment',
-    metadata: { name: 'pgbouncer-ro', namespace },
-    spec: {
-      replicas: 1,
-      selector: { matchLabels: { app: 'pgbouncer-ro' } },
-      template: {
-        metadata: { labels: { app: 'pgbouncer-ro' } },
-        spec: {
-          nodeSelector: { role: 'tenant' },
-          containers: [
-            {
-              name: 'pgbouncer',
-              image: 'edoburu/pgbouncer:latest',
-              ports: [{ containerPort: 5432 }],
-              env: [
-                { name: 'DB_HOST', value: `instance-db-ro.${namespace}.svc.cluster.local` },
-                { name: 'DB_PORT', value: '5432' },
-                { name: 'DB_USER', value: 'cloud_user' },
-                { name: 'DB_PASSWORD', value: password },
-                { name: 'POOL_MODE', value: 'transaction' },
-              ],
-            },
-          ],
-        },
-      },
-    },
-  };
-
-  const pgbouncerRoService = {
-    apiVersion: 'v1',
-    kind: 'Service',
-    metadata: { name: 'pooler-ro-svc', namespace },
-    spec: {
-      ports: [{ port: 5432, targetPort: 5432 }],
-      selector: { app: 'pgbouncer-ro' },
-    },
-  };
-
-  return [
-    namespaceManifest,
-    secretManifest,
-    cnpgManifest,
-    pgbouncerRwDeployment,
-    pgbouncerRwService,
-    pgbouncerRoDeployment,
-    pgbouncerRoService,
-  ];
+  return [namespaceManifest, secretManifest, cnpgManifest, poolerRw, poolerRo];
 }
 
 async function applyManifests(namespace: string, dto: CreateClusterDto): Promise<string> {
-  const password = generatePassword();
+  // Single system-internal password shared by every tenant's cloud_user role.
+  // Tenants never receive it; the db-gateway holds it and authenticates to the
+  // pooler on their behalf after validating the sk_live API key.
+  const password = process.env.PROVISION_DB_PASSWORD;
+  if (!password) {
+    throw new Error('PROVISION_DB_PASSWORD is not set');
+  }
   const manifests = buildManifests(namespace, dto, password);
   const { coreApi, appsApi, customApi } = getK8sClient();
 

@@ -86,8 +86,9 @@ export async function createCluster(
   const keyHash = sha256Hex(baseKey);
   const apiKey = formatApiKey(baseKey, 'rw');
 
-  const rwHost = `pooler-rw-svc.${namespace}.svc.cluster.local`;
-  const roHost = `pooler-ro-svc.${namespace}.svc.cluster.local`;
+  // CNPG creates a ClusterIP Service named after each Pooler resource.
+  const rwHost = `pooler-rw.${namespace}.svc.cluster.local`;
+  const roHost = `pooler-ro.${namespace}.svc.cluster.local`;
 
   // Provisioning (CNPG health polling) can take minutes, so we don't block the
   // HTTP request. The project starts in `provisioning` and is updated once the
