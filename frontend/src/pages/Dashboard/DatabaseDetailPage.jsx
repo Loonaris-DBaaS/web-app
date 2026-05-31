@@ -53,6 +53,9 @@ export default function DatabaseDetailPage({
   const [activeTab, setActiveTab]     = useState('Connect');
   const [dbNameInput, setDbNameInput] = useState('');
   const [targetVersion, setTargetVersion] = useState('');
+  const [regen, setRegen]             = useState(null); // { apiKey, rwConnectionString, roConnectionString } — shown once
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [regenError, setRegenError]   = useState('');
 
   useEffect(() => {
     clusterService.getCluster(databaseId)
@@ -99,6 +102,22 @@ export default function DatabaseDetailPage({
     }
   }
 
+  async function handleRegenerate() {
+    if (!window.confirm('Regenerate connection strings? The current key and connection strings will stop working immediately.')) {
+      return;
+    }
+    setRegenError('');
+    setRegenLoading(true);
+    try {
+      const res = await clusterService.regenerateKey(db.id);
+      setRegen(res.data);
+    } catch (err) {
+      setRegenError(err.response?.data?.error ?? err.message);
+    } finally {
+      setRegenLoading(false);
+    }
+  }
+
   if (loading) return <p>Loading…</p>;
   if (error)   return <p>Error: {error}</p>;
   if (!db)     return null;
@@ -129,12 +148,56 @@ export default function DatabaseDetailPage({
           />
 
           {activeTab === 'Connect' && (
-            <ConnectionParameters
-            connectionString="postgres://root:••••••••••••@db.loonaris.io:5432/production_main"
-            mode="Standard"
-            modes={['Standard', 'URI', 'JDBC']}
-            onModeChange={(m) => console.log(m)}
-            />
+            regen ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ padding: 'var(--space-3) var(--space-4)', borderRadius: 'var(--radius-sm)', background: 'var(--warning-container, #fef3c7)', color: 'var(--on-warning-container, #92400e)', fontSize: 'var(--text-body-sm-size)', fontWeight: 500 }}>
+                  Copy these now — they are shown <strong>only once</strong> and are never stored. The previous connection strings no longer work.
+                </div>
+                <ConnectionParameters
+                  showModeTabs={false}
+                  title="Connection Strings"
+                  description="Read-write accepts writes; read-only routes to replicas. Keep these secret — anyone with them can access your database."
+                  connections={[
+                    { key: 'rw', label: 'Read-write', value: regen.rwConnectionString },
+                    { key: 'ro', label: 'Read-only',  value: regen.roConnectionString },
+                  ]}
+                />
+                <div>
+                  <button
+                    onClick={handleRegenerate}
+                    disabled={regenLoading}
+                    style={{ padding: '8px 18px', background: 'var(--surface-container-low)', color: 'var(--on-surface)', border: '1px solid var(--outline-variant, #e2e8f0)', borderRadius: 'var(--radius-sm)', cursor: regenLoading ? 'default' : 'pointer', fontSize: 'var(--text-label-md-size)', fontWeight: 500 }}
+                  >
+                    {regenLoading ? 'Regenerating…' : 'Regenerate again'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                background: 'var(--surface-container-lowest)',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-4)',
+                alignItems: 'flex-start',
+              }}>
+                <h3 style={{ margin: 0, fontSize: 'var(--text-title-md-size, 18px)', color: 'var(--on-surface)' }}>Connection strings</h3>
+                <p style={{ margin: 0, fontSize: 'var(--text-body-sm-size)', lineHeight: 'var(--text-body-md-height)', color: 'var(--on-surface-variant)' }}>
+                  Connection strings are shown <strong>only once</strong> at creation and are never stored, so they can’t be displayed here. Regenerate to issue a fresh read-write and read-only connection string — this immediately invalidates the previous key.
+                </p>
+                <button
+                  onClick={handleRegenerate}
+                  disabled={regenLoading}
+                  style={{ padding: '10px 20px', background: 'var(--primary)', color: 'var(--on-primary, #fff)', border: 0, borderRadius: 'var(--radius-sm)', cursor: regenLoading ? 'default' : 'pointer', fontSize: 'var(--text-label-md-size)', fontWeight: 600 }}
+                >
+                  {regenLoading ? 'Regenerating…' : 'Regenerate connection strings'}
+                </button>
+                {regenError && (
+                  <p style={{ margin: 0, color: 'var(--error)', fontSize: 'var(--text-body-sm-size)' }}>{regenError}</p>
+                )}
+              </div>
+            )
           )}
 
           {activeTab === 'Metrics' && <DatabaseMetricsTab />}

@@ -51,6 +51,7 @@ export const clusterService = {
   createCluster: (body)  => api.post('/api/clusters', body).then(res => res.data),
   updateCluster: (id, body) => api.patch(`/api/clusters/${id}`, body).then(res => res.data),
   deleteCluster: (id)       => api.delete(`/api/clusters/${id}`),
+  regenerateKey: (id)       => api.post(`/api/clusters/${id}/regenerate-key`).then(res => res.data),
 
 };
 

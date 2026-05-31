@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import prisma from '@/lib/prisma';
 import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
 import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
-import { ClusterDto } from '../dto/cluster.dto';
+import { ClusterDto, ClusterCreatedDto, ApiKeyRotatedDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
 import { provisionCluster, deprovisionCluster } from '../provisioning/provisioning';
 import type { Project, ResourceConfig } from '@/generated/prisma/client';
@@ -10,6 +10,17 @@ import type { Project, ResourceConfig } from '@/generated/prisma/client';
 type ProjectWithResourceConfig = Project & {
   resourceConfig?: ResourceConfig | null;
 };
+
+// Public db-gateway endpoint (NLB). Tenants connect here with their sk_live key
+// as the username; the database is always `app` and the gateway rejects TLS.
+// Mirrors the frontend's VITE_GATEWAY_HOST default.
+const GATEWAY_HOST =
+  process.env.GATEWAY_HOST ||
+  'ab571a35c49414eaab905fc43405b7fb-9f85c871b90b857f.elb.eu-west-3.amazonaws.com';
+
+function buildConnectionString(apiKey: string): string {
+  return `postgresql://${apiKey}@${GATEWAY_HOST}:5432/app?sslmode=disable`;
+}
 
 function toGiSuffix(value: string | number): string {
   const s = String(value);
@@ -75,7 +86,7 @@ export async function getCluster(tenantId: string, clusterId: string): Promise<C
 export async function createCluster(
   tenantId: string,
   dto: CreateClusterDto,
-): Promise<ClusterDto & { apiKey: string }> {
+): Promise<ClusterCreatedDto> {
   const clusterId = randomUUID();
   const namespace = `project-${clusterId}`;
   const specs = SIZE_SPECS[dto.size];
@@ -84,7 +95,12 @@ export async function createCluster(
 
   const baseKey = generateBaseKey();
   const keyHash = sha256Hex(baseKey);
+  // The same base key routes both modes through the gateway; the rw/ro suffix
+  // selects the upstream pooler. `apiKey` (rw) is returned for the one-time key
+  // display; both full connection strings are persisted below.
   const apiKey = formatApiKey(baseKey, 'rw');
+  const rwConnectionString = buildConnectionString(apiKey);
+  const roConnectionString = buildConnectionString(formatApiKey(baseKey, 'ro'));
 
   // CNPG creates a ClusterIP Service named after each Pooler resource.
   const rwHost = `pooler-rw.${namespace}.svc.cluster.local`;
@@ -151,7 +167,45 @@ export async function createCluster(
         .catch(() => undefined);
     });
 
-  return { ...toDto(created), apiKey };
+  // Connection strings are returned here ONCE for the user to copy. They embed
+  // the plaintext key and are never persisted — only `keyHash` is stored.
+  return { ...toDto(created), apiKey, rwConnectionString, roConnectionString };
+}
+
+// Rotates the cluster's API key: mints a fresh base key, replaces the stored
+// hash (so the gateway immediately stops accepting the old key, modulo its
+// ~60s route cache), and returns the new one-time secrets. Connection strings
+// are never persisted, so this is the only way to recover access after the
+// create-time display.
+export async function regenerateApiKey(
+  tenantId: string,
+  clusterId: string,
+): Promise<ApiKeyRotatedDto | null> {
+  const project = await prisma.project.findFirst({
+    where: { id: clusterId, tenantId },
+    include: { apiKeys: true },
+  });
+  if (!project) return null;
+
+  const baseKey = generateBaseKey();
+  const keyHash = sha256Hex(baseKey);
+  const apiKey = formatApiKey(baseKey, 'rw');
+  const rwConnectionString = buildConnectionString(apiKey);
+  const roConnectionString = buildConnectionString(formatApiKey(baseKey, 'ro'));
+
+  const existing = project.apiKeys[0];
+  if (existing) {
+    await prisma.apiKey.update({
+      where: { id: existing.id },
+      data: { keyHash, revokedAt: null, createdAt: new Date() },
+    });
+  } else {
+    await prisma.apiKey.create({
+      data: { projectId: clusterId, keyHash, prefix: 'sk_live_', duration: 90 },
+    });
+  }
+
+  return { apiKey, rwConnectionString, roConnectionString };
 }
 
 export async function updateCluster(

@@ -86,6 +86,19 @@ export async function update(req: Request, res: Response, next: NextFunction) {
   }
 }
 
+export async function regenerateKey(req: Request, res: Response, next: NextFunction) {
+  try {
+    const result = await pgClusterService.regenerateApiKey(tenantId(req), req.params['id'] as string);
+    if (!result) {
+      res.status(404).json({ error: 'Cluster not found' });
+      return;
+    }
+    res.json({ success: true, data: result });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
     const deleted = await pgClusterService.deleteCluster(tenantId(req), req.params['id'] as string);

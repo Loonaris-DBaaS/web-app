@@ -74,7 +74,7 @@
 | Node Group | Instance | vCPU | RAM | Nodes | Label | Taints |
 |---|---|---|---|---|---|---|
 | `system-ng` | c5.large | 2 | 4 GB | 1 | `role=system` | None |
-| `tenant-ng` | t2.small | 1 | 2 GB | 3 | `role=tenant` | None |
+| `tenant-ng-xl` | c5.xlarge | 4 | 8 GB | 3 | `role=tenant` | None |
 
 > Workloads use **nodeSelector** (`role=system` or `role=tenant`) to schedule on the right node group. **No taints are used** — this avoids conflicts with EKS managed add-ons.
 

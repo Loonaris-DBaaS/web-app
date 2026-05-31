@@ -74,11 +74,11 @@ Public subnets have tag `kubernetes.io/role/elb=1` for public load balancers.
 | Taint | None (system workloads use nodeSelector) |
 | Subnets | Private subnets only |
 
-#### tenant-ng
+#### tenant-ng-xl
 
 | Property | Value |
 |---|---|
-| Instance type | `t2.small` (1 vCPU, 2 GB RAM) |
+| Instance type | `c5.xlarge` (4 vCPU, 8 GB RAM) |
 | AMI | AL2023_x86_64_STANDARD |
 | Disk size | 20 GiB |
 | Min/Max/Desired | 3/3/3 |
@@ -87,7 +87,9 @@ Public subnets have tag `kubernetes.io/role/elb=1` for public load balancers.
 | Taint | None (tenant workloads use nodeSelector) |
 | Subnets | Private subnets only |
 
-> **vCPU budget:** 1×c5.large (2) + 3×t2.small (3) = 5 vCPUs total. Current account limit is 5 vCPUs. A quota increase to 32 vCPUs has been requested. Once approved, `tenant-ng` can be upgraded to `c5.large` instances.
+> **vCPU budget:** 1×c5.large (2) + 3×c5.xlarge (12) = 14 vCPUs total against the 32-vCPU account limit (quota increase approved).
+>
+> **History:** tenant-ng originally ran 3×t2.small (1 vCPU / 2 GB) while the account was capped at 5 vCPUs. Once the 32-vCPU quota was approved, the group was replaced by `tenant-ng-xl` (3×c5.xlarge). Managed node group instance types are immutable, so the upgrade was done by creating the new group, draining tenant workloads onto it, and deleting the old `tenant-ng`.
 
 ### EKS Add-ons
 

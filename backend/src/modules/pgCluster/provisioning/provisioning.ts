@@ -84,6 +84,8 @@ function getK8sClient(): {
 function buildManifests(namespace: string, dto: CreateClusterDto, password: string): object[] {
   const specs = SIZE_SPECS[dto.size];
   const pgImage = `ghcr.io/cloudnative-pg/postgresql:${dto.pgVersion}`;
+  // Honor the requested instance count; default to 2 for HA when unset/invalid.
+  const instances = dto.instances && dto.instances > 0 ? dto.instances : 2;
 
   const namespaceManifest = {
     apiVersion: 'v1',
@@ -110,12 +112,12 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
     kind: 'Cluster',
     metadata: { name: 'instance-db', namespace },
     spec: {
-      // Single instance for now: the tenant nodes are capped at max-pods=11
-      // (prefix delegation not yet reflected in kubelet --max-pods), so a 2nd
-      // instance can't reliably schedule. Bump back to 2 once the higher-
-      // max-pods tenant node group exists. Topology spread relaxed to
-      // ScheduleAnyway so a single instance is never blocked.
-      instances: 1,
+      // Instance count comes from the request (`dto.instances`), defaulting to
+      // 2 for HA. The tenant node group (c5.xlarge with VPC CNI prefix
+      // delegation) reports max-pods=110, so multiple instances schedule
+      // reliably. Topology spread stays ScheduleAnyway so a single-instance
+      // plan is never blocked.
+      instances,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
       nodeSelector: { role: 'tenant' },
@@ -142,9 +144,19 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
   // the pgbouncer auth user), which is what makes scram-authenticated clients
   // work — unlike the hand-rolled edoburu pgbouncer. CNPG creates a ClusterIP
   // Service named after each Pooler (pooler-rw / pooler-ro).
-  // No spec.template: CNPG validation requires a full pod template (with
-  // containers) if one is given, so we let CNPG generate the pgbouncer
-  // deployment with its defaults and schedule with the default scheduler.
+  //
+  // spec.template pins the pgbouncer pods to the tenant node group (the same
+  // `role: tenant` selector the Cluster uses); otherwise the default scheduler
+  // is free to place them on the system node group. The CRD requires a
+  // `containers` field whenever a template is given, so we pass an empty array
+  // and let CNPG inject its generated pgbouncer container.
+  const poolerTemplate = {
+    spec: {
+      containers: [],
+      nodeSelector: { role: 'tenant' },
+    },
+  };
+
   const poolerRw = {
     apiVersion: 'postgresql.cnpg.io/v1',
     kind: 'Pooler',
@@ -154,6 +166,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       instances: 1,
       type: 'rw',
       pgbouncer: { poolMode: 'transaction' },
+      template: poolerTemplate,
     },
   };
 
@@ -166,6 +179,7 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       instances: 1,
       type: 'ro',
       pgbouncer: { poolMode: 'transaction' },
+      template: poolerTemplate,
     },
   };
 

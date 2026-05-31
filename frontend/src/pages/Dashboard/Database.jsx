@@ -50,7 +50,7 @@ export default function Database() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [createdKey, setCreatedKey] = useState(null); // { name, apiKey, connStr } — shown once
+  const [createdKey, setCreatedKey] = useState(null); // { name, apiKey, rwConnStr, roConnStr } — shown once
 
   function fetchDatabases() {
     clusterService
@@ -134,7 +134,8 @@ export default function Database() {
                 setCreatedKey({
                   name: cluster.name,
                   apiKey: cluster.apiKey,
-                  connStr: buildConnectionString(cluster.apiKey),
+                  rwConnStr: cluster.rwConnectionString ?? buildConnectionString(cluster.apiKey),
+                  roConnStr: cluster.roConnectionString ?? '',
                 });
               } else {
                 setSuccessMsg('Database created — provisioning in progress.');
@@ -154,18 +155,27 @@ export default function Database() {
               <button onClick={() => setCreatedKey(null)} style={{ border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer' }}>×</button>
             </div>
             <p style={{ fontSize: 13, color: '#b45309', margin: '8px 0 16px' }}>
-              Copy your API key now — it is shown <strong>only once</strong> and cannot be retrieved later.
+              Copy these now — they are shown <strong>only once</strong> and cannot be retrieved later.
             </p>
             <label style={{ fontSize: 12, color: '#475569' }}>API key (read-write)</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
               <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.apiKey}</code>
               <button onClick={() => navigator.clipboard?.writeText(createdKey.apiKey)} style={{ cursor: 'pointer' }}>Copy</button>
             </div>
-            <label style={{ fontSize: 12, color: '#475569' }}>Connection string (works once status is “running”)</label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.connStr}</code>
-              <button onClick={() => navigator.clipboard?.writeText(createdKey.connStr)} style={{ cursor: 'pointer' }}>Copy</button>
+            <label style={{ fontSize: 12, color: '#475569' }}>Read-write connection string (works once status is “running”)</label>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+              <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.rwConnStr}</code>
+              <button onClick={() => navigator.clipboard?.writeText(createdKey.rwConnStr)} style={{ cursor: 'pointer' }}>Copy</button>
             </div>
+            {createdKey.roConnStr && (
+              <>
+                <label style={{ fontSize: 12, color: '#475569' }}>Read-only connection string</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.roConnStr}</code>
+                  <button onClick={() => navigator.clipboard?.writeText(createdKey.roConnStr)} style={{ cursor: 'pointer' }}>Copy</button>
+                </div>
+              </>
+            )}
             <div style={{ textAlign: 'right', marginTop: 20 }}>
               <button onClick={() => setCreatedKey(null)} style={{ padding: '8px 18px', background: '#4f46e5', color: '#fff', border: 0, borderRadius: 6, cursor: 'pointer' }}>Done</button>
             </div>
