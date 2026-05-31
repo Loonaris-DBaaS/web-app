@@ -59,7 +59,10 @@ jobs:
             # Write target is root-owned (/var/www); use sudo. Explicit region so
             # the sync never silently no-ops. set -e ensures a failed sync fails
             # the step instead of being masked by the nginx reload that follows.
-            sudo aws s3 sync s3://loonaris-frontend-12345 /var/www/frontend --delete --region eu-west-3
+            # --exact-timestamps: index.html is the same byte size every build
+            # (only the hashed asset name inside changes), so the default
+            # same-size skip leaves it stale. Exact timestamps force re-download.
+            sudo aws s3 sync s3://loonaris-frontend-12345 /var/www/frontend --delete --exact-timestamps --region eu-west-3
             sudo nginx -s reload
             echo "frontend synced to EC2 and nginx reloaded"
 
