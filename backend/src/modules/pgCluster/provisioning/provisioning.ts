@@ -103,12 +103,15 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
     },
   };
 
+  // CNPG bootstrap.initdb.secret expects a basic-auth secret carrying BOTH the
+  // owner username and password; a password-only secret fails with
+  // CreateContainerConfigError ("couldn't find key username").
   const secretManifest = {
     apiVersion: 'v1',
     kind: 'Secret',
     metadata: { name: 'app-db-credentials', namespace },
-    type: 'Opaque',
-    stringData: { password },
+    type: 'kubernetes.io/basic-auth',
+    stringData: { username: 'cloud_user', password },
   };
 
   const cnpgManifest = {
