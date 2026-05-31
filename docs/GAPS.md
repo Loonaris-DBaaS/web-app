@@ -14,6 +14,15 @@
 
 Still pending from this work: bigger-`max-pods` tenant node group → back to `instances:2` (RO path), durable provisioning reconciler, admin auth. See §3 and `PROJECT.md`.
 
+### Priorities — focus on the BASICS
+
+**In scope (the core database loop):**
+1. Tenant dashboard wiring — show the `sk_live_` key once after create, display the connection string, and poll status `provisioning → running`.
+2. Verify create/list/delete flow works through the real API (not mock data).
+3. Infra basics: bigger-`max-pods` tenant node group → `instances:2` so the RO path works; durable provisioning status (replace the in-memory poll).
+
+**Explicitly OUT OF SCOPE for now (do not invest):** billing/payments, usage metering, email verification, password reset.
+
 ---
 
 ## 1. API Gaps
@@ -34,16 +43,18 @@ Still pending from this work: bigger-`max-pods` tenant node group → back to `i
 
 | Gap | Detail | Status |
 |---|---|---|
-| Email verification | Signup creates a user immediately, no email confirmation flow | **Not built** |
-| Password reset | No forgot-password or reset-password endpoint | **Not built** |
+| Email verification | Signup creates a user immediately, no email confirmation flow | **Deferred (out of scope)** — not a priority |
+| Password reset | No forgot-password or reset-password endpoint | **Deferred** — not a priority |
 | Token refresh flow | `POST /auth/refresh-token` exists in routes but may not be fully tested end-to-end | **Needs testing** |
 
-### 1.3. Billing & Metering
+### 1.3. Billing & Metering — OUT OF SCOPE (deferred)
+
+> **Not a priority.** Billing and usage metering are explicitly deferred — we're focusing on the basics (create/connect/manage a database). Do not invest here yet.
 
 | Gap | Detail | Status |
 |---|---|---|
-| Billing integration | No Stripe or payment integration. `Project.estimatedPrice` is computed but nothing charges the user | **Not built** |
-| Usage metering | `Project.cpuUsage`, `ramUsage`, `storageUsage` fields exist in the schema but nothing populates them (would need a Prometheus/metrics scraper) | **Not built** |
+| Billing integration | No Stripe or payment integration. `Project.estimatedPrice` is computed but nothing charges the user | **Deferred (out of scope)** |
+| Usage metering | `Project.cpuUsage`, `ramUsage`, `storageUsage` fields exist in the schema but nothing populates them | **Deferred (out of scope)** |
 
 ---
 
