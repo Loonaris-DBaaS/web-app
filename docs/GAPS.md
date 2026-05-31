@@ -4,15 +4,11 @@
 
 ---
 
-## 0. Recently completed (2026-05-31)
+## 0. Status
 
-- **DB Gateway deployed** to EKS (`system-plane`) behind an internet-facing NLB; image in Account 2 ECR.
-- **Gateway is now an auth-terminating proxy**: validates the `sk_live_` key, then opens its own SCRAM-authenticated connection to the pooler as a shared internal `cloud_user` (tenants never hold a DB password).
-- **Provisioning works end-to-end**: CNPG-native `Pooler` CRs (replaced edoburu pgbouncer), shared internal DB password (`PROVISION_DB_PASSWORD` / Secrets Manager `loonaris/internal-db-password`), correct CNPG image, basic-auth secret, fixed health poll. Verified with 3 tenants (RW + isolation).
-- **Admin API + dashboard**: `GET`/`DELETE /api/admin/clusters` and `loonaris.tech/admin` (⚠️ unauthenticated for now).
-- **Frontend deploy fixed**: `--exact-timestamps` so `index.html` no longer goes stale.
-
-Still pending from this work: bigger-`max-pods` tenant node group → back to `instances:2` (RO path), durable provisioning reconciler, admin auth. See §3 and `PROJECT.md`.
+**What's already built/deployed/verified lives in [DONE.md](./DONE.md)** (gateway deployed,
+auth-terminating proxy, CNPG poolers, shared password, provisioning E2E, admin API, etc.).
+This file tracks only what's **still missing**.
 
 ### Priorities — focus on the BASICS
 
@@ -71,47 +67,16 @@ Still pending from this work: bigger-`max-pods` tenant node group → back to `i
 
 ---
 
-## 3. Deployment Gaps
+## 3. Deployment & Infra Gaps
 
-### 3.1. EKS Cluster — Not Yet Provisioned
+> EKS, CNPG, EBS CSI, NLB, gateway deploy, ECR, secrets, and the Pooler migration are **done** — see [DONE.md](./DONE.md). Remaining:
 
-| Gap | Detail | Status |
+| Gap | Detail | Status / Priority |
 |---|---|---|
-| EKS cluster creation | The EKS cluster with system-plane and tenant-plane node groups has been provisioned in Account 2 (592858827449) | **Provisioned** |
-| Node groups | system-ng (1× c5.large, no taints, label `role=system`) and tenant-ng (3× t2.small, no taints, label `role=tenant`) are live | **Provisioned** |
-| NLB for gateway | An AWS Network Load Balancer pointing port 5432 to the db-gateway pod is created by applying `service-nlb.yaml` | **Not provisioned** — manifest exists, not applied |
-| Kubeconfig for backend | `@kubernetes/client-node` uses `KubeConfig.loadFromOptions()` with AWS auth provider and env vars from Secrets Manager. Cross-account (Account 1 → Account 2) | **Configured** |
-| CNPG Operator installation | CloudNativePG operator installed in `cnpg-system`; CRD `clusters.postgresql.cnpg.io` present (verified 2026-05-31) | **Installed** |
-| EBS CSI driver | The AWS EBS CSI driver is installed with Pod Identity on the EKS cluster | **Installed** |
-
-### 3.2. DB Gateway Deployment
-
-| Gap | Detail | Status |
-|---|---|---|
-| Container registry for gateway | Target is **ECR in Account 2** (592858827449, same account as EKS — node role pulls natively). `docker.yml` currently pushes to DockerHub and must be repointed; no ECR repo exists yet | **Not done** — ECR repo to be created, CI to be repointed |
-| ArgoCD setup | The CI workflow references ArgoCD and a `k8s-manifests` repo, but these have not been set up yet | **Not configured** |
-| EKS namespace & deployment for gateway | `k8s/*.yaml` manifests exist locally but have not been applied to any cluster | **Not applied** |
-| Gateway secrets in EKS | `INTERNAL_GATEWAY_SECRET` and `CONTROL_PLANE_URL` need to be stored as K8s Secrets | **Not configured** |
-| DNS for `db.loonaris.tech` | **Decided against** — clients connect to the NLB hostname directly; no CNAME/alias | **Won't do** |
-
-### 3.3. Backend Deployment (ECS) — Working but Gaps
-
-| Gap | Detail | Status |
-|---|---|---|
-| `INTERNAL_GATEWAY_SECRET` env var | Present in ECS task def **rev 23** as a secret, backed by Secrets Manager `loonaris/internal-gateway-secret` (verified 2026-05-31). The gateway's K8s Secret must use the same value | **Done** |
-| `K8S_CLUSTER_*` env vars | The backend ECS task now has cross-account EKS access via `K8S_CLUSTER_ENDPOINT`, `K8S_CLUSTER_CA`, `K8S_AWS_ACCESS_KEY_ID`, etc. from Secrets Manager | **Configured** |
-| Pooler migration not applied | Migration `20260531000500_fix_schema_drift` (adds `rw_host`/`rw_port`/`ro_host`/`ro_port`, drops old link columns) is committed. `backend-deploy.yml` runs `prisma migrate deploy` through the bastion tunnel on every deploy, so it applies automatically on the next backend deploy | **Applies via CI/CD** — pending next deploy |
-
----
-
-## 4. GitOps Gaps
-
-| Gap | Detail | Status |
-|---|---|---|
-| No `k8s-manifests` GitOps repo | The CI workflow references `Loonaris-DBaaS/k8s-manifests` for ArgoCD, but this repo has not been created | **Not created** |
-| No ArgoCD instance | ArgoCD has not been installed or configured on the EKS cluster | **Not configured** |
-| Gateway image tagging | The CI pushes `latest` + SHA tags to DockerHub, but the Kustomize manifest update step references secrets that don't exist (`DOCKERHUB_USERNAME`, `GITOPS_PAT`, `ARGOCD_SERVER`, `ARGOCD_TOKEN`) | **Secrets not set** |
-| No ECR repos for gateway | The backend uses ECR (`474741569968.dkr.ecr.eu-west-3.amazonaws.com/ahmed-aws/loonaris`), but the gateway CI pushes to DockerHub. Should be unified to ECR | **Inconsistent** |
+| Tenant node `max-pods` | Tenant `t2.small` nodes are capped at `max-pods=11` despite prefix delegation (kubelet `--max-pods` not raised). Forces `instances:1` (RO path has no replica). Fix: new tenant node group with a launch template (`--max-pods ~110`), then set provisioning back to `instances:2`. Managed node groups can't add a launch template in place → create a new node group + migrate | **Basics** |
+| Durable provisioning status | The CNPG health poll is **in-memory** in the ECS task that handled the POST — a task restart strands a tenant in `provisioning`. Replace with a CNPG watch or a periodic re-sync of `Project.status` from live cluster state | **Basics** |
+| Fargate vCPU quota | Quota = 4; backend runs lean during deploys. Increase requested | **Nice to have** |
+| GitOps / ArgoCD | Not set up. We deploy via GitHub Actions (`backend-deploy.yml`, `frontend-deploy.yml`, gateway `docker.yml`→ECR). ArgoCD + a `k8s-manifests` repo are optional future work | **Optional** |
 
 ---
 
