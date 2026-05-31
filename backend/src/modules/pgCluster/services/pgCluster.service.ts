@@ -231,28 +231,31 @@ export async function listAllClusters(): Promise<(ClusterDto & {
   return rows.map((r) => ({ ...toDto(r), tenant: r.tenant }));
 }
 
+// Shared teardown: mark deleting, deprovision K8s in the background, then DELETE
+// the Project row (cascades to Pooler/ApiKey/ResourceConfig) so it disappears
+// from the dashboard/admin list. On failure, leave it in `error` (visible + retryable).
+async function teardownCluster(clusterId: string, k8sNamespace: string): Promise<void> {
+  await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
+  deprovisionCluster(k8sNamespace)
+    .then(() => prisma.project.delete({ where: { id: clusterId } }))
+    .catch(async (err) => {
+      console.error(`[delete] deprovision/delete failed for ${clusterId}:`, err);
+      await prisma.project
+        .update({ where: { id: clusterId }, data: { status: 'error' } })
+        .catch(() => undefined);
+    });
+}
+
 export async function deleteAnyCluster(clusterId: string): Promise<boolean> {
   const row = await prisma.project.findUnique({ where: { id: clusterId } });
   if (!row) return false;
-
-  await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
-  deprovisionCluster(row.k8sNamespace).catch(async () => {
-    await prisma.project
-      .update({ where: { id: clusterId }, data: { status: 'error' } })
-      .catch(() => undefined);
-  });
-
+  await teardownCluster(clusterId, row.k8sNamespace);
   return true;
 }
 
 export async function deleteCluster(tenantId: string, clusterId: string): Promise<boolean> {
   const row = await prisma.project.findFirst({ where: { id: clusterId, tenantId } });
   if (!row) return false;
-
-  await prisma.project.update({ where: { id: clusterId }, data: { status: 'deleting' } });
-  deprovisionCluster(row.k8sNamespace).catch(async () => {
-    await prisma.project.update({ where: { id: clusterId }, data: { status: 'error' } });
-  });
-
+  await teardownCluster(clusterId, row.k8sNamespace);
   return true;
 }

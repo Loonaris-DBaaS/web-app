@@ -23,6 +23,7 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
         email: user.email,
         country: user.country,
         photoUrl: user.photoUrl,
+        isAdmin: user.isAdmin,
         accessToken: user.accessToken,
       },
     });

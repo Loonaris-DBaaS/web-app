@@ -5,7 +5,7 @@ import prisma from '@/lib/prisma';
 const PROFILE_SELECT = {
   id: true, username: true, email: true,
   country: true, jobTitle: true, company: true,
-  photoUrl: true, createdAt: true,
+  isAdmin: true, photoUrl: true, createdAt: true,
 } as const;
 
 export async function getProfile(req: Request, res: Response, next: NextFunction): Promise<void> {

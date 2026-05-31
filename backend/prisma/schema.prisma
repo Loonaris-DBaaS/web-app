@@ -23,6 +23,7 @@ model Tenant {
   jobTitle     String?  @map("job_title")
   company      String?
   passwordHash String   @map("password_hash")
+  isAdmin      Boolean  @default(false) @map("is_admin")
   photoUrl     String?  @map("photo_url")
   createdAt    DateTime @default(now()) @map("created_at")
 

@@ -552,10 +552,11 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       backup,
     };
       try {
-        await clusterService.createCluster(payload);
+        const res = await clusterService.createCluster(payload);
         setStatus("success");
         setToastVisible(true);
-        setTimeout(() => { onSubmit?.(); }, 1800);
+        // Hand the created cluster (incl. its one-time apiKey) up to the page.
+        setTimeout(() => { onSubmit?.(res?.data); }, 1200);
       } catch (err) {
         setStatus("idle");
     }

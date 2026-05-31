@@ -26,7 +26,7 @@ export async function signup(data: {
     },
   });
 
-  const { accessToken, refreshToken } = generateTokens(tenant.id);
+  const { accessToken, refreshToken } = generateTokens(tenant.id, tenant.isAdmin);
 
   await prisma.refreshToken.create({
     data: {
@@ -42,6 +42,7 @@ export async function signup(data: {
     email: tenant.email,
     country: tenant.country,
     photoUrl: tenant.photoUrl,
+    isAdmin: tenant.isAdmin,
     accessToken,
     refreshToken,
   };

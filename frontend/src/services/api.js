@@ -53,4 +53,22 @@ export const clusterService = {
   deleteCluster: (id)       => api.delete(`/api/clusters/${id}`),
 
 };
+
+// The gateway's public endpoint (NLB). There is no db.loonaris.tech DNS yet, so
+// clients connect to the NLB host directly. The sk_live_ key IS the username
+// (no password); the database name is always `app`; the gateway rejects TLS.
+export const GATEWAY_HOST =
+  import.meta.env.VITE_GATEWAY_HOST ||
+  'ab571a35c49414eaab905fc43405b7fb-9f85c871b90b857f.elb.eu-west-3.amazonaws.com';
+
+export function buildConnectionString(apiKey, host = GATEWAY_HOST) {
+  return `postgresql://${apiKey}@${host}:5432/app?sslmode=disable`;
+}
+
+export const adminService = {
+  getClusters:   ()     => api.get('/api/admin/clusters').then((res) => res.data.data),
+  createCluster: (body) => api.post('/api/admin/clusters', body).then((res) => res.data.data),
+  deleteCluster: (id)   => api.delete(`/api/admin/clusters/${id}`),
+};
+
 export default api;

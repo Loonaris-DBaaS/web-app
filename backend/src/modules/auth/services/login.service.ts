@@ -10,7 +10,7 @@ export async function login(email: string, password: string) {
   const valid = await bcrypt.compare(password, tenant.passwordHash);
   if (!valid) throw new Error('Invalid email or password');
 
-  const { accessToken, refreshToken } = generateTokens(tenant.id);
+  const { accessToken, refreshToken } = generateTokens(tenant.id, tenant.isAdmin);
 
   await prisma.refreshToken.create({
     data: {
@@ -26,6 +26,7 @@ export async function login(email: string, password: string) {
     email: tenant.email,
     country: tenant.country,
     photoUrl: tenant.photoUrl,
+    isAdmin: tenant.isAdmin,
     accessToken,
     refreshToken,
   };
@@ -43,7 +44,8 @@ export async function refreshAccessToken(refreshToken: string) {
   if (!record || record.revokedAt) throw new Error('Refresh token is invalid or revoked');
   if (new Date() > record.expiresAt) throw new Error('Refresh token has expired');
 
-  const { accessToken } = generateTokens(decoded['id']);
+  const tenant = await prisma.tenant.findUnique({ where: { id: decoded['id'] as string } });
+  const { accessToken } = generateTokens(decoded['id'], tenant?.isAdmin ?? false);
   return { accessToken };
 }
 

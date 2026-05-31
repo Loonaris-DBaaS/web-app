@@ -45,7 +45,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const data = await authService.login({ email, password });
     setAccessToken(data.accessToken);
-    setUser({ id: data.id, username: data.username, email: data.email, country: data.country, jobTitle: data.jobTitle, company: data.company, photoUrl: data.photoUrl });
+    setUser({ id: data.id, username: data.username, email: data.email, country: data.country, jobTitle: data.jobTitle, company: data.company, photoUrl: data.photoUrl, isAdmin: data.isAdmin });
     scheduleRefresh(data.accessToken);
     return data;
   }, []);
