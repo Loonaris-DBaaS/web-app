@@ -33,10 +33,10 @@ function parseStorageToGb(storage: string | null | undefined): number {
   return match ? Number(match[1]) : 0;
 }
 
-function inferClusterSize(resourceConfig: ResourceConfig | null | undefined): ClusterSize {
-  const cpu = resourceConfig?.desiredCpu;
+function inferClusterSize(resourceConfig: { desiredStorage?: string | null } | null | undefined): ClusterSize {
+  const storage = resourceConfig?.desiredStorage;
   return (
-    (Object.entries(SIZE_SPECS).find(([, s]) => s.cpu === cpu)?.[0] as ClusterSize | undefined) ?? 'pro'
+    (Object.entries(SIZE_SPECS).find(([, s]) => s.storage === storage)?.[0] as ClusterSize | undefined) ?? 'pro'
   );
 }
 
@@ -54,8 +54,6 @@ function toDto(p: ProjectWithResourceConfig): ClusterDto {
     size,
     instances: resourceConfig?.instances ?? 1,
     status: p.status as ClusterDto['status'],
-    cpu: resourceConfig?.desiredCpu ?? '',
-    ram: resourceConfig?.desiredRam ?? '',
     storage: resourceConfig?.desiredStorage ?? '',
     backup: resourceConfig?.enableBackup ?? false,
     autoscale: resourceConfig?.enableAutoscale ?? false,
@@ -125,10 +123,10 @@ export async function createCluster(
         create: {
           instances,
           enableBackup: dto.backup ?? true,
-          enableAutoscale: dto.size === 'scale',
+          // Autoscale isn't wired to anything yet — don't fake it (was a hidden
+          // auto-set from size === 'scale').
+          enableAutoscale: false,
           desiredStorage: specs.storage,
-          desiredRam: specs.ram,
-          desiredCpu: specs.cpu,
         },
       },
       poolers: {
@@ -222,14 +220,12 @@ export async function updateCluster(
 
   const nextInstances = dto.instances ?? row.resourceConfig?.instances ?? 1;
   const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
-  const nextCpu = dto.cpu ?? row.resourceConfig?.desiredCpu ?? '2';
+  const nextStorage = dto.storage ? toGiSuffix(dto.storage) : (row.resourceConfig?.desiredStorage ?? '50Gi');
   const estimatedPrice =
-    SIZE_SPECS[inferClusterSize({ ...row.resourceConfig, desiredCpu: nextCpu } as any)].price * nextInstances +
+    SIZE_SPECS[inferClusterSize({ desiredStorage: nextStorage })].price * nextInstances +
     (nextBackup ? 5 : 0);
 
   const shouldReconcile =
-    dto.cpu !== undefined ||
-    dto.ram !== undefined ||
     dto.storage !== undefined ||
     dto.pgVersion !== undefined ||
     dto.instances !== undefined;
@@ -246,8 +242,6 @@ export async function updateCluster(
         ? {
             update: {
               ...(dto.instances !== undefined ? { instances: nextInstances } : {}),
-              ...(dto.cpu !== undefined ? { desiredCpu: String(dto.cpu) } : {}),
-              ...(dto.ram !== undefined ? { desiredRam: toGiSuffix(dto.ram) } : {}),
               ...(dto.storage !== undefined ? { desiredStorage: toGiSuffix(dto.storage) } : {}),
               ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
               ...(dto.autoscale !== undefined ? { enableAutoscale: dto.autoscale } : {}),
@@ -256,9 +250,7 @@ export async function updateCluster(
         : {
             create: {
               instances: nextInstances,
-              desiredCpu: nextCpu,
-              desiredRam: dto.ram ? toGiSuffix(dto.ram) : '4Gi',
-              desiredStorage: dto.storage ? toGiSuffix(dto.storage) : '50Gi',
+              desiredStorage: nextStorage,
               enableBackup: nextBackup,
               enableAutoscale: false,
             },

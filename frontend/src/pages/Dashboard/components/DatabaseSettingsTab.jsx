@@ -76,10 +76,8 @@ export default function DatabaseSettingsTab({
 }) {
   const sizeDefaults = SIZE_DEFAULTS[database.size] || SIZE_DEFAULTS.pro;
 
-  const [cpu, setCpu]       = useState(parseFloat(database.cpu)     || sizeDefaults.cpu);
-  const [ram, setRam]       = useState(parseFloat(database.ram)     || sizeDefaults.ram);
   const [storage, setStorage] = useState(parseFloat(database.storage) || sizeDefaults.storage);
-  const [region, setRegion]                 = useState(database.region || 'us-east-1');
+  const [region, setRegion]                 = useState(database.region || 'eu-west-3');
   const [deploymentOption, setDeployment]   = useState(database.instances > 1 ? 'multi-az-cluster' : 'single-az-instance');
   const [readReplicas, setReadReplicas]     = useState(String(database.instances > 1 ? database.instances - 1 : 1));
   const [backup, setBackup]                 = useState(database.backup ?? true);
@@ -135,16 +133,8 @@ export default function DatabaseSettingsTab({
           </div>
         </div>
 
-        {/* CPU / RAM / Storage / Max Connections */}
+        {/* Storage / Max Connections (CPU/RAM are a fixed pod limit, not per-plan) */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-          <div>
-            <label style={labelStyle} htmlFor="mod-cpu">vCPU</label>
-            <input id="mod-cpu" type="number" min="1" max="64" value={cpu} onChange={(e) => setCpu(e.target.value)} style={inputStyle} />
-          </div>
-          <div>
-            <label style={labelStyle} htmlFor="mod-ram">RAM (GB)</label>
-            <input id="mod-ram" type="number" min="1" max="512" value={ram} onChange={(e) => setRam(e.target.value)} style={inputStyle} />
-          </div>
           <div>
             <label style={labelStyle} htmlFor="mod-storage">Storage (GB)</label>
             <input id="mod-storage" type="number" min="10" max="65536" step="10" value={storage} onChange={(e) => setStorage(e.target.value)} style={inputStyle} />
@@ -315,8 +305,6 @@ export default function DatabaseSettingsTab({
               if (dbNameInput !== database.name)                          payload.name      = dbNameInput;
               if (region !== database.region)                             payload.region    = region;
               if (computedInstances !== database.instances)               payload.instances = computedInstances;
-              if (Number(cpu)     !== parseFloat(database.cpu))           payload.cpu       = cpu;
-              if (Number(ram)     !== parseFloat(database.ram))           payload.ram       = ram;
               if (Number(storage) !== parseFloat(database.storage))       payload.storage   = storage;
               if (backup    !== database.backup)                          payload.backup    = backup;
               if (autoscale !== database.autoscale)                       payload.autoscale = autoscale;

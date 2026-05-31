@@ -9,6 +9,7 @@ function tenantId(req: Request): string {
 
 const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'pro', 'scale'];
+const SUPPORTED_REGIONS = ['eu-west-3'];
 
 export async function index(req: Request, res: Response, next: NextFunction) {
   try {
@@ -45,6 +46,10 @@ export async function create(req: Request, res: Response, next: NextFunction) {
   }
   if (!VALID_SIZES.includes(dto.size)) {
     res.status(400).json({ error: `size must be one of: ${VALID_SIZES.join(', ')}` });
+    return;
+  }
+  if (!SUPPORTED_REGIONS.includes(dto.region)) {
+    res.status(400).json({ error: `region must be one of: ${SUPPORTED_REGIONS.join(', ')}` });
     return;
   }
 

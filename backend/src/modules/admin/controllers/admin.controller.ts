@@ -7,6 +7,7 @@ import bcrypt from 'bcryptjs';
 
 const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'pro', 'scale'];
+const SUPPORTED_REGIONS = ['eu-west-3'];
 
 // Platform admin is a single hardcoded credential (NOT a tenant). For now it
 // lives in code per product decision — move to a secret before real use.
@@ -71,6 +72,12 @@ export async function createCluster(req: Request, res: Response, next: NextFunct
       return;
     }
 
+    const region = body.region ?? 'eu-west-3';
+    if (!SUPPORTED_REGIONS.includes(region)) {
+      res.status(400).json({ success: false, message: `region must be one of: ${SUPPORTED_REGIONS.join(', ')}` });
+      return;
+    }
+
     // Owner tenant: explicit tenantId, or fall back to the admin's own tenant.
     const ownerId = body.tenantId ?? (req.user?.id as string | undefined);
     if (!ownerId) {
@@ -85,7 +92,7 @@ export async function createCluster(req: Request, res: Response, next: NextFunct
 
     const dto: CreateClusterDto = {
       name: body.name.trim(),
-      region: body.region ?? 'eu-west-3',
+      region,
       pgVersion,
       size,
       // Pinned to 1: tenant nodes are capped at max-pods=11 (see docs/GAPS.md).

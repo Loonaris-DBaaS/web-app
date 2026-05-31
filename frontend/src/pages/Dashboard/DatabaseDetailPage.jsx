@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { clusterService } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
-import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import ConnectionParameters from '../../components/ui/ConnectionParameters';
+import { InstanceContainer } from '../../components/ui/InstanceContainer';
 import DatabaseMetricsTab from './components/DatabaseMetricsTab';
 import DatabaseSettingsTab from './components/DatabaseSettingsTab';
 import DatabaseTabNavigation from './components/DatabaseTabNavigation';
@@ -27,8 +27,6 @@ function toDb(d) {
     size:      d.size,
     status:    d.status,
     instances: d.instances ?? 1,
-    cpu:       d.cpu,
-    ram:       d.ram,
     storage:   d.storage,
     backup:    d.backup,
     autoscale: d.autoscale,

@@ -78,8 +78,10 @@ model ResourceConfig {
   enableAutoscale Boolean  @default(false) @map("enable_autoscale")
   enablePitr      Boolean  @default(false) @map("enable_pitr")
   desiredStorage  String   @map("desired_storage")
-  desiredRam      String   @map("desired_ram")
-  desiredCpu      String   @map("desired_cpu")
+  // CPU/RAM are no longer per-plan (one fixed pod limit for all). Kept nullable
+  // for historical rows; no longer written.
+  desiredRam      String?  @map("desired_ram")
+  desiredCpu      String?  @map("desired_cpu")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @updatedAt @map("updated_at")
 
