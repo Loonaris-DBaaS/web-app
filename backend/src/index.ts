@@ -9,6 +9,7 @@ import internalRoutes from './modules/internal/routes';
 import pgClusterRoutes from './modules/pgCluster/routes';
 import adminRoutes from './modules/admin/routes';
 import testAppRoutes from './modules/testApp/routes';
+import loadTestRoutes from './modules/loadTest/routes';
 
 const app = express();
 const apiRouter = express.Router();
@@ -31,6 +32,7 @@ apiRouter.use('/internal', internalRoutes);
 apiRouter.use('/clusters', pgClusterRoutes);
 apiRouter.use('/admin', adminRoutes);
 apiRouter.use('/test', testAppRoutes);
+apiRouter.use('/load-test', loadTestRoutes);
 
 app.use('/api', apiRouter);
 

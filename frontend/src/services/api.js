@@ -84,4 +84,22 @@ export const adminService = {
   deleteCluster: (id)   => adminApi.delete(`/api/admin/clusters/${id}`),
 };
 
+// Public load-test endpoints (powering /test). No auth — a bare axios instance
+// so the access-token/refresh interceptors above never touch these calls.
+const publicApi = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || '',
+  headers: { 'Content-Type': 'application/json' },
+});
+
+export const loadTestService = {
+  getMetrics: (connectionString) =>
+    publicApi.post('/api/load-test/metrics', { connectionString }).then((res) => res.data.data),
+  start: (connectionString, opts = {}) =>
+    publicApi.post('/api/load-test/start', { connectionString, ...opts }).then((res) => res.data.data),
+  status: (runId) =>
+    publicApi.get(`/api/load-test/${runId}`).then((res) => res.data.data),
+  stop: (runId) =>
+    publicApi.post(`/api/load-test/${runId}/stop`).then((res) => res.data.data),
+};
+
 export default api;
