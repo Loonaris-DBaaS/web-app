@@ -22,7 +22,7 @@ export default function StorageUtilizationCard({
       </div>
 
       <p className="body-sm dashboard-card__meta">
-        {usedStorageGb} GB used of {totalStorageGb} GB
+        {Number(usedStorageGb ?? 0).toFixed(2)} GiB used of {totalStorageGb} GiB
       </p>
     </article>
   );
