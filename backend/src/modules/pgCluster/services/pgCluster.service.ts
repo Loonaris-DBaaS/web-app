@@ -4,7 +4,7 @@ import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
 import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto, ClusterCreatedDto, ApiKeyRotatedDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
-import { provisionCluster, deprovisionCluster, getClusterLiveMetrics, ClusterLiveMetrics } from '../provisioning/provisioning';
+import { provisionCluster, deprovisionCluster, getClusterLiveMetrics, getClusterUsedStorageGb, ClusterLiveMetrics } from '../provisioning/provisioning';
 import type { Project, ResourceConfig } from '@/generated/prisma/client';
 
 type ProjectWithResourceConfig = Project & {
@@ -64,13 +64,48 @@ function toDto(p: ProjectWithResourceConfig): ClusterDto {
   };
 }
 
+// The dashboard polls listClusters every ~5s; live used-storage is read from the
+// kubelet Summary API, so we cache per namespace to avoid hammering the cluster.
+const USED_STORAGE_TTL_MS = 30_000;
+const usedStorageCache = new Map<string, { value: number | null; expiresAt: number }>();
+
+async function cachedUsedStorageGb(namespace: string): Promise<number | null> {
+  const cached = usedStorageCache.get(namespace);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  const value = await getClusterUsedStorageGb(namespace).catch((err) => {
+    console.warn(`[metrics] used-storage lookup failed for ${namespace}:`, err);
+    return null;
+  });
+  usedStorageCache.set(namespace, { value, expiresAt: Date.now() + USED_STORAGE_TTL_MS });
+  return value;
+}
+
 export async function listClusters(tenantId: string): Promise<ClusterDto[]> {
   const rows = await prisma.project.findMany({
     where: { tenantId },
     orderBy: { createdAt: 'desc' },
     include: { resourceConfig: true },
   });
-  return rows.map(toDto);
+
+  // Enrich running clusters with live used storage so the dashboard's storage card
+  // reflects reality without needing the per-cluster detail page open. Persisted
+  // opportunistically so non-running reads keep a last-known value.
+  return Promise.all(
+    rows.map(async (row) => {
+      const dto = toDto(row);
+      if (row.status !== 'running') return dto;
+
+      const usedStorageGb = await cachedUsedStorageGb(row.k8sNamespace);
+      if (usedStorageGb !== null) {
+        dto.storageUsedGb = usedStorageGb;
+        prisma.project
+          .update({ where: { id: row.id }, data: { storageUsage: usedStorageGb } })
+          .catch((err) => console.warn('[metrics] Failed to persist storageUsage:', err));
+      }
+      return dto;
+    }),
+  );
 }
 
 export async function getCluster(tenantId: string, clusterId: string): Promise<ClusterDto | null> {

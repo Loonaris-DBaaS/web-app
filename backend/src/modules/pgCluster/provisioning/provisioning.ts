@@ -4,6 +4,10 @@ import { CreateClusterDto, SIZE_SPECS } from '../dto/create-cluster.dto';
 import { ProjectStatus } from '../dto/cluster.dto';
 
 function parseCpuToMillis(cpu: string): number {
+  // metrics-server reports usage in nanocores ("49038340n") or microcores ("123u");
+  // limits/requests use millicores ("100m") or whole cores ("2").
+  if (cpu.endsWith('n')) return parseInt(cpu, 10) / 1_000_000;
+  if (cpu.endsWith('u')) return parseInt(cpu, 10) / 1_000;
   if (cpu.endsWith('m')) return parseInt(cpu, 10);
   return Math.round(parseFloat(cpu) * 1000);
 }
@@ -442,6 +446,72 @@ export interface ClusterLiveMetrics {
   timestamp: string;
 }
 
+/**
+ * Sums PVC-backed disk usage (GiB) for a CNPG cluster by reading the kubelet
+ * Summary API on every node that hosts a cluster pod. Volume stats for a PVC are
+ * only reported by the kubelet on the node where that pod runs, so a multi-instance
+ * cluster requires querying each distinct node and summing the results.
+ *
+ * Returns `null` only when usage is genuinely undeterminable (no scheduled pods, or
+ * every node read failed) — distinct from a real `0`.
+ */
+export async function getClusterUsedStorageGb(
+  namespace: string,
+  pods?: k8s.V1Pod[],
+): Promise<number | null> {
+  const { coreApi } = getK8sClient();
+
+  let clusterPods = pods;
+  if (!clusterPods) {
+    try {
+      const podList = await coreApi.listNamespacedPod({
+        namespace,
+        labelSelector: 'cnpg.io/cluster=instance-db',
+      });
+      clusterPods = podList.items ?? [];
+    } catch (err) {
+      console.warn(`[metrics] Failed to list pods in ${namespace}:`, err);
+      return null;
+    }
+  }
+
+  const nodeNames = [
+    ...new Set(clusterPods.map((p) => p.spec?.nodeName).filter((n): n is string => !!n)),
+  ];
+  if (nodeNames.length === 0) return null;
+
+  type KubeletSummary = {
+    pods?: Array<{
+      podRef: { name: string; namespace: string };
+      volume?: Array<{ pvcRef?: object; usedBytes?: number }>;
+    }>;
+  };
+
+  const perNodeBytes = await Promise.all(
+    nodeNames.map(async (node): Promise<number | null> => {
+      try {
+        const raw = await coreApi.connectGetNodeProxyWithPath({ name: node, path: 'stats/summary' });
+        const stats = (typeof raw === 'string' ? JSON.parse(raw) : raw) as KubeletSummary;
+        let bytes = 0;
+        for (const podStat of stats.pods ?? []) {
+          if (podStat.podRef.namespace !== namespace) continue;
+          for (const vol of podStat.volume ?? []) {
+            if (vol.pvcRef) bytes += vol.usedBytes ?? 0;
+          }
+        }
+        return bytes;
+      } catch (err) {
+        console.warn(`[metrics] kubelet stats unavailable on node ${node} for ${namespace}:`, err);
+        return null;
+      }
+    }),
+  );
+
+  const readable = perNodeBytes.filter((b): b is number => b !== null);
+  if (readable.length === 0) return null;
+  return readable.reduce((sum, b) => sum + b, 0) / 1024 ** 3;
+}
+
 export async function getClusterLiveMetrics(namespace: string): Promise<ClusterLiveMetrics | null> {
   const { coreApi, customApi, metricsClient } = getK8sClient();
 
@@ -525,34 +595,9 @@ export async function getClusterLiveMetrics(namespace: string): Promise<ClusterL
     console.warn(`[metrics] Failed to list PVCs in ${namespace}:`, err);
   }
 
-  // Used storage via kubelet Summary API on the primary pod's node (best-effort)
-  let usedStorageGb: number | null = null;
-  const primaryPod = pods.find((p) => p.metadata?.labels?.['cnpg.io/instanceRole'] === 'primary');
-  if (primaryPod?.spec?.nodeName) {
-    try {
-      const statsJson = await coreApi.connectGetNodeProxyWithPath({
-        name: primaryPod.spec.nodeName,
-        path: 'stats/summary',
-      });
-      type KubeletSummary = {
-        pods?: Array<{
-          podRef: { name: string; namespace: string };
-          volume?: Array<{ pvcRef?: object; usedBytes?: number }>;
-        }>;
-      };
-      const stats = JSON.parse(statsJson) as KubeletSummary;
-      let totalUsedBytes = 0;
-      for (const podStat of stats.pods ?? []) {
-        if (podStat.podRef.namespace !== namespace) continue;
-        for (const vol of podStat.volume ?? []) {
-          if (vol.pvcRef) totalUsedBytes += vol.usedBytes ?? 0;
-        }
-      }
-      usedStorageGb = totalUsedBytes / (1024 ** 3);
-    } catch (err) {
-      console.warn(`[metrics] kubelet stats unavailable for ${namespace}:`, err);
-    }
-  }
+  // Used storage via kubelet Summary API across every node hosting a cluster pod
+  // (best-effort; replica PVCs are only reported on their own node's summary).
+  const usedStorageGb = await getClusterUsedStorageGb(namespace, pods);
 
   return {
     phase,
