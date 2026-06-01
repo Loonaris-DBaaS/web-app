@@ -225,34 +225,42 @@ export default function DatabaseDetailPage({
               {!metrics && !metricsError && (
                 <p className="body-sm" style={{ color: 'var(--on-surface-variant)' }}>Loading replica data…</p>
               )}
-              {metrics && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
-                  {metrics.pods.map((pod) => (
-                    <InstanceContainer
-                      key={pod.name}
-                      name={pod.name}
-                      version={db.pgVersion}
-                      region={pod.node}
-                      usedStorage={
-                        metrics.usedStorageGb !== null && metrics.pods.length > 0
-                          ? Number((metrics.usedStorageGb / metrics.pods.length).toFixed(1))
-                          : 0
-                      }
-                      totalStorage={
-                        metrics.pods.length > 0
-                          ? Number((metrics.provisionedStorageGb / metrics.pods.length).toFixed(0))
-                          : metrics.provisionedStorageGb
-                      }
-                      status={pod.ready ? 'RUNNING' : 'STOPPED'}
-                    />
-                  ))}
-                  {metrics.pods.length === 0 && (
-                    <p className="body-sm" style={{ color: 'var(--on-surface-variant)' }}>
-                      No pod data available yet — cluster may still be provisioning.
-                    </p>
-                  )}
-                </div>
-              )}
+              {metrics && (() => {
+                // Only real Postgres instances — hide poolers (pgbouncer) and any
+                // pod whose role we couldn't determine.
+                const instancePods = (metrics.pods ?? []).filter(
+                  (p) => p.role === 'primary' || p.role === 'replica',
+                );
+                const count = instancePods.length;
+                return (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                    {instancePods.map((pod, i) => (
+                      <InstanceContainer
+                        key={pod.name}
+                        name={pod.role === 'primary' ? `Instance ${i + 1} (Primary)` : `Instance ${i + 1}`}
+                        version={db.pgVersion}
+                        region={db.region}
+                        usedStorage={
+                          metrics.usedStorageGb != null && count > 0
+                            ? Number((metrics.usedStorageGb / count).toFixed(1))
+                            : 0
+                        }
+                        totalStorage={
+                          count > 0
+                            ? Number(((metrics.provisionedStorageGb ?? 0) / count).toFixed(0))
+                            : (metrics.provisionedStorageGb ?? 0)
+                        }
+                        status={pod.ready ? 'RUNNING' : 'STOPPED'}
+                      />
+                    ))}
+                    {count === 0 && (
+                      <p className="body-sm" style={{ color: 'var(--on-surface-variant)' }}>
+                        No instance data available yet — cluster may still be provisioning.
+                      </p>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
 
