@@ -39,7 +39,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const admin = await prisma.tenant.upsert({
       where: { email: ADMIN_EMAIL },
       update: { isAdmin: true },
-      create: { email: ADMIN_EMAIL, username: 'platform-admin', passwordHash, isAdmin: true },
+      create: { email: ADMIN_EMAIL, username: `platform-admin-${Date.now()}`, passwordHash, isAdmin: true },
     });
     const accessToken = jwt.sign({ id: admin.id, tenantId: admin.id, isAdmin: true }, JWT_SECRET, {
       expiresIn: '8h',
