@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { clusterService, GATEWAY_HOST } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import ConnectionStringModal from '../../components/ui/ConnectionStringModal';
@@ -44,12 +44,13 @@ export default function DatabaseDetailPage({
 }) {
   const { databaseId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [db, setDb] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [activeTab, setActiveTab] = useState('Connect');
+  const [activeTab, setActiveTab] = useState(location.state?.initialTab || 'Connect');
   const [dbNameInput, setDbNameInput] = useState('');
   const [targetVersion, setTargetVersion] = useState('');
   const [regen, setRegen] = useState(null);
@@ -58,6 +59,7 @@ export default function DatabaseDetailPage({
   const [metrics, setMetrics] = useState(null);
   const [metricsError, setMetricsError] = useState('');
   const [showConnModal, setShowConnModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     clusterService
@@ -96,13 +98,18 @@ export default function DatabaseDetailPage({
   }
 
   async function handleDelete(id) {
+    if (!window.confirm(`Delete database "${db?.name}"? This cannot be undone and all data will be lost.`)) {
+      return;
+    }
     setActionError('');
     setSuccessMsg('');
+    setDeleting(true);
     try {
       await clusterService.deleteCluster(id);
       navigate('/dashboard/databases');
     } catch (err) {
       setActionError(err.response?.data?.error ?? err.message);
+      setDeleting(false);
     }
   }
 
@@ -151,7 +158,44 @@ export default function DatabaseDetailPage({
       <style>{styles}</style>
 
       <section style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-        <DashboardHeader pageTitle={`Databases / ${db.name}`} />
+        <DashboardHeader pageTitle={`Databases / ${db.name}`}>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center' }}>
+            <button
+              onClick={() => setActiveTab('Metrics')}
+              style={{
+                padding: '8px 16px',
+                background: 'var(--surface-container-low)',
+                color: 'var(--on-surface)',
+                border: '1px solid var(--outline-variant)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: 'pointer',
+                fontSize: 'var(--text-label-md-size)',
+                fontWeight: 600,
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              View Metrics
+            </button>
+            <button
+              onClick={() => handleDelete(db.id)}
+              disabled={deleting}
+              style={{
+                padding: '8px 16px',
+                background: 'var(--error-container, #fee2e2)',
+                color: 'var(--error, #dc2626)',
+                border: '1px solid var(--error-container, #fee2e2)',
+                borderRadius: 'var(--radius-sm)',
+                cursor: deleting ? 'default' : 'pointer',
+                fontSize: 'var(--text-label-md-size)',
+                fontWeight: 600,
+                fontFamily: 'var(--font-sans)',
+                opacity: deleting ? 0.6 : 1,
+              }}
+            >
+              {deleting ? 'Deleting…' : 'Delete Database'}
+            </button>
+          </div>
+        </DashboardHeader>
 
         <main className="ddp-main">
           {successMsg && (

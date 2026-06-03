@@ -84,6 +84,18 @@ export default function Database() {
     totalStorageGb > 0 ? Math.round((usedStorageGb / totalStorageGb) * 100) : 0;
   const healthyClusters = databases.filter((db) => db.status === 'Healthy').length;
 
+  async function handleDelete(id) {
+    try {
+      await clusterService.deleteCluster(id);
+      setSuccessMsg('Database deleted.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+      fetchDatabases();
+    } catch (err) {
+      setFetchError(err.response?.data?.message || err.message || 'Delete failed');
+      setTimeout(() => setFetchError(''), 5000);
+    }
+  }
+
   return (
     <>
       <section className="databases-page">
@@ -136,6 +148,8 @@ export default function Database() {
         <DatabasesTable
           rows={filteredDatabases}
           onViewDetails={(id) => navigate(`/dashboard/databases/${id}`)}
+          onViewMetrics={(id) => navigate(`/dashboard/databases/${id}`, { state: { initialTab: 'Metrics' } })}
+          onDelete={handleDelete}
         />
       </section>
 

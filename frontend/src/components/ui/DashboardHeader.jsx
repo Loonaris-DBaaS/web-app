@@ -45,6 +45,7 @@ export default function DashboardHeader({
   buttonText,
   buttonIcon,
   buttonOnClick,
+  children,
 }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -68,6 +69,9 @@ export default function DashboardHeader({
       {buttonText && buttonOnClick && (
         <Button text={buttonText} icon={buttonIcon} onClick={buttonOnClick} />
       )}
+
+      {/* Custom actions (e.g. View Metrics, Delete) */}
+      {children}
 
       {/* Right: bell + avatar + logout */}
       <div className="dash-header__actions">

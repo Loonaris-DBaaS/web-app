@@ -1,3 +1,4 @@
+import React from 'react';
 import Button from '../../../components/ui/Button';
 
 function StatusPill({ status }) {
@@ -12,7 +13,21 @@ function StatusPill({ status }) {
   return <span className={`status-pill ${statusClass}`}>{status}</span>;
 }
 
-export default function DatabasesTable({ rows, onViewDetails }) {
+export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onDelete }) {
+  const [deletingId, setDeletingId] = React.useState(null);
+
+  async function handleDelete(id, name) {
+    if (!window.confirm(`Delete database "${name}"? This cannot be undone and all data will be lost.`)) {
+      return;
+    }
+    setDeletingId(id);
+    try {
+      await onDelete(id);
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <section className="table-card" aria-label="User databases list">
       <div className="table-wrap">
@@ -24,7 +39,7 @@ export default function DatabasesTable({ rows, onViewDetails }) {
               <th>Postgres version</th>
               <th>Region</th>
               <th>Instances</th>
-              <th>Actions</th>
+              <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -45,12 +60,43 @@ export default function DatabasesTable({ rows, onViewDetails }) {
                   <td className="body-md">{db.region}</td>
                   <td className="body-md">{db.instances}</td>
                   <td>
-                    <Button
-                      text="View details"
-                      variant="outlined"
-                      size="sm"
-                      onClick={() => onViewDetails(db.id)}
-                    />
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <Button
+                        text="View"
+                        variant="outlined"
+                        size="sm"
+                        onClick={() => onViewDetails(db.id)}
+                      />
+                      <Button
+                        text="Metrics"
+                        variant="outlined"
+                        size="sm"
+                        onClick={() => onViewMetrics(db.id)}
+                      />
+                      <button
+                        type="button"
+                        title="Delete database"
+                        disabled={deletingId === db.id}
+                        onClick={() => handleDelete(db.id, db.name)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          padding: '6px 10px',
+                          border: '1px solid var(--error-container, #fee2e2)',
+                          borderRadius: 'var(--radius-sm, 6px)',
+                          background: 'var(--error-container, #fee2e2)',
+                          color: 'var(--error, #dc2626)',
+                          cursor: deletingId === db.id ? 'default' : 'pointer',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          fontFamily: 'var(--font-sans)',
+                          opacity: deletingId === db.id ? 0.6 : 1,
+                        }}
+                      >
+                        {deletingId === db.id ? '…' : 'Delete'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))
