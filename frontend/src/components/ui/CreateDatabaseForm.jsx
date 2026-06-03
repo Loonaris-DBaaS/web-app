@@ -536,7 +536,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const [dbName, setDbName] = useState('');
   const region = 'eu-west-3'; // single supported region (display-only)
   const [pgVersion, setPgVersion] = useState('17');
-  const [selectedSize, setSelectedSize] = useState('pro');
+  const [selectedSize, setSelectedSize] = useState('starter');
   const [deploymentOption, setDeploymentOption] = useState('multi-az-cluster');
   const [readReplicas, setReadReplicas] = useState('1');
   const [backup, setBackup] = useState(true);
