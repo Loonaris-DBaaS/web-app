@@ -145,12 +145,16 @@ jobs:
             --arg email "${{ secrets.ADMIN_EMAIL }}" \
             --arg password "${{ secrets.ADMIN_PASSWORD }}" \
             --arg slug "${{ vars.VITE_ADMIN_SLUG }}" \
+            --arg k8s_key "${{ secrets.K8S_AWS_ACCESS_KEY_ID }}" \
+            --arg k8s_secret "${{ secrets.K8S_AWS_SECRET_ACCESS_KEY }}" \
             'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
              .containerDefinitions[0].image = $image |
-             .containerDefinitions[0].environment = ((.containerDefinitions[0].environment // []) | map(select(.name != "ADMIN_EMAIL" and .name != "ADMIN_PASSWORD" and .name != "ADMIN_ROUTE_SLUG")) + [
+             .containerDefinitions[0].environment = ((.containerDefinitions[0].environment // []) | map(select(.name != "ADMIN_EMAIL" and .name != "ADMIN_PASSWORD" and .name != "ADMIN_ROUTE_SLUG" and .name != "K8S_AWS_ACCESS_KEY_ID" and .name != "K8S_AWS_SECRET_ACCESS_KEY")) + [
                {"name":"ADMIN_EMAIL","value":$email},
                {"name":"ADMIN_PASSWORD","value":$password},
-               {"name":"ADMIN_ROUTE_SLUG","value":$slug}
+               {"name":"ADMIN_ROUTE_SLUG","value":$slug},
+               {"name":"K8S_AWS_ACCESS_KEY_ID","value":$k8s_key},
+               {"name":"K8S_AWS_SECRET_ACCESS_KEY","value":$k8s_secret}
              ])' \
             > /tmp/new-taskdef.json
 
