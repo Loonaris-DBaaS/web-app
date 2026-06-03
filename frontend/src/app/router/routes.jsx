@@ -11,6 +11,9 @@ import SignIn from '../../pages/SignIn/Signin';
 import SignUp from '../../pages/SignUp/Signup';
 import Test from '../../pages/Test/Test';
 import Admin from '../../pages/Admin/Admin';
+import PrivacyPolicy from '../../pages/Legal/PrivacyPolicy';
+import TermsOfService from '../../pages/Legal/TermsOfService';
+import Security from '../../pages/Legal/Security';
 import ProtectedRoute from './ProtectedRoute';
 import GuestRoute from './GuestRoute';
 
@@ -21,6 +24,9 @@ const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-x7k9m2';
 const routes = [
   { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
   { path: '/test', element: <Test />, errorElement: <ErrorPage /> },
+  { path: '/privacy', element: <PrivacyPolicy />, errorElement: <ErrorPage /> },
+  { path: '/terms', element: <TermsOfService />, errorElement: <ErrorPage /> },
+  { path: '/security', element: <Security />, errorElement: <ErrorPage /> },
   { path: `/${ADMIN_SLUG}`, element: <Admin />, errorElement: <ErrorPage /> },
   {
     element: <ProtectedRoute />,

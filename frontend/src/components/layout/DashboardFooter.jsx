@@ -1,20 +1,12 @@
+import { Link } from 'react-router-dom';
+
 export default function DashboardFooter({
-  // usage example:
-  // <DashboardFooter
-  //   companyName="Loonaris Cloud"
-  //   year={2024}
-  //   links={[
-  //     { label: 'Privacy Policy', href: '/privacy' },
-  //     { label: 'Terms of Service', href: '/terms' },
-  //     { label: 'Security', href: '/security' },
-  //   ]}
-  // />
   companyName = 'Loonaris',
   year = new Date().getFullYear(),
   links = [
-    { label: 'Privacy Policy', href: '#' },
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Security', href: '#' },
+    { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Terms of Service', href: '/terms' },
+    { label: 'Security', href: '/security' },
   ],
 }) {
   return (
@@ -32,9 +24,9 @@ export default function DashboardFooter({
       {/* Links */}
       <div style={{ display: 'flex', gap: 'var(--space-8)' }}>
         {links.map(({ label, href }) => (
-          <a
+          <Link
             key={label}
-            href={href}
+            to={href}
             style={{
               fontSize: 'var(--text-label-sm-size)',
               fontFamily: 'var(--font-sans)',
@@ -56,7 +48,7 @@ export default function DashboardFooter({
             }}
           >
             {label}
-          </a>
+          </Link>
         ))}
       </div>
 
