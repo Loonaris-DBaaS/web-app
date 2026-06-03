@@ -246,22 +246,6 @@ export default function DatabaseMetricsTab({ metrics, error }) {
         )}
       </article>
 
-      {/* Coming soon */}
-      <div
-        style={{
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--surface-container-low)',
-          border: '1px solid var(--outline-variant)',
-          padding: 'var(--space-3) var(--space-4)',
-          color: 'var(--on-surface-variant)',
-        }}
-      >
-        <p className="body-sm">
-          <strong>Connections &amp; QPS</strong> — coming soon (requires the CNPG Prometheus
-          exporter)
-        </p>
-      </div>
-
       {/* Last updated */}
       <div
         style={{
