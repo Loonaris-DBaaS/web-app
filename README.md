@@ -170,9 +170,7 @@ npm run dev              # backend + frontend together (concurrently)
 - API docs (Swagger) → http://localhost:3001/api/docs
 
 > **Provisioning real clusters** requires AWS + EKS credentials. Local
-> development runs the control plane and dashboard against the local Postgres;
-> Kubernetes-backed provisioning is exercised against the live EKS cluster — see
-> [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md).
+> development runs the control plane and dashboard against the local Postgres.
 
 ## Available scripts
 
@@ -235,19 +233,6 @@ Both packages deploy via GitHub Actions:
 Infrastructure specifics (AWS accounts, EKS access, DNS, secrets) are documented
 in [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md), which is the single source
 of truth. Always verify against live AWS/`kubectl` state before acting on a doc.
-
-## Documentation
-
-| Doc | What's in it |
-|---|---|
-| [`docs/PROJECT.md`](docs/PROJECT.md) | High-level "what we have" overview |
-| [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md) | AWS accounts, EKS, DNS, secrets — source of truth |
-| [`docs/PROVISIONING_ENGINE.md`](docs/PROVISIONING_ENGINE.md) | How clusters are provisioned |
-| [`docs/KEY_HASHING.md`](docs/KEY_HASHING.md) | `sk_live_` key format and hashing |
-| [`docs/ONBOARDING.md`](docs/ONBOARDING.md) | Getting up to speed as a contributor |
-| [`RUNBOOK.md`](RUNBOOK.md) | Operational runbook |
-| [`DEPLOY_AWS.md`](DEPLOY_AWS.md) | AWS deployment notes |
-| [`PROVISIONNING.md`](PROVISIONNING.md) | Provisioning deep-dive |
 
 ## License
 
