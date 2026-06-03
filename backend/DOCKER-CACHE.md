@@ -20,6 +20,7 @@ RUN npm run build            # Layer 6: compile (SLOW)
 ```
 
 If you only change `src/index.ts`:
+
 - Layers 1–3 are **cached** (identical to last build)
 - Layer 4 (`npm ci`) is **cached** (`package*.json` didn't change)
 - Layers 5–6 are **rebuilt** (source code changed)
@@ -69,10 +70,10 @@ When the workflow runs:
 
 ### 2.2 `mode=max` vs `mode=min`
 
-| Mode | What gets cached | Use case |
-|---|---|---|
-| `mode=min` (default) | Only layers from the final image | Smaller cache, faster export |
-| `mode=max` | All layers including intermediate build stages | Maximum cache reuse, larger export |
+| Mode                 | What gets cached                               | Use case                           |
+| -------------------- | ---------------------------------------------- | ---------------------------------- |
+| `mode=min` (default) | Only layers from the final image               | Smaller cache, faster export       |
+| `mode=max`           | All layers including intermediate build stages | Maximum cache reuse, larger export |
 
 We use `mode=max` because our `Dockerfile` has a **multi-stage build**:
 
@@ -119,15 +120,16 @@ COPY --from=builder /app/package.json ./package.json  # Layer 14
 
 ### Cache invalidation rules
 
-| If you change... | Layers rebuilt | Layers cached |
-|---|---|---|
-| `src/**/*.ts` (source code) | 7, 8, 9, 10, 12, 13 | 1–6, 11, 14 |
-| `package.json` or `package-lock.json` | 4–14 | 1–3 |
-| `prisma/schema.prisma` | 6, 7, 8, 9, 10, 12, 13 | 1–5, 11, 14 |
-| `Dockerfile` or build args | ALL | None |
-| Nothing (re-run same commit) | None | All |
+| If you change...                      | Layers rebuilt         | Layers cached |
+| ------------------------------------- | ---------------------- | ------------- |
+| `src/**/*.ts` (source code)           | 7, 8, 9, 10, 12, 13    | 1–6, 11, 14   |
+| `package.json` or `package-lock.json` | 4–14                   | 1–3           |
+| `prisma/schema.prisma`                | 6, 7, 8, 9, 10, 12, 13 | 1–5, 11, 14   |
+| `Dockerfile` or build args            | ALL                    | None          |
+| Nothing (re-run same commit)          | None                   | All           |
 
 **Typical scenario:** You edit `src/index.ts`.
+
 - Cached: `FROM`, `WORKDIR`, `COPY package*.json`, `RUN npm ci` (saves ~1–2 min)
 - Rebuilt: `COPY src`, `RUN npx prisma generate`, `RUN npm run build`, runtime `COPY` (~30–60 sec)
 
@@ -145,11 +147,11 @@ COPY --from=builder /app/package.json ./package.json  # Layer 14
 
 ## 5. Why Not Use ECR or S3 for Cache?
 
-| Backend | Pros | Cons |
-|---|---|---|
-| `type=gha` (GitHub Actions) | Zero config, free, fast (same datacenter) | 10 GB limit per repo |
-| `type=s3` | Unlimited size, cross-workflow | Requires S3 bucket + IAM permissions |
-| `type=registry` (ECR) | No extra infra, images + cache together | Slower (network round-trip to ECR), costs storage |
+| Backend                     | Pros                                      | Cons                                              |
+| --------------------------- | ----------------------------------------- | ------------------------------------------------- |
+| `type=gha` (GitHub Actions) | Zero config, free, fast (same datacenter) | 10 GB limit per repo                              |
+| `type=s3`                   | Unlimited size, cross-workflow            | Requires S3 bucket + IAM permissions              |
+| `type=registry` (ECR)       | No extra infra, images + cache together   | Slower (network round-trip to ECR), costs storage |
 
 For our use case, `gha` is the best balance: no extra AWS resources needed, fast because the runner and cache are in the same GitHub infrastructure, and 10 GB is plenty for a Node.js backend.
 
@@ -176,6 +178,7 @@ In the GitHub Actions logs, look for these lines in the **"Build, tag, and push 
 If you see `CACHED`, the layer was pulled from cache. If you see a duration like `#13 45.2s`, it was rebuilt.
 
 **Also check the build time:**
+
 - First run on a new branch: ~2–3 minutes
 - Second run with no dependency changes: ~30–60 seconds
 
@@ -190,6 +193,7 @@ The cache auto-invalidates when layer inputs change, but sometimes you need to f
 3. **Debugging build issues** — suspect stale cache
 
 **Option A:** Add `no-cache: true` temporarily in the workflow (don't commit):
+
 ```yaml
 with:
   no-cache: true
@@ -203,11 +207,11 @@ with:
 
 ## 8. Related Files
 
-| File | Purpose |
-|---|---|
-| `.github/workflows/backend-deploy.yml` | CI/CD workflow with caching config |
-| `backend/Dockerfile` | Multi-stage build that benefits from caching |
-| `backend/CI-CD-PLAN.md` | Overall pipeline design |
+| File                                   | Purpose                                      |
+| -------------------------------------- | -------------------------------------------- |
+| `.github/workflows/backend-deploy.yml` | CI/CD workflow with caching config           |
+| `backend/Dockerfile`                   | Multi-stage build that benefits from caching |
+| `backend/CI-CD-PLAN.md`                | Overall pipeline design                      |
 
 ---
 

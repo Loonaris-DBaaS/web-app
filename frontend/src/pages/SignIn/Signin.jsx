@@ -90,11 +90,17 @@ export default function SignIn() {
             </Link>
           </p>
           <div className="signin__footer-links">
-            <a href="#" className="signin__footer-link label-sm">Privacy Policy</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Privacy Policy
+            </a>
             <span className="signin__dot" />
-            <a href="#" className="signin__footer-link label-sm">Security</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Security
+            </a>
             <span className="signin__dot" />
-            <a href="#" className="signin__footer-link label-sm">Support</a>
+            <a href="#" className="signin__footer-link label-sm">
+              Support
+            </a>
           </div>
         </div>
       </div>

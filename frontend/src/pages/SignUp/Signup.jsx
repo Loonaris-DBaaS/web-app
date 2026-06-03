@@ -108,9 +108,14 @@ export default function SignUp() {
         <div className="signup__footer">
           <p className="body-sm">
             By signing up, you agree to our{' '}
-            <a href="#" className="signup__link">Terms of Service</a>{' '}
+            <a href="#" className="signup__link">
+              Terms of Service
+            </a>{' '}
             and{' '}
-            <a href="#" className="signup__link">Privacy Policy</a>.
+            <a href="#" className="signup__link">
+              Privacy Policy
+            </a>
+            .
           </p>
           <p className="body-md">
             Already have an account?{' '}

@@ -72,12 +72,12 @@ Setting `revoked_at` on the `ApiKey` row causes the internal route endpoint to r
 
 The `Pooler` model stores structured K8s FQDNs, not connection strings:
 
-| Field | Example | Purpose |
-|---|---|---|
+| Field     | Example                                            | Purpose                   |
+| --------- | -------------------------------------------------- | ------------------------- |
 | `rw_host` | `pooler-rw-svc.project-abc12345.svc.cluster.local` | PgBouncer RW Service FQDN |
-| `rw_port` | `5432` | PgBouncer RW port |
+| `rw_port` | `5432`                                             | PgBouncer RW port         |
 | `ro_host` | `pooler-ro-svc.project-abc12345.svc.cluster.local` | PgBouncer RO Service FQDN |
-| `ro_port` | `5432` | PgBouncer RO port |
+| `ro_port` | `5432`                                             | PgBouncer RO port         |
 
 These FQDNs are computed at project creation time from the namespace:
 
@@ -112,13 +112,13 @@ Authorization: Bearer <INTERNAL_GATEWAY_SECRET>
 
 ### Status Mapping
 
-| Prisma `ProjectStatus` | Gateway `status` | Gateway behavior |
-|---|---|---|
-| `running` | `"active"` | Accept connection, tunnel to PgBouncer |
-| `provisioning` | `"provisioning"` | Drop connection |
-| `stopped` | `"stopped"` | Drop connection |
-| `error` | `"error"` | Drop connection |
-| `deleting` | `"deleting"` | Drop connection |
+| Prisma `ProjectStatus` | Gateway `status` | Gateway behavior                       |
+| ---------------------- | ---------------- | -------------------------------------- |
+| `running`              | `"active"`       | Accept connection, tunnel to PgBouncer |
+| `provisioning`         | `"provisioning"` | Drop connection                        |
+| `stopped`              | `"stopped"`      | Drop connection                        |
+| `error`                | `"error"`        | Drop connection                        |
+| `deleting`             | `"deleting"`     | Drop connection                        |
 
 ### Response 404 Not Found
 
@@ -179,26 +179,26 @@ Once the project status is updated to `running`, the gateway will accept connect
 
 ## 6. Source Code Map
 
-| File | Purpose |
-|---|---|
-| `src/middleware/internalAuth.ts` | Bearer token auth for gateway (shared secret, not JWT) |
-| `src/modules/internal/routes.ts` | Express router: `GET /routes/:keyHash` |
-| `src/modules/internal/controllers/internal.controller.ts` | Validates keyHash format, calls service |
-| `src/modules/internal/services/internal.service.ts` | Queries ApiKey → Project → Pooler, maps `running` → `active` |
-| `src/lib/crypto.ts` | `generateBaseKey()`, `sha256Hex()`, `formatApiKey()` |
-| `src/modules/pgCluster/services/pgCluster.service.ts` | Creates project, generates keys, creates Pooler/ApiKey records |
-| `src/modules/pgCluster/provisioning/provisioning.ts` | K8s manifest generation, apply, activation polling, deprovisioning |
+| File                                                      | Purpose                                                            |
+| --------------------------------------------------------- | ------------------------------------------------------------------ |
+| `src/middleware/internalAuth.ts`                          | Bearer token auth for gateway (shared secret, not JWT)             |
+| `src/modules/internal/routes.ts`                          | Express router: `GET /routes/:keyHash`                             |
+| `src/modules/internal/controllers/internal.controller.ts` | Validates keyHash format, calls service                            |
+| `src/modules/internal/services/internal.service.ts`       | Queries ApiKey → Project → Pooler, maps `running` → `active`       |
+| `src/lib/crypto.ts`                                       | `generateBaseKey()`, `sha256Hex()`, `formatApiKey()`               |
+| `src/modules/pgCluster/services/pgCluster.service.ts`     | Creates project, generates keys, creates Pooler/ApiKey records     |
+| `src/modules/pgCluster/provisioning/provisioning.ts`      | K8s manifest generation, apply, activation polling, deprovisioning |
 
 ---
 
 ## 7. Environment Variables
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `INTERNAL_GATEWAY_SECRET` | Yes | Shared secret between gateway and Express backend |
-| `KUBECONFIG` | In production | Path to kubeconfig for EKS cluster access |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `JWT_SECRET` | Yes | JWT signing key for dashboard auth |
+| Variable                  | Required      | Purpose                                           |
+| ------------------------- | ------------- | ------------------------------------------------- |
+| `INTERNAL_GATEWAY_SECRET` | Yes           | Shared secret between gateway and Express backend |
+| `KUBECONFIG`              | In production | Path to kubeconfig for EKS cluster access         |
+| `DATABASE_URL`            | Yes           | PostgreSQL connection string                      |
+| `JWT_SECRET`              | Yes           | JWT signing key for dashboard auth                |
 
 ---
 

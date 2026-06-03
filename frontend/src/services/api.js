@@ -47,12 +47,12 @@ api.interceptors.response.use(
 );
 export const clusterService = {
   getClusters: () => api.get('/api/clusters').then((res) => res.data.data),
-  getCluster:   (id)    => api.get(`/api/clusters/${id}`).then(res => res.data),
-  createCluster: (body)  => api.post('/api/clusters', body).then(res => res.data),
-  updateCluster: (id, body) => api.patch(`/api/clusters/${id}`, body).then(res => res.data),
-  deleteCluster: (id)       => api.delete(`/api/clusters/${id}`),
-  regenerateKey: (id)       => api.post(`/api/clusters/${id}/regenerate-key`).then(res => res.data),
-  getMetrics:    (id)       => api.get(`/api/clusters/${id}/metrics`).then(res => res.data.data),
+  getCluster: (id) => api.get(`/api/clusters/${id}`).then((res) => res.data),
+  createCluster: (body) => api.post('/api/clusters', body).then((res) => res.data),
+  updateCluster: (id, body) => api.patch(`/api/clusters/${id}`, body).then((res) => res.data),
+  deleteCluster: (id) => api.delete(`/api/clusters/${id}`),
+  regenerateKey: (id) => api.post(`/api/clusters/${id}/regenerate-key`).then((res) => res.data),
+  getMetrics: (id) => api.get(`/api/clusters/${id}/metrics`).then((res) => res.data.data),
 };
 
 // The gateway's public endpoint (NLB). There is no db.loonaris.tech DNS yet, so
@@ -67,6 +67,10 @@ export function buildConnectionString(apiKey, host = GATEWAY_HOST) {
 }
 
 // Admin uses its own token (platform admin — separate from any tenant session).
+// The route slug is a secret derived from VITE_ADMIN_SLUG env var; it's not
+// /admin anymore.  This avoids exposing a predictable admin endpoint path.
+const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-x7k9m2';
+
 const adminApi = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',
   headers: { 'Content-Type': 'application/json' },
@@ -78,10 +82,12 @@ adminApi.interceptors.request.use((config) => {
 });
 
 export const adminService = {
-  login:         (email, password) => adminApi.post('/api/admin/login', { email, password }).then((res) => res.data.data),
-  getClusters:   ()     => adminApi.get('/api/admin/clusters').then((res) => res.data.data),
-  createCluster: (body) => adminApi.post('/api/admin/clusters', body).then((res) => res.data.data),
-  deleteCluster: (id)   => adminApi.delete(`/api/admin/clusters/${id}`),
+  login: (email, password) =>
+    adminApi.post(`/api/${ADMIN_SLUG}/login`, { email, password }).then((res) => res.data.data),
+  getClusters: () => adminApi.get(`/api/${ADMIN_SLUG}/clusters`).then((res) => res.data.data),
+  createCluster: (body) =>
+    adminApi.post(`/api/${ADMIN_SLUG}/clusters`, body).then((res) => res.data.data),
+  deleteCluster: (id) => adminApi.delete(`/api/${ADMIN_SLUG}/clusters/${id}`),
 };
 
 // Public load-test endpoints (powering /test). No auth — a bare axios instance
@@ -95,11 +101,11 @@ export const loadTestService = {
   getMetrics: (connectionString) =>
     publicApi.post('/api/load-test/metrics', { connectionString }).then((res) => res.data.data),
   start: (connectionString, opts = {}) =>
-    publicApi.post('/api/load-test/start', { connectionString, ...opts }).then((res) => res.data.data),
-  status: (runId) =>
-    publicApi.get(`/api/load-test/${runId}`).then((res) => res.data.data),
-  stop: (runId) =>
-    publicApi.post(`/api/load-test/${runId}/stop`).then((res) => res.data.data),
+    publicApi
+      .post('/api/load-test/start', { connectionString, ...opts })
+      .then((res) => res.data.data),
+  status: (runId) => publicApi.get(`/api/load-test/${runId}`).then((res) => res.data.data),
+  stop: (runId) => publicApi.post(`/api/load-test/${runId}/stop`).then((res) => res.data.data),
 };
 
 export default api;

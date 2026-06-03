@@ -67,18 +67,22 @@ Path-filtered so backend deploys don't fire when only frontend code changes.
 ## 4. Database Migrations (Bastion SSH Tunnel)
 
 **Why not run migrations inside the ECS container?**
+
 - The Prisma CLI is a `devDependency` — it is not included in the production Docker image.
 - The RDS instance is private. GitHub Actions runners cannot connect directly.
 - Running migrations as a one-off ECS task requires the Prisma CLI in the image, bloating it.
 
 **Solution:**
 The workflow creates an SSH tunnel through the bastion host:
+
 ```bash
 ssh -L 5433:rds:5432 ubuntu@13.39.112.107
 ```
+
 Then runs `npx prisma migrate deploy` locally on the GitHub Actions runner through `localhost:5433`.
 
 **Required secrets:**
+
 - `BASTION_SSH_KEY` — private key for `bastion-key.pem`
 - `DATABASE_URL` — full PostgreSQL connection string
 
@@ -116,6 +120,7 @@ Uses `docker/setup-buildx-action` + `cache-from: type=gha` / `cache-to: type=gha
 AWS Fargate on-demand vCPU quota for this account is **4**. Each task uses **1 vCPU**. Rolling deployment would temporarily need **4 vCPUs** (2 old + 2 new), which hits the exact limit. ECS cannot place new tasks and the deployment hangs until the circuit breaker rolls it back.
 
 **Workaround:**
+
 1. Scale service to `0` (old tasks stop, freeing vCPUs)
 2. Update service to new task definition
 3. Scale service to `2` (new tasks start with guaranteed vCPU availability)
@@ -132,25 +137,26 @@ ECS Fargate **caches** the `:latest` tag resolution. Even after ECR `:latest` is
 
 ### Secrets (Settings → Secrets and variables → Actions)
 
-| Secret | Description |
-|---|---|
-| `AWS_ACCESS_KEY_ID` | IAM access key |
-| `AWS_SECRET_ACCESS_KEY` | IAM secret key |
-| `BASTION_SSH_KEY` | Private SSH key for bastion host (`bastion-key.pem`) |
-| `DATABASE_URL` | Production PostgreSQL connection string (includes password) |
-| `EC2_HOST` | Nginx EC2 public IP (`35.181.168.74`) |
-| `EC2_SSH_KEY` | Private SSH key for Nginx EC2 (`nginx-key.pem`) |
+| Secret                  | Description                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| `AWS_ACCESS_KEY_ID`     | IAM access key                                              |
+| `AWS_SECRET_ACCESS_KEY` | IAM secret key                                              |
+| `BASTION_SSH_KEY`       | Private SSH key for bastion host (`bastion-key.pem`)        |
+| `DATABASE_URL`          | Production PostgreSQL connection string (includes password) |
+| `EC2_HOST`              | Nginx EC2 public IP (`35.181.168.74`)                       |
+| `EC2_SSH_KEY`           | Private SSH key for Nginx EC2 (`nginx-key.pem`)             |
 
 ### Variables (Settings → Secrets and variables → Actions → Variables tab)
 
-| Variable | Value |
-|---|---|
-| `AWS_REGION` | `eu-west-3` |
-| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster` |
-| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4` |
-| `ALB_URL` | `http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com` |
+| Variable           | Value                                                        |
+| ------------------ | ------------------------------------------------------------ |
+| `AWS_REGION`       | `eu-west-3`                                                  |
+| `ECS_CLUSTER_NAME` | `loonaris-ecs-fargate-cluster`                               |
+| `ECS_SERVICE_NAME` | `loonaris-backend-service-p839kjg4`                          |
+| `ALB_URL`          | `http://loonaris-alb-1830888004.eu-west-3.elb.amazonaws.com` |
 
 > **IAM permissions needed:**
+>
 > - `ecr:*` (push images)
 > - `ecs:DescribeTaskDefinition`, `ecs:RegisterTaskDefinition`, `ecs:DescribeServices`, `ecs:UpdateService`, `ecs:ListTasks`, `ecs:DescribeTasks`
 
@@ -161,6 +167,7 @@ ECS Fargate **caches** the `:latest` tag resolution. Even after ECR `:latest` is
 ECS circuit breaker + rollback is enabled. If new tasks fail health checks, ECS automatically rolls back to the previous stable task definition revision.
 
 **Manual rollback:**
+
 1. Find the previous task definition revision in the ECS console
 2. Update the service to use that revision + `force-new-deployment`
 3. Because every deploy registers a new revision, rolling back is one click
@@ -170,11 +177,13 @@ ECS circuit breaker + rollback is enabled. If new tasks fail health checks, ECS 
 ## 9. Security Notes
 
 ### AWS Credentials
+
 The workflow uses long-term IAM access keys stored as GitHub secrets.
 
 **Recommended upgrade:** Switch to OIDC so GitHub Actions can assume an IAM role without storing long-lived credentials.
 
 ### Secrets in Task Definition
+
 Environment variables like `JWT_SECRET` and `DATABASE_URL` are currently stored in plain text in the ECS task definition.
 
 **Recommended upgrade:** Move them to AWS Systems Manager Parameter Store (SecureString) and reference by ARN.
@@ -183,14 +192,14 @@ Environment variables like `JWT_SECRET` and `DATABASE_URL` are currently stored 
 
 ## 10. Related Files
 
-| File | Purpose |
-|---|---|
-| `.github/workflows/backend-deploy.yml` | The actual CI/CD workflow |
-| `.github/workflows/frontend-deploy.yml` | Frontend S3 + Nginx deploy |
-| `backend/Dockerfile` | Multi-stage Docker build |
-| `AGENTS.md` | Live infrastructure reference |
-| `DEPLOY_AWS.md` | Current architecture overview |
-| `infrastructure/frontend/` | Nginx config + IAM policies as code |
+| File                                    | Purpose                             |
+| --------------------------------------- | ----------------------------------- |
+| `.github/workflows/backend-deploy.yml`  | The actual CI/CD workflow           |
+| `.github/workflows/frontend-deploy.yml` | Frontend S3 + Nginx deploy          |
+| `backend/Dockerfile`                    | Multi-stage Docker build            |
+| `AGENTS.md`                             | Live infrastructure reference       |
+| `DEPLOY_AWS.md`                         | Current architecture overview       |
+| `infrastructure/frontend/`              | Nginx config + IAM policies as code |
 
 ---
 

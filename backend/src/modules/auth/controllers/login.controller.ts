@@ -34,13 +34,17 @@ export async function login(req: Request, res: Response, next: NextFunction): Pr
 
 export async function refreshToken(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const token = (req.cookies as Record<string, string>)['refreshToken'] ?? (req.body as { refreshToken?: string }).refreshToken;
+    const token =
+      (req.cookies as Record<string, string>)['refreshToken'] ??
+      (req.body as { refreshToken?: string }).refreshToken;
     if (!token) {
       res.status(401).json({ success: false, message: 'Refresh token is required' });
       return;
     }
     const { accessToken } = await loginService.refreshAccessToken(token);
-    res.status(200).json({ success: true, message: 'Access token refreshed', data: { accessToken } });
+    res
+      .status(200)
+      .json({ success: true, message: 'Access token refreshed', data: { accessToken } });
   } catch (err) {
     next(err);
   }
@@ -48,7 +52,9 @@ export async function refreshToken(req: Request, res: Response, next: NextFuncti
 
 export async function logout(req: Request, res: Response, next: NextFunction): Promise<void> {
   try {
-    const token = (req.cookies as Record<string, string>)['refreshToken'] ?? (req.body as { refreshToken?: string }).refreshToken;
+    const token =
+      (req.cookies as Record<string, string>)['refreshToken'] ??
+      (req.body as { refreshToken?: string }).refreshToken;
     if (!token) {
       res.status(401).json({ success: false, message: 'Refresh token is required' });
       return;

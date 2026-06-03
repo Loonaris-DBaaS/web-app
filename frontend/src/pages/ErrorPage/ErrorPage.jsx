@@ -2,8 +2,7 @@ import { useRouteError, Link } from 'react-router-dom';
 
 export default function ErrorPage() {
   const error = useRouteError();
-  const message =
-    error?.statusText || error?.message || 'An unexpected error occurred.';
+  const message = error?.statusText || error?.message || 'An unexpected error occurred.';
 
   return (
     <div
@@ -18,9 +17,7 @@ export default function ErrorPage() {
         textAlign: 'center',
       }}
     >
-      <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>
-        Something went wrong
-      </h1>
+      <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>Something went wrong</h1>
       <p style={{ color: '#666', marginBottom: '1.5rem' }}>{message}</p>
       <Link
         to="/"

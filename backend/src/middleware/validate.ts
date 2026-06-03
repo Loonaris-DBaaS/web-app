@@ -8,7 +8,8 @@ export function validateSignup(req: Request, res: Response, next: NextFunction):
   const { username, email, password } = req.body as Record<string, string>;
   const errors: string[] = [];
 
-  if (!username || username.trim().length < 3) errors.push('Username must be at least 3 characters');
+  if (!username || username.trim().length < 3)
+    errors.push('Username must be at least 3 characters');
   if (!email || !isValidEmail(email)) errors.push('Email must be valid');
   if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
 

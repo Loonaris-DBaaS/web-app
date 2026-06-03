@@ -30,7 +30,10 @@ apiRouter.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiSpec));
 apiRouter.use('/auth', authRoutes);
 apiRouter.use('/internal', internalRoutes);
 apiRouter.use('/clusters', pgClusterRoutes);
-apiRouter.use('/admin', adminRoutes);
+// Admin routes mounted at root with a secret slug — the path itself is the
+// secret (e.g. /api/console-x7k9m2/...). Mounting on `/` avoids the
+// predictable /admin prefix.
+apiRouter.use('/', adminRoutes);
 apiRouter.use('/test', testAppRoutes);
 apiRouter.use('/load-test', loadTestRoutes);
 

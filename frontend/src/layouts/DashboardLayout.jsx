@@ -3,15 +3,15 @@ import DashboardFooter from '../components/layout/DashboardFooter.jsx';
 import Sidebar from '../components/ui/Sidebar.jsx';
 
 export default function DashboardLayout() {
-	return (
-		<div className="dashboard-shell">
-			<Sidebar />
-			<div className="dashboard-body">
-				<main className="dashboard-main">
-					<Outlet />
-				</main>
-				<DashboardFooter />
-			</div>
-		</div>
-	);
+  return (
+    <div className="dashboard-shell">
+      <Sidebar />
+      <div className="dashboard-body">
+        <main className="dashboard-main">
+          <Outlet />
+        </main>
+        <DashboardFooter />
+      </div>
+    </div>
+  );
 }

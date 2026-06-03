@@ -1,4 +1,4 @@
-import { PgVersion } from './create-cluster.dto';
+import { PgVersion, ClusterSize } from './create-cluster.dto';
 
 export interface UpdateClusterDto {
   name?: string;
@@ -8,6 +8,7 @@ export interface UpdateClusterDto {
   cpu?: string;
   ram?: string;
   storage?: string;
+  size?: ClusterSize;
   backup?: boolean;
   autoscale?: boolean;
 }

@@ -4,7 +4,13 @@ import { generateBaseKey, sha256Hex, formatApiKey } from '@/lib/crypto';
 import { CreateClusterDto, SIZE_SPECS, type ClusterSize } from '../dto/create-cluster.dto';
 import { ClusterDto, ClusterCreatedDto, ApiKeyRotatedDto } from '../dto/cluster.dto';
 import { UpdateClusterDto } from '../dto/update-cluster.dto';
-import { provisionCluster, deprovisionCluster, getClusterLiveMetrics, getClusterUsedStorageGb, ClusterLiveMetrics } from '../provisioning/provisioning';
+import {
+  provisionCluster,
+  deprovisionCluster,
+  getClusterLiveMetrics,
+  getClusterUsedStorageGb,
+  ClusterLiveMetrics,
+} from '../provisioning/provisioning';
 import type { Project, ResourceConfig } from '@/generated/prisma/client';
 
 type ProjectWithResourceConfig = Project & {
@@ -33,10 +39,14 @@ function parseStorageToGb(storage: string | null | undefined): number {
   return match ? Number(match[1]) : 0;
 }
 
-function inferClusterSize(resourceConfig: { desiredStorage?: string | null } | null | undefined): ClusterSize {
+function inferClusterSize(
+  resourceConfig: { desiredStorage?: string | null } | null | undefined,
+): ClusterSize {
   const storage = resourceConfig?.desiredStorage;
   return (
-    (Object.entries(SIZE_SPECS).find(([, s]) => s.storage === storage)?.[0] as ClusterSize | undefined) ?? 'pro'
+    (Object.entries(SIZE_SPECS).find(([, s]) => s.storage === storage)?.[0] as
+      | ClusterSize
+      | undefined) ?? 'pro'
   );
 }
 
@@ -124,7 +134,6 @@ export async function createCluster(
   const namespace = `project-${clusterId}`;
   const specs = SIZE_SPECS[dto.size];
   const instances = dto.instances ?? 1;
-  const estimatedPrice = specs.price * instances + (dto.backup ? 5 : 0);
 
   const baseKey = generateBaseKey();
   const keyHash = sha256Hex(baseKey);
@@ -152,14 +161,12 @@ export async function createCluster(
       k8sNamespace: namespace,
       region: dto.region,
       pgVersion: dto.pgVersion,
-      estimatedPrice,
+      estimatedPrice: 0,
       status: provStatus,
       resourceConfig: {
         create: {
           instances,
           enableBackup: dto.backup ?? true,
-          // Autoscale isn't wired to anything yet — don't fake it (was a hidden
-          // auto-set from size === 'scale').
           enableAutoscale: false,
           desiredStorage: specs.storage,
         },
@@ -190,9 +197,7 @@ export async function createCluster(
   // Fire-and-forget: provision in EKS in the background and persist the final
   // status (running / error) once CNPG health polling completes.
   void provisionCluster(clusterId, namespace, dto)
-    .then(({ status }) =>
-      prisma.project.update({ where: { id: clusterId }, data: { status } }),
-    )
+    .then(({ status }) => prisma.project.update({ where: { id: clusterId }, data: { status } }))
     .catch(async (err) => {
       console.error(`[provisioning] background provision failed for ${clusterId}:`, err);
       await prisma.project
@@ -255,13 +260,15 @@ export async function updateCluster(
 
   const nextInstances = dto.instances ?? row.resourceConfig?.instances ?? 1;
   const nextBackup = dto.backup ?? row.resourceConfig?.enableBackup ?? false;
-  const nextStorage = dto.storage ? toGiSuffix(dto.storage) : (row.resourceConfig?.desiredStorage ?? '50Gi');
-  const estimatedPrice =
-    SIZE_SPECS[inferClusterSize({ desiredStorage: nextStorage })].price * nextInstances +
-    (nextBackup ? 5 : 0);
+  const nextStorage = dto.size
+    ? SIZE_SPECS[dto.size].storage
+    : dto.storage
+      ? toGiSuffix(dto.storage)
+      : (row.resourceConfig?.desiredStorage ?? '10Gi');
 
   const shouldReconcile =
     dto.storage !== undefined ||
+    dto.size !== undefined ||
     dto.pgVersion !== undefined ||
     dto.instances !== undefined;
 
@@ -271,13 +278,15 @@ export async function updateCluster(
       ...(dto.name !== undefined ? { name: dto.name } : {}),
       ...(dto.region !== undefined ? { region: dto.region } : {}),
       ...(dto.pgVersion !== undefined ? { pgVersion: dto.pgVersion } : {}),
-      estimatedPrice,
+      estimatedPrice: 0,
       ...(shouldReconcile ? { status: 'provisioning' } : {}),
       resourceConfig: row.resourceConfig
         ? {
             update: {
               ...(dto.instances !== undefined ? { instances: nextInstances } : {}),
-              ...(dto.storage !== undefined ? { desiredStorage: toGiSuffix(dto.storage) } : {}),
+              ...(dto.size !== undefined || dto.storage !== undefined
+                ? { desiredStorage: nextStorage }
+                : {}),
               ...(dto.backup !== undefined ? { enableBackup: nextBackup } : {}),
               ...(dto.autoscale !== undefined ? { enableAutoscale: dto.autoscale } : {}),
             },
@@ -317,9 +326,11 @@ export async function getClusterMetrics(
 
 // --- Admin (cross-tenant) helpers ---------------------------------------
 
-export async function listAllClusters(): Promise<(ClusterDto & {
-  tenant: { id: string; email: string; username: string };
-})[]> {
+export async function listAllClusters(): Promise<
+  (ClusterDto & {
+    tenant: { id: string; email: string; username: string };
+  })[]
+> {
   const rows = await prisma.project.findMany({
     orderBy: { createdAt: 'desc' },
     include: {

@@ -4,6 +4,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { clusterService, buildConnectionString } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
+import ConnectionStringModal from '../../components/ui/ConnectionStringModal';
+import { MetricsSummaryCards } from '../../components/ui/MetricsCharts';
 import StorageUtilizationCard from './components/StorageUtilizationCard';
 import ClusterHealthCard from './components/ClusterHealthCard';
 import DatabasesTable from './components/DatabasesTable';
@@ -78,7 +80,8 @@ export default function Database() {
 
   const usedStorageGb = databases.reduce((acc, db) => acc + (db.storageUsedGb ?? 0), 0);
   const totalStorageGb = databases.reduce((acc, db) => acc + (db.provisionedStorageGb ?? 0), 0);
-  const storagePercent = totalStorageGb > 0 ? Math.round((usedStorageGb / totalStorageGb) * 100) : 0;
+  const storagePercent =
+    totalStorageGb > 0 ? Math.round((usedStorageGb / totalStorageGb) * 100) : 0;
   const healthyClusters = databases.filter((db) => db.status === 'Healthy').length;
 
   return (
@@ -91,8 +94,19 @@ export default function Database() {
           buttonOnClick={() => setShowCreateForm(true)}
         />
 
-        {fetchError  && <p className="body-sm" style={{ color: 'var(--error)',   marginBottom: 'var(--space-4)' }}>{fetchError}</p>}
-        {successMsg  && <p className="body-sm" style={{ color: 'var(--primary)', marginBottom: 'var(--space-4)', fontWeight: 600 }}>{successMsg}</p>}
+        {fetchError && (
+          <p className="body-sm" style={{ color: 'var(--error)', marginBottom: 'var(--space-4)' }}>
+            {fetchError}
+          </p>
+        )}
+        {successMsg && (
+          <p
+            className="body-sm"
+            style={{ color: 'var(--primary)', marginBottom: 'var(--space-4)', fontWeight: 600 }}
+          >
+            {successMsg}
+          </p>
+        )}
 
         <div className="databases-stats-grid">
           <StorageUtilizationCard
@@ -103,8 +117,12 @@ export default function Database() {
           <ClusterHealthCard healthyClusters={healthyClusters} totalClusters={databases.length} />
         </div>
 
+        <MetricsSummaryCards databases={databases} />
+
         <div className="databases-search-wrap">
-          <label htmlFor="database-search" className="label-md">Search databases</label>
+          <label htmlFor="database-search" className="label-md">
+            Search databases
+          </label>
           <input
             id="database-search"
             type="text"
@@ -124,7 +142,9 @@ export default function Database() {
       {showCreateForm && (
         <div
           style={overlayStyle}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowCreateForm(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowCreateForm(false);
+          }}
         >
           <CreateDatabaseForm
             onSubmit={(cluster) => {
@@ -148,39 +168,12 @@ export default function Database() {
       )}
 
       {createdKey && (
-        <div style={overlayStyle} onClick={(e) => { if (e.target === e.currentTarget) setCreatedKey(null); }}>
-          <div style={{ maxWidth: 560, width: '100%', background: '#fff', borderRadius: 12, padding: 24, fontFamily: 'system-ui, sans-serif' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 style={{ fontSize: 18, margin: 0 }}>Database “{createdKey.name}” created</h2>
-              <button onClick={() => setCreatedKey(null)} style={{ border: 0, background: 'transparent', fontSize: 22, cursor: 'pointer' }}>×</button>
-            </div>
-            <p style={{ fontSize: 13, color: '#b45309', margin: '8px 0 16px' }}>
-              Copy these now — they are shown <strong>only once</strong> and cannot be retrieved later.
-            </p>
-            <label style={{ fontSize: 12, color: '#475569' }}>API key (read-write)</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.apiKey}</code>
-              <button onClick={() => navigator.clipboard?.writeText(createdKey.apiKey)} style={{ cursor: 'pointer' }}>Copy</button>
-            </div>
-            <label style={{ fontSize: 12, color: '#475569' }}>Read-write connection string (works once status is “running”)</label>
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.rwConnStr}</code>
-              <button onClick={() => navigator.clipboard?.writeText(createdKey.rwConnStr)} style={{ cursor: 'pointer' }}>Copy</button>
-            </div>
-            {createdKey.roConnStr && (
-              <>
-                <label style={{ fontSize: 12, color: '#475569' }}>Read-only connection string</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <code style={{ flex: 1, padding: 10, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 12, wordBreak: 'break-all' }}>{createdKey.roConnStr}</code>
-                  <button onClick={() => navigator.clipboard?.writeText(createdKey.roConnStr)} style={{ cursor: 'pointer' }}>Copy</button>
-                </div>
-              </>
-            )}
-            <div style={{ textAlign: 'right', marginTop: 20 }}>
-              <button onClick={() => setCreatedKey(null)} style={{ padding: '8px 18px', background: '#4f46e5', color: '#fff', border: 0, borderRadius: 6, cursor: 'pointer' }}>Done</button>
-            </div>
-          </div>
-        </div>
+        <ConnectionStringModal
+          apiKey={createdKey.apiKey}
+          rwConnectionString={createdKey.rwConnStr}
+          roConnectionString={createdKey.roConnStr}
+          onClose={() => setCreatedKey(null)}
+        />
       )}
     </>
   );

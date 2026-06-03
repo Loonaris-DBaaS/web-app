@@ -55,7 +55,16 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const data = await authService.login({ email, password });
     applyAccessToken(data.accessToken);
-    setUser({ id: data.id, username: data.username, email: data.email, country: data.country, jobTitle: data.jobTitle, company: data.company, photoUrl: data.photoUrl, isAdmin: data.isAdmin });
+    setUser({
+      id: data.id,
+      username: data.username,
+      email: data.email,
+      country: data.country,
+      jobTitle: data.jobTitle,
+      company: data.company,
+      photoUrl: data.photoUrl,
+      isAdmin: data.isAdmin,
+    });
     scheduleRefresh(data.accessToken);
     return data;
   }, []);
@@ -71,14 +80,19 @@ export function AuthProvider({ children }) {
     applyAccessToken(null);
   }, []);
 
-  const updateProfile = useCallback(async (fields) => {
-    const updated = await authService.updateProfile(accessToken, fields);
-    setUser((prev) => ({ ...prev, ...updated }));
-    return updated;
-  }, [accessToken]);
+  const updateProfile = useCallback(
+    async (fields) => {
+      const updated = await authService.updateProfile(accessToken, fields);
+      setUser((prev) => ({ ...prev, ...updated }));
+      return updated;
+    },
+    [accessToken],
+  );
 
   return (
-    <AuthContext.Provider value={{ user, accessToken, loading, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider
+      value={{ user, accessToken, loading, login, signup, logout, updateProfile }}
+    >
       {children}
     </AuthContext.Provider>
   );

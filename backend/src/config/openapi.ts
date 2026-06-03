@@ -47,9 +47,19 @@ export const openApiSpec = {
           k8sNamespace: { type: 'string' },
           region: { type: 'string' },
           pgVersion: { type: 'string', enum: ['16', '17', '18'] },
-          size: { type: 'string', enum: ['starter', 'pro', 'scale'], description: 'Inferred from cpu — display only' },
-          deploymentOption: { type: 'string', enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'] },
-          status: { type: 'string', enum: ['provisioning', 'running', 'stopped', 'error', 'deleting'] },
+          size: {
+            type: 'string',
+            enum: ['starter', 'pro', 'scale'],
+            description: 'Inferred from cpu — display only',
+          },
+          deploymentOption: {
+            type: 'string',
+            enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'],
+          },
+          status: {
+            type: 'string',
+            enum: ['provisioning', 'running', 'stopped', 'error', 'deleting'],
+          },
           cpu: { type: 'string', example: '2' },
           ram: { type: 'string', example: '4Gi' },
           storage: { type: 'string', example: '50Gi' },
@@ -70,7 +80,11 @@ export const openApiSpec = {
           region: { type: 'string', example: 'eu-west-1' },
           pgVersion: { type: 'string', enum: ['16', '17', '18'], example: '17' },
           size: { type: 'string', enum: ['starter', 'pro', 'scale'], example: 'starter' },
-          deploymentOption: { type: 'string', enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'], example: 'SINGLE_AZ_INSTANCE' },
+          deploymentOption: {
+            type: 'string',
+            enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'],
+            example: 'SINGLE_AZ_INSTANCE',
+          },
           readReplicas: { type: 'integer', minimum: 0, example: 1 },
           backup: { type: 'boolean', example: true },
         },
@@ -82,7 +96,10 @@ export const openApiSpec = {
           name: { type: 'string' },
           region: { type: 'string' },
           pgVersion: { type: 'string', enum: ['16', '17', '18'] },
-          deploymentOption: { type: 'string', enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'] },
+          deploymentOption: {
+            type: 'string',
+            enum: ['SINGLE_AZ_INSTANCE', 'MULTI_AZ_INSTANCE', 'MULTI_AZ_CLUSTER'],
+          },
           cpu: { type: 'string', example: '4', description: 'Number of vCPUs' },
           ram: { type: 'string', example: '8Gi', description: 'RAM in Gi' },
           storage: { type: 'string', example: '100Gi', description: 'Disk size in Gi' },
@@ -130,11 +147,23 @@ export const openApiSpec = {
         summary: 'Register a new user',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/SignupRequest' } } },
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/SignupRequest' } },
+          },
         },
         responses: {
-          '201': { description: 'User created', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-          '400': { description: 'Validation error', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          '201': {
+            description: 'User created',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } },
+            },
+          },
+          '400': {
+            description: 'Validation error',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
         },
       },
     },
@@ -144,11 +173,23 @@ export const openApiSpec = {
         summary: 'Login with email and password',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } } },
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/LoginRequest' } },
+          },
         },
         responses: {
-          '200': { description: 'Login successful', content: { 'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } } } },
-          '400': { description: 'Invalid credentials', content: { 'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } } } },
+          '200': {
+            description: 'Login successful',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/AuthResponse' } },
+            },
+          },
+          '400': {
+            description: 'Invalid credentials',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ErrorResponse' } },
+            },
+          },
         },
       },
     },
@@ -175,7 +216,10 @@ export const openApiSpec = {
         summary: 'Get current user profile',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': { description: 'Profile data', content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } } },
+          '200': {
+            description: 'Profile data',
+            content: { 'application/json': { schema: { $ref: '#/components/schemas/User' } } },
+          },
           '401': { description: 'Unauthorized' },
         },
       },
@@ -197,7 +241,10 @@ export const openApiSpec = {
             },
           },
         },
-        responses: { '200': { description: 'Updated profile' }, '401': { description: 'Unauthorized' } },
+        responses: {
+          '200': { description: 'Updated profile' },
+          '401': { description: 'Unauthorized' },
+        },
       },
     },
     '/api/auth/account': {
@@ -205,7 +252,10 @@ export const openApiSpec = {
         tags: ['Auth'],
         summary: 'Delete account',
         security: [{ bearerAuth: [] }],
-        responses: { '200': { description: 'Account deleted' }, '401': { description: 'Unauthorized' } },
+        responses: {
+          '200': { description: 'Account deleted' },
+          '401': { description: 'Unauthorized' },
+        },
       },
     },
     '/api/clusters': {
@@ -214,7 +264,14 @@ export const openApiSpec = {
         summary: 'List all clusters for the authenticated tenant',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': { description: 'Array of clusters', content: { 'application/json': { schema: { type: 'array', items: { $ref: '#/components/schemas/ClusterDto' } } } } },
+          '200': {
+            description: 'Array of clusters',
+            content: {
+              'application/json': {
+                schema: { type: 'array', items: { $ref: '#/components/schemas/ClusterDto' } },
+              },
+            },
+          },
           '401': { description: 'Unauthorized' },
         },
       },
@@ -224,23 +281,37 @@ export const openApiSpec = {
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/CreateClusterRequest' } } },
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/CreateClusterRequest' } },
+          },
         },
         responses: {
-          '202': { description: 'Cluster accepted for provisioning', content: { 'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } } } },
+          '202': {
+            description: 'Cluster accepted for provisioning',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } },
+            },
+          },
           '400': { description: 'Validation error' },
           '401': { description: 'Unauthorized' },
         },
       },
     },
     '/api/clusters/{id}': {
-      parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
+      parameters: [
+        { name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } },
+      ],
       get: {
         tags: ['Clusters'],
         summary: 'Get a cluster by id',
         security: [{ bearerAuth: [] }],
         responses: {
-          '200': { description: 'Cluster', content: { 'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } } } },
+          '200': {
+            description: 'Cluster',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } },
+            },
+          },
           '401': { description: 'Unauthorized' },
           '404': { description: 'Cluster not found' },
         },
@@ -251,10 +322,17 @@ export const openApiSpec = {
         security: [{ bearerAuth: [] }],
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { $ref: '#/components/schemas/UpdateClusterRequest' } } },
+          content: {
+            'application/json': { schema: { $ref: '#/components/schemas/UpdateClusterRequest' } },
+          },
         },
         responses: {
-          '200': { description: 'Updated cluster', content: { 'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } } } },
+          '200': {
+            description: 'Updated cluster',
+            content: {
+              'application/json': { schema: { $ref: '#/components/schemas/ClusterDto' } },
+            },
+          },
           '400': { description: 'No fields provided' },
           '401': { description: 'Unauthorized' },
           '404': { description: 'Cluster not found' },
@@ -282,7 +360,15 @@ export const openApiSpec = {
         summary: 'Create a test entry',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } } },
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                required: ['name'],
+              },
+            },
+          },
         },
         responses: { '201': { description: 'Created' } },
       },
@@ -292,14 +378,25 @@ export const openApiSpec = {
       get: {
         tags: ['TestApp'],
         summary: 'Get a test entry by id',
-        responses: { '200': { description: 'TestApp object' }, '404': { description: 'Not found' } },
+        responses: {
+          '200': { description: 'TestApp object' },
+          '404': { description: 'Not found' },
+        },
       },
       put: {
         tags: ['TestApp'],
         summary: 'Update a test entry',
         requestBody: {
           required: true,
-          content: { 'application/json': { schema: { type: 'object', properties: { name: { type: 'string' } }, required: ['name'] } } },
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: { name: { type: 'string' } },
+                required: ['name'],
+              },
+            },
+          },
         },
         responses: { '200': { description: 'Updated' }, '404': { description: 'Not found' } },
       },

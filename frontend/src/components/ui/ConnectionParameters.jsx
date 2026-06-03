@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 //usage example:
 // <ConnectionParameters
 //   connectionString="postgres://root:••••••••••••@db.loonaris.io:5432/production_main"
@@ -39,42 +39,49 @@ export default function ConnectionParameters({
     onModeChange?.(selectedMode);
   };
 
-    return(
-        <div style={{
-            background: 'var(--surface-container-lowest)',
-            borderRadius: 'var(--radius-xl)',
-            padding: 'var(--space-6)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 'var(--space-4)',
-        }}>
+  return (
+    <div
+      style={{
+        background: 'var(--surface-container-lowest)',
+        borderRadius: 'var(--radius-xl)',
+        padding: 'var(--space-6)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 'var(--space-4)',
+      }}
+    >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
- 
-        <div style={{
-          border: '2px solid var(--primary)',
-          borderRadius: 'var(--radius-xs)',
-          padding: '5px 12px',
-        }}>
-          <span style={{
-            fontSize: 'var(--text-label-sm-size)',
-            fontWeight: 700,
-            letterSpacing: '0.1em',
-            textTransform: 'uppercase',
-            color: 'var(--on-surface)',
-            fontFamily: 'var(--font-sans)',
-          }}>
+        <div
+          style={{
+            border: '2px solid var(--primary)',
+            borderRadius: 'var(--radius-xs)',
+            padding: '5px 12px',
+          }}
+        >
+          <span
+            style={{
+              fontSize: 'var(--text-label-sm-size)',
+              fontWeight: 700,
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+              color: 'var(--on-surface)',
+              fontFamily: 'var(--font-sans)',
+            }}
+          >
             {title}
           </span>
         </div>
- 
+
         {showModeTabs && (
-          <div style={{
-            display: 'flex',
-            background: 'var(--surface-container-low)',
-            borderRadius: 'var(--radius-full)',
-            padding: '3px',
-            gap: 2,
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              background: 'var(--surface-container-low)',
+              borderRadius: 'var(--radius-full)',
+              padding: '3px',
+              gap: 2,
+            }}
+          >
             {modes.map((m) => (
               <button
                 key={m}
@@ -98,7 +105,7 @@ export default function ConnectionParameters({
           </div>
         )}
       </div>
- 
+
       {initialConnections.map((entry) => {
         const entryKey = entry.key || entry.label || entry.value;
         const copied = copiedKey === entryKey;
@@ -148,17 +155,39 @@ export default function ConnectionParameters({
                 borderRadius: 'var(--radius-sm)',
                 transition: 'color 150ms, background 150ms',
               }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--primary-fixed)'; }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'none'; }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--primary-fixed)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'none';
+              }}
             >
               {copied ? (
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M2 8l4 4 8-8"/>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M2 8l4 4 8-8" />
                 </svg>
               ) : (
-                <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="5" y="5" width="9" height="9" rx="1.5"/>
-                  <path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1"/>
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.75"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <rect x="5" y="5" width="9" height="9" rx="1.5" />
+                  <path d="M3 11H2a1 1 0 01-1-1V2a1 1 0 011-1h8a1 1 0 011 1v1" />
                 </svg>
               )}
               {copied ? 'Copied!' : 'Copy'}
@@ -166,17 +195,17 @@ export default function ConnectionParameters({
           </div>
         );
       })}
- 
-      <p style={{
-        fontSize: 'var(--text-body-sm-size)',
-        lineHeight: 'var(--text-body-md-height)',
-        color: 'var(--on-surface-variant)',
-        margin: 0,
-      }}>
+
+      <p
+        style={{
+          fontSize: 'var(--text-body-sm-size)',
+          lineHeight: 'var(--text-body-md-height)',
+          color: 'var(--on-surface-variant)',
+          margin: 0,
+        }}
+      >
         {description}
       </p>
- 
     </div>
   );
 }
- 

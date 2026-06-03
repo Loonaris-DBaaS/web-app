@@ -1,4 +1,4 @@
-const TABS = ['Connect', 'Metrics', 'Replicas', 'Settings'];
+const TABS = ['Connect', 'Topology', 'Metrics', 'Replicas', 'Settings'];
 
 export default function DatabaseTabNavigation({ activeTab, onTabChange }) {
   return (

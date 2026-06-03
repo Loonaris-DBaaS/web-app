@@ -35,10 +35,15 @@ function bearer(token) {
 }
 
 export const authService = {
-  signup:        (body)        => request('/api/auth/signup',        { method: 'POST',  body: JSON.stringify(body) }),
-  login:         (body)        => request('/api/auth/login',         { method: 'POST',  body: JSON.stringify(body) }),
-  logout:        ()            => request('/api/auth/logout',        { method: 'POST' }),
-  refresh:       ()            => request('/api/auth/refresh-token', { method: 'POST' }),
-  getProfile:    (token)       => request('/api/auth/profile',       { headers: bearer(token) }),
-  updateProfile: (token, body) => request('/api/auth/profile',       { method: 'PATCH', body: JSON.stringify(body), headers: bearer(token) }),
+  signup: (body) => request('/api/auth/signup', { method: 'POST', body: JSON.stringify(body) }),
+  login: (body) => request('/api/auth/login', { method: 'POST', body: JSON.stringify(body) }),
+  logout: () => request('/api/auth/logout', { method: 'POST' }),
+  refresh: () => request('/api/auth/refresh-token', { method: 'POST' }),
+  getProfile: (token) => request('/api/auth/profile', { headers: bearer(token) }),
+  updateProfile: (token, body) =>
+    request('/api/auth/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+      headers: bearer(token),
+    }),
 };

@@ -1,9 +1,7 @@
-import { useState } from "react";
+import { useState } from 'react';
 import { clusterService } from '../../services/api';
 import { DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
 const styles = `
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
-
   .dbf-wrap {
     font-family: var(--font-sans, 'Inter', system-ui, sans-serif);
     padding: 2rem;
@@ -464,7 +462,16 @@ const styles = `
 
 function DbIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <ellipse cx="12" cy="5" rx="9" ry="3" />
       <path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
       <path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9" />
@@ -475,7 +482,16 @@ function DbIcon() {
 
 function DeployIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 5v14M5 12l7 7 7-7" />
     </svg>
   );
@@ -483,7 +499,16 @@ function DeployIcon() {
 
 function CheckIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M20 6L9 17l-5-5" />
     </svg>
   );
@@ -491,37 +516,52 @@ function CheckIcon() {
 
 function SpinnerIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: "spin 1s linear infinite" }}>
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ animation: 'spin 1s linear infinite' }}
+    >
       <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </svg>
   );
 }
 
 export default function CreateDatabaseForm({ onSubmit, onCancel }) {
-  const [dbName, setDbName] = useState("");
-  const region = "eu-west-3"; // single supported region (display-only)
-  const [pgVersion, setPgVersion] = useState("17");
-  const [selectedSize, setSelectedSize] = useState("pro");
-  const [deploymentOption, setDeploymentOption] = useState("multi-az-cluster");
-  const [readReplicas, setReadReplicas] = useState("1");
+  const [dbName, setDbName] = useState('');
+  const region = 'eu-west-3'; // single supported region (display-only)
+  const [pgVersion, setPgVersion] = useState('17');
+  const [selectedSize, setSelectedSize] = useState('pro');
+  const [deploymentOption, setDeploymentOption] = useState('multi-az-cluster');
+  const [readReplicas, setReadReplicas] = useState('1');
   const [backup, setBackup] = useState(true);
-  const [nameError, setNameError] = useState("");
-  const [status, setStatus] = useState("idle"); // idle | loading | success
+  const [nameError, setNameError] = useState('');
+  const [status, setStatus] = useState('idle'); // idle | loading | success
   const [toastVisible, setToastVisible] = useState(false);
 
   const size = SIZES.find((s) => s.id === selectedSize);
-  const baseCost = size ? size.price : 79;
+  const baseCost = 0;
   const replicasCount = Number(readReplicas);
-  const instances = deploymentOption === "multi-az-cluster" ? replicasCount + 1 : 1;
-  const totalCost = baseCost * instances + (backup ? 5 : 0);
+  const instances = deploymentOption === 'multi-az-cluster' ? replicasCount + 1 : 1;
 
   // The fake connection preview was removed — the real rw/ro connection strings
   // are shown in the post-create modal once the cluster actually exists.
 
   function validateName(val) {
-    if (!val.trim()) { setNameError("Database name is required."); return false; }
-    if (!/^[a-z0-9_]+$/.test(val.trim())) { setNameError("Lowercase letters, numbers, and underscores only."); return false; }
-    setNameError("");
+    if (!val.trim()) {
+      setNameError('Database name is required.');
+      return false;
+    }
+    if (!/^[a-z0-9_]+$/.test(val.trim())) {
+      setNameError('Lowercase letters, numbers, and underscores only.');
+      return false;
+    }
+    setNameError('');
     return true;
   }
 
@@ -533,7 +573,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
 
   async function handleSubmit() {
     if (!validateName(dbName)) return;
-    setStatus("loading");
+    setStatus('loading');
 
     const payload = {
       name: `${dbName.trim()}`,
@@ -543,35 +583,37 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       instances,
       backup,
     };
-      try {
-        const res = await clusterService.createCluster(payload);
-        setStatus("success");
-        setToastVisible(true);
-        // Hand the created cluster (incl. its one-time apiKey) up to the page.
-        setTimeout(() => { onSubmit?.(res?.data); }, 1200);
-      } catch (err) {
-        setStatus("idle");
+    try {
+      const res = await clusterService.createCluster(payload);
+      setStatus('success');
+      setToastVisible(true);
+      // Hand the created cluster (incl. its one-time apiKey) up to the page.
+      setTimeout(() => {
+        onSubmit?.(res?.data);
+      }, 1200);
+    } catch (err) {
+      setStatus('idle');
     }
   }
 
   function handleCancel() {
-    setDbName("");
-    setNameError("");
-    setStatus("idle");
+    setDbName('');
+    setNameError('');
+    setStatus('idle');
     onCancel?.();
   }
 
   return (
     <>
-      <style>{styles}
-      </style>
+      <style>{styles}</style>
 
       <div className="dbf-wrap">
         <div className="dbf-card">
-
           {/* Header */}
           <div className="dbf-header">
-            <div className="dbf-header-icon"><DbIcon /></div>
+            <div className="dbf-header-icon">
+              <DbIcon />
+            </div>
             <div>
               <h2>Create new database</h2>
               <p>Deploy an isolated PostgreSQL cluster on your account</p>
@@ -580,17 +622,18 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
 
           {/* Body */}
           <div className="dbf-body">
-
             <div className="dbf-section-label">Basic configuration</div>
 
             {/* DB Name */}
             <div className="dbf-field">
-              <label className="dbf-label">Database name <span className="dbf-req">*</span></label>
+              <label className="dbf-label">
+                Database name <span className="dbf-req">*</span>
+              </label>
               <div className="dbf-input-wrap">
                 <span className="dbf-prefix">db_</span>
                 <input
                   type="text"
-                  className={`dbf-input mono has-prefix${nameError ? " invalid" : ""}`}
+                  className={`dbf-input mono has-prefix${nameError ? ' invalid' : ''}`}
                   placeholder="my_production_db"
                   value={dbName}
                   onChange={handleNameChange}
@@ -604,8 +647,11 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
             <div className="dbf-field-row">
               <div>
                 <label className="dbf-label">Region</label>
-                <div className="dbf-input" style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}>
-                  EU (Paris) — eu-west-3
+                <div
+                  className="dbf-input"
+                  style={{ display: 'flex', alignItems: 'center', cursor: 'default' }}
+                >
+                  🇫🇷 Paris
                 </div>
               </div>
               <div>
@@ -614,47 +660,54 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
                   {PG_VERSIONS.map((v) => (
                     <button
                       key={v}
-                      className={`dbf-version-chip${pgVersion === v ? " selected" : ""}`}
+                      className={`dbf-version-chip${pgVersion === v ? ' selected' : ''}`}
                       onClick={() => setPgVersion(v)}
                     >
                       {v}
-                      {v === "18" && <span className="dbf-badge">Latest</span>}
+                      {v === '18' && <span className="dbf-badge">Latest</span>}
                     </button>
                   ))}
                 </div>
               </div>
             </div>
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Compute &amp; storage</div>
+            <div className="dbf-section-label" style={{ marginTop: '1.75rem' }}>
+              Compute &amp; storage
+            </div>
 
             {/* Size Cards */}
             <div className="dbf-field">
-              <label className="dbf-label">Instance size <span className="dbf-req">*</span></label>
+              <label className="dbf-label">
+                Instance size <span className="dbf-req">*</span>
+              </label>
               <div className="dbf-size-grid">
                 {SIZES.map((s) => (
                   <button
                     key={s.id}
-                    className={`dbf-size-card${selectedSize === s.id ? " selected" : ""}`}
+                    className={`dbf-size-card${selectedSize === s.id ? ' selected' : ''}`}
                     onClick={() => setSelectedSize(s.id)}
                   >
                     <div className="dbf-size-name">{s.name}</div>
                     <div className="dbf-size-specs">{s.storage}</div>
-                    <div className="dbf-size-price">${s.price} / mo</div>
                   </button>
                 ))}
               </div>
             </div>
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Availability &amp; durability</div>
+            <div className="dbf-section-label" style={{ marginTop: '1.75rem' }}>
+              Availability &amp; durability
+            </div>
 
             {/* Deployment options (reuse size card style) */}
             <div className="dbf-field">
-              <label className="dbf-label">Deployment option <span className="dbf-req">*</span></label>
+              <label className="dbf-label">
+                Deployment option <span className="dbf-req">*</span>
+              </label>
               <div className="dbf-size-grid">
                 {DEPLOYMENT_OPTIONS.map((opt) => (
                   <button
                     key={opt.id}
-                    className={`dbf-size-card${deploymentOption === opt.id ? " selected" : ""}`}
+                    className={`dbf-size-card${deploymentOption === opt.id ? ' selected' : ''}`}
                     onClick={() => setDeploymentOption(opt.id)}
                   >
                     <div className="dbf-size-name">{opt.name}</div>
@@ -665,7 +718,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </div>
             </div>
 
-            {deploymentOption === "multi-az-cluster" && (
+            {deploymentOption === 'multi-az-cluster' && (
               <div className="dbf-field">
                 <label className="dbf-label">Read replicas (max 3)</label>
                 <div className="dbf-select-wrap">
@@ -682,28 +735,31 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </div>
             )}
 
-            <div className="dbf-section-label" style={{ marginTop: "1.75rem" }}>Backups</div>
+            <div className="dbf-section-label" style={{ marginTop: '1.75rem' }}>
+              Backups
+            </div>
 
             {/* Backup Toggle */}
             <div className="dbf-toggle-row">
               <div>
                 <div className="dbf-toggle-title">Automated S3 backups</div>
-                <div className="dbf-toggle-desc">Daily point-in-time backups with 30-day retention via Barman. +$5/mo.</div>
+                <div className="dbf-toggle-desc">
+                  Daily point-in-time backups with 30-day retention via Barman. +$5/mo.
+                </div>
               </div>
               <label className="dbf-toggle-switch">
-                <input type="checkbox" checked={backup} onChange={(e) => setBackup(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={backup}
+                  onChange={(e) => setBackup(e.target.checked)}
+                />
                 <span className="dbf-toggle-track" />
               </label>
             </div>
-
           </div>
 
           {/* Footer */}
           <div className="dbf-footer">
-            <div>
-              <span className="dbf-cost-label">Estimated monthly cost</span>
-              <span className="dbf-cost-value">${totalCost} / mo</span>
-            </div>
             <div className="dbf-btn-group">
               <button className="dbf-btn dbf-btn-ghost" onClick={handleCancel}>
                 Cancel
@@ -711,11 +767,23 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               <button
                 className="dbf-btn dbf-btn-primary"
                 onClick={handleSubmit}
-                disabled={status === "loading" || status === "success"}
+                disabled={status === 'loading' || status === 'success'}
               >
-                {status === "loading" && <><SpinnerIcon /> Deploying...</>}
-                {status === "success" && <><CheckIcon /> Deployed</>}
-                {status === "idle" && <><DeployIcon /> Deploy database</>}
+                {status === 'loading' && (
+                  <>
+                    <SpinnerIcon /> Deploying...
+                  </>
+                )}
+                {status === 'success' && (
+                  <>
+                    <CheckIcon /> Deployed
+                  </>
+                )}
+                {status === 'idle' && (
+                  <>
+                    <DeployIcon /> Deploy database
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -723,7 +791,7 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
       </div>
 
       {/* Toast */}
-      <div className={`dbf-toast${toastVisible ? " show" : ""}`}>
+      <div className={`dbf-toast${toastVisible ? ' show' : ''}`}>
         <div className="dbf-toast-dot" />
         Provisioning started — your database will be ready in ~60s
       </div>

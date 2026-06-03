@@ -1,23 +1,25 @@
 import { Request, Response, NextFunction } from 'express';
 import * as pgClusterService from '@/modules/pgCluster/services/pgCluster.service';
-import type { CreateClusterDto, PgVersion, ClusterSize } from '@/modules/pgCluster/dto/create-cluster.dto';
+import type {
+  CreateClusterDto,
+  PgVersion,
+  ClusterSize,
+} from '@/modules/pgCluster/dto/create-cluster.dto';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
-const VALID_SIZES: ClusterSize[] = ['starter', 'pro', 'scale'];
+const VALID_SIZES: ClusterSize[] = ['starter', 'standard', 'pro'];
 const SUPPORTED_REGIONS = ['eu-west-3'];
 
-// Platform admin is a single hardcoded credential (NOT a tenant). For now it
-// lives in code per product decision — move to a secret before real use.
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL ?? 'admin@gmail.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD ?? 'admin1234';
+const ADMIN_EMAIL = 'admin@gmail.com';
+const ADMIN_PASSWORD = 'LALIGA10barca';
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
 
-// POST /api/admin/login — hardcoded platform-admin login (public, no JWT).
-// On success, ensures a backing tenant row exists (so admin-created clusters
-// have an owner) and returns an 8h admin JWT whose isAdmin claim passes adminAuth.
+// POST /{slug}/login — platform-admin login (requires valid ADMIN_EMAIL + ADMIN_PASSWORD).
+// On success, ensures a backing tenant row exists and returns an 8h admin JWT
+// whose isAdmin claim passes adminAuth.
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password } = (req.body ?? {}) as { email?: string; password?: string };
@@ -31,7 +33,9 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       update: { isAdmin: true },
       create: { email: ADMIN_EMAIL, username: 'platform-admin', passwordHash, isAdmin: true },
     });
-    const accessToken = jwt.sign({ id: admin.id, tenantId: admin.id, isAdmin: true }, JWT_SECRET, { expiresIn: '8h' });
+    const accessToken = jwt.sign({ id: admin.id, tenantId: admin.id, isAdmin: true }, JWT_SECRET, {
+      expiresIn: '8h',
+    });
     res.status(200).json({ success: true, data: { accessToken, email: ADMIN_EMAIL } });
   } catch (err) {
     next(err);
@@ -62,26 +66,40 @@ export async function createCluster(req: Request, res: Response, next: NextFunct
 
     const pgVersion = (body.pgVersion ?? '17') as PgVersion;
     if (!VALID_PG_VERSIONS.includes(pgVersion)) {
-      res.status(400).json({ success: false, message: `pgVersion must be one of: ${VALID_PG_VERSIONS.join(', ')}` });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: `pgVersion must be one of: ${VALID_PG_VERSIONS.join(', ')}`,
+        });
       return;
     }
 
     const size = (body.size ?? 'starter') as ClusterSize;
     if (!VALID_SIZES.includes(size)) {
-      res.status(400).json({ success: false, message: `size must be one of: ${VALID_SIZES.join(', ')}` });
+      res
+        .status(400)
+        .json({ success: false, message: `size must be one of: ${VALID_SIZES.join(', ')}` });
       return;
     }
 
     const region = body.region ?? 'eu-west-3';
     if (!SUPPORTED_REGIONS.includes(region)) {
-      res.status(400).json({ success: false, message: `region must be one of: ${SUPPORTED_REGIONS.join(', ')}` });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: `region must be one of: ${SUPPORTED_REGIONS.join(', ')}`,
+        });
       return;
     }
 
     // Owner tenant: explicit tenantId, or fall back to the admin's own tenant.
     const ownerId = body.tenantId ?? (req.user?.id as string | undefined);
     if (!ownerId) {
-      res.status(400).json({ success: false, message: 'No owner tenant resolved (provide tenantId)' });
+      res
+        .status(400)
+        .json({ success: false, message: 'No owner tenant resolved (provide tenantId)' });
       return;
     }
     const owner = await prisma.tenant.findUnique({ where: { id: ownerId } });
@@ -95,7 +113,7 @@ export async function createCluster(req: Request, res: Response, next: NextFunct
       region,
       pgVersion,
       size,
-      // Pinned to 1: tenant nodes are capped at max-pods=11 (see docs/GAPS.md).
+      // Pinned to 1: default for admin-created clusters.
       instances: 1,
       backup: body.backup ?? false,
     };

@@ -7,12 +7,12 @@ import { getProfile, updateProfile, deleteAccount } from './controllers/profile.
 
 const router = Router();
 
-router.post('/signup', validateSignup, signup);           // POST /auth/signup
-router.post('/login', validateLogin, login);               // POST /auth/login
-router.post('/refresh-token', refreshToken);               // POST /auth/refresh-token
-router.post('/logout', logout);                            // POST /auth/logout
-router.get('/profile', authenticate, getProfile);          // GET  /auth/profile
-router.patch('/profile', authenticate, updateProfile);     // PATCH /auth/profile
-router.delete('/account', authenticate, deleteAccount);    // DELETE /auth/account
+router.post('/signup', validateSignup, signup); // POST /auth/signup
+router.post('/login', validateLogin, login); // POST /auth/login
+router.post('/refresh-token', refreshToken); // POST /auth/refresh-token
+router.post('/logout', logout); // POST /auth/logout
+router.get('/profile', authenticate, getProfile); // GET  /auth/profile
+router.patch('/profile', authenticate, updateProfile); // PATCH /auth/profile
+router.delete('/account', authenticate, deleteAccount); // DELETE /auth/account
 
 export default router;

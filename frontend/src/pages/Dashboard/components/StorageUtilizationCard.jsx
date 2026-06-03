@@ -1,8 +1,4 @@
-export default function StorageUtilizationCard({
-  usedStorageGb,
-  totalStorageGb,
-  percentage,
-}) {
+export default function StorageUtilizationCard({ usedStorageGb, totalStorageGb, percentage }) {
   return (
     <article className="dashboard-card">
       <div className="dashboard-card__header">

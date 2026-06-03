@@ -10,14 +10,7 @@ const REGION_OPTIONS = [
   { value: 'ap-southeast-1', label: 'Asia Pacific (Singapore)' },
 ];
 
-const TIMEZONE_OPTIONS = [
-  'UTC',
-  'UTC+1',
-  'UTC+2',
-  'US/Eastern',
-  'US/Pacific',
-  'Asia/Singapore',
-];
+const TIMEZONE_OPTIONS = ['UTC', 'UTC+1', 'UTC+2', 'US/Eastern', 'US/Pacific', 'Asia/Singapore'];
 
 const DATE_FORMAT_OPTIONS = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'];
 
@@ -682,7 +675,16 @@ const styles = `
 
 function BellIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M15 17h5l-1.4-1.4a2 2 0 0 1-.6-1.4V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
       <path d="M10 17a2 2 0 1 0 4 0" />
     </svg>
@@ -691,7 +693,16 @@ function BellIcon() {
 
 function LockIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="11" width="18" height="10" rx="2" />
       <path d="M7 11V8a5 5 0 0 1 10 0v3" />
     </svg>
@@ -701,7 +712,16 @@ function LockIcon() {
 function EyeIcon({ open }) {
   if (open) {
     return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
         <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
         <circle cx="12" cy="12" r="3" />
       </svg>
@@ -709,7 +729,16 @@ function EyeIcon({ open }) {
   }
 
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M3 3l18 18" />
       <path d="M10.6 10.6a2 2 0 0 0 2.8 2.8" />
       <path d="M9.9 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a18.4 18.4 0 0 1-4.2 5" />
@@ -720,7 +749,16 @@ function EyeIcon({ open }) {
 
 function DeviceDesktopIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="3" y="4" width="18" height="12" rx="2" />
       <path d="M8 20h8" />
       <path d="M12 16v4" />
@@ -730,7 +768,16 @@ function DeviceDesktopIcon() {
 
 function DeviceMobileIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <rect x="7" y="2" width="10" height="20" rx="2" />
       <path d="M11 18h2" />
     </svg>
@@ -855,7 +902,11 @@ function ProfileTab({ user, onSaveProfile }) {
         <div className="sp-divider" />
         <div className="sp-avatar-wrap">
           <div className="sp-avatar">
-            {avatarPreview ? <img src={avatarPreview} alt="Avatar preview" /> : getInitials(user.fullName || user.displayName || 'U')}
+            {avatarPreview ? (
+              <img src={avatarPreview} alt="Avatar preview" />
+            ) : (
+              getInitials(user.fullName || user.displayName || 'U')
+            )}
           </div>
           <div className="sp-btn-row">
             <button className="sp-btn sp-btn-primary" type="button" onClick={handleUploadClick}>
@@ -867,7 +918,13 @@ function ProfileTab({ user, onSaveProfile }) {
               </button>
             )}
           </div>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} hidden />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            hidden
+          />
           <p className="sp-help">Max 2 MB. JPG, PNG, or WebP.</p>
           {avatarError && <p className="sp-error">{avatarError}</p>}
         </div>
@@ -886,13 +943,27 @@ function ProfileTab({ user, onSaveProfile }) {
           <div className="sp-section-label">Identity</div>
           <div className="sp-field-row">
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-full-name">Full name <span className="sp-req">*</span></label>
-              <input id="sp-full-name" className={`sp-input${errors.fullName ? ' is-invalid' : ''}`} value={fullName} onChange={(e) => setFullName(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-full-name">
+                Full name <span className="sp-req">*</span>
+              </label>
+              <input
+                id="sp-full-name"
+                className={`sp-input${errors.fullName ? ' is-invalid' : ''}`}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
               {errors.fullName && <span className="sp-error">{errors.fullName}</span>}
             </div>
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-display-name">Display name <span className="sp-req">*</span></label>
-              <input id="sp-display-name" className={`sp-input${errors.displayName ? ' is-invalid' : ''}`} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-display-name">
+                Display name <span className="sp-req">*</span>
+              </label>
+              <input
+                id="sp-display-name"
+                className={`sp-input${errors.displayName ? ' is-invalid' : ''}`}
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
               {errors.displayName && <span className="sp-error">{errors.displayName}</span>}
             </div>
           </div>
@@ -902,7 +973,9 @@ function ProfileTab({ user, onSaveProfile }) {
           <div className="sp-section-label">Contact</div>
           <div className="sp-field-row">
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-email">Email</label>
+              <label className="sp-label" htmlFor="sp-email">
+                Email
+              </label>
               <div className="sp-input-wrap">
                 <input
                   id="sp-email"
@@ -911,33 +984,69 @@ function ProfileTab({ user, onSaveProfile }) {
                   readOnly
                   title="Contact support to change email"
                 />
-                <span className="sp-input-action" title="Contact support to change email" aria-hidden="true">
+                <span
+                  className="sp-input-action"
+                  title="Contact support to change email"
+                  aria-hidden="true"
+                >
                   <LockIcon />
                 </span>
               </div>
             </div>
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-job-title">Job title</label>
-              <input id="sp-job-title" className="sp-input" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-job-title">
+                Job title
+              </label>
+              <input
+                id="sp-job-title"
+                className="sp-input"
+                value={jobTitle}
+                onChange={(e) => setJobTitle(e.target.value)}
+              />
             </div>
           </div>
           <div className="sp-field-row" style={{ marginTop: 'var(--space-4)' }}>
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-country">Country</label>
-              <input id="sp-country" className="sp-input" placeholder="Tunisia" value={country} onChange={(e) => setCountry(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-country">
+                Country
+              </label>
+              <input
+                id="sp-country"
+                className="sp-input"
+                placeholder="Tunisia"
+                value={country}
+                onChange={(e) => setCountry(e.target.value)}
+              />
             </div>
             <div className="sp-field">
-              <label className="sp-label" htmlFor="sp-company">Company name</label>
-              <input id="sp-company" className="sp-input" value={company} onChange={(e) => setCompany(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-company">
+                Company name
+              </label>
+              <input
+                id="sp-company"
+                className="sp-input"
+                value={company}
+                onChange={(e) => setCompany(e.target.value)}
+              />
             </div>
           </div>
         </div>
 
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={handleSave} disabled={saving}>
+          <button
+            className="sp-btn sp-btn-primary"
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+          >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
-          {saved && <span className="sp-success"><span className="sp-success-dot" />Profile updated</span>}
+          {saved && (
+            <span className="sp-success">
+              <span className="sp-success-dot" />
+              Profile updated
+            </span>
+          )}
           {saveError && <span className="sp-error">{saveError}</span>}
         </div>
       </section>
@@ -959,9 +1068,30 @@ function SecurityTab({ onChangePassword }) {
   const strengthLabel = getStrengthLabel(score);
 
   const sessions = [
-    { id: 'sess1', device: 'MacBook Pro', type: 'desktop', location: 'Tunis, TN', lastActive: '2 minutes ago', isCurrent: true },
-    { id: 'sess2', device: 'iPhone 15', type: 'mobile', location: 'Paris, FR', lastActive: 'Yesterday', isCurrent: false },
-    { id: 'sess3', device: 'Windows Laptop', type: 'desktop', location: 'Berlin, DE', lastActive: '3 days ago', isCurrent: false },
+    {
+      id: 'sess1',
+      device: 'MacBook Pro',
+      type: 'desktop',
+      location: 'Tunis, TN',
+      lastActive: '2 minutes ago',
+      isCurrent: true,
+    },
+    {
+      id: 'sess2',
+      device: 'iPhone 15',
+      type: 'mobile',
+      location: 'Paris, FR',
+      lastActive: 'Yesterday',
+      isCurrent: false,
+    },
+    {
+      id: 'sess3',
+      device: 'Windows Laptop',
+      type: 'desktop',
+      location: 'Berlin, DE',
+      lastActive: '3 days ago',
+      isCurrent: false,
+    },
   ];
 
   function handlePasswordUpdate() {
@@ -993,20 +1123,46 @@ function SecurityTab({ onChangePassword }) {
         </div>
         <div className="sp-divider" />
         <div className="sp-field">
-          <label className="sp-label" htmlFor="sp-current-password">Current password</label>
+          <label className="sp-label" htmlFor="sp-current-password">
+            Current password
+          </label>
           <div className="sp-input-wrap">
-            <input id="sp-current-password" className="sp-input" type={showCurrent ? 'text' : 'password'} value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} />
-            <button className="sp-input-action" type="button" onClick={() => setShowCurrent((v) => !v)} aria-label="Toggle current password visibility">
+            <input
+              id="sp-current-password"
+              className="sp-input"
+              type={showCurrent ? 'text' : 'password'}
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+            <button
+              className="sp-input-action"
+              type="button"
+              onClick={() => setShowCurrent((v) => !v)}
+              aria-label="Toggle current password visibility"
+            >
               <EyeIcon open={showCurrent} />
             </button>
           </div>
         </div>
 
         <div className="sp-field">
-          <label className="sp-label" htmlFor="sp-new-password">New password</label>
+          <label className="sp-label" htmlFor="sp-new-password">
+            New password
+          </label>
           <div className="sp-input-wrap">
-            <input id="sp-new-password" className="sp-input" type={showNew ? 'text' : 'password'} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-            <button className="sp-input-action" type="button" onClick={() => setShowNew((v) => !v)} aria-label="Toggle new password visibility">
+            <input
+              id="sp-new-password"
+              className="sp-input"
+              type={showNew ? 'text' : 'password'}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+            <button
+              className="sp-input-action"
+              type="button"
+              onClick={() => setShowNew((v) => !v)}
+              aria-label="Toggle new password visibility"
+            >
               <EyeIcon open={showNew} />
             </button>
           </div>
@@ -1025,10 +1181,23 @@ function SecurityTab({ onChangePassword }) {
         </div>
 
         <div className="sp-field">
-          <label className="sp-label" htmlFor="sp-confirm-password">Confirm new password</label>
+          <label className="sp-label" htmlFor="sp-confirm-password">
+            Confirm new password
+          </label>
           <div className="sp-input-wrap">
-            <input id="sp-confirm-password" className={`sp-input${confirmError ? ' is-invalid' : ''}`} type={showConfirm ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-            <button className="sp-input-action" type="button" onClick={() => setShowConfirm((v) => !v)} aria-label="Toggle confirm password visibility">
+            <input
+              id="sp-confirm-password"
+              className={`sp-input${confirmError ? ' is-invalid' : ''}`}
+              type={showConfirm ? 'text' : 'password'}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            <button
+              className="sp-input-action"
+              type="button"
+              onClick={() => setShowConfirm((v) => !v)}
+              aria-label="Toggle confirm password visibility"
+            >
               <EyeIcon open={showConfirm} />
             </button>
           </div>
@@ -1036,7 +1205,9 @@ function SecurityTab({ onChangePassword }) {
         </div>
 
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={handlePasswordUpdate}>Update password</button>
+          <button className="sp-btn sp-btn-primary" type="button" onClick={handlePasswordUpdate}>
+            Update password
+          </button>
         </div>
       </section>
 
@@ -1061,7 +1232,12 @@ function SecurityTab({ onChangePassword }) {
                     <span className="sp-help">Last active: {session.lastActive}</span>
                   </div>
                   {!session.isCurrent && (
-                    <button className="sp-btn sp-btn-ghost" type="button" onClick={() => handleRevoke(session.id)} disabled={revoked}>
+                    <button
+                      className="sp-btn sp-btn-ghost"
+                      type="button"
+                      onClick={() => handleRevoke(session.id)}
+                      disabled={revoked}
+                    >
                       {revoked ? 'Revoked' : 'Revoke'}
                     </button>
                   )}
@@ -1072,7 +1248,9 @@ function SecurityTab({ onChangePassword }) {
           })}
         </div>
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-ghost-danger" type="button" onClick={handleRevokeAll}>Revoke all other sessions</button>
+          <button className="sp-btn sp-btn-ghost-danger" type="button" onClick={handleRevokeAll}>
+            Revoke all other sessions
+          </button>
         </div>
       </section>
     </div>
@@ -1105,17 +1283,28 @@ function GeneralTab({ onSaveGeneral }) {
         </div>
         <div className="sp-divider" />
         <div className="sp-field">
-          <label className="sp-label" htmlFor="sp-default-region">Default region for new databases</label>
+          <label className="sp-label" htmlFor="sp-default-region">
+            Default region for new databases
+          </label>
           <div className="sp-select-wrap">
-            <select id="sp-default-region" className="sp-select" value={defaultRegion} onChange={(e) => setDefaultRegion(e.target.value)}>
+            <select
+              id="sp-default-region"
+              className="sp-select"
+              value={defaultRegion}
+              onChange={(e) => setDefaultRegion(e.target.value)}
+            >
               {REGION_OPTIONS.map((region) => (
-                <option key={region.value} value={region.value}>{region.label}</option>
+                <option key={region.value} value={region.value}>
+                  {region.label}
+                </option>
               ))}
             </select>
           </div>
         </div>
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={saveRegion}>Save</button>
+          <button className="sp-btn sp-btn-primary" type="button" onClick={saveRegion}>
+            Save
+          </button>
         </div>
       </section>
 
@@ -1125,21 +1314,33 @@ function GeneralTab({ onSaveGeneral }) {
         </div>
         <div className="sp-divider" />
         <div className="sp-appearance-grid">
-          <button className={`sp-appearance-card${theme === 'light' ? ' is-selected' : ''}`} type="button" onClick={() => setTheme('light')}>
+          <button
+            className={`sp-appearance-card${theme === 'light' ? ' is-selected' : ''}`}
+            type="button"
+            onClick={() => setTheme('light')}
+          >
             <span className="sp-theme-preview sp-theme-preview-light">
               <span className="sp-left" />
               <span className="sp-right" />
             </span>
             <span>Light</span>
           </button>
-          <button className={`sp-appearance-card${theme === 'dark' ? ' is-selected' : ''}`} type="button" onClick={() => setTheme('dark')}>
+          <button
+            className={`sp-appearance-card${theme === 'dark' ? ' is-selected' : ''}`}
+            type="button"
+            onClick={() => setTheme('dark')}
+          >
             <span className="sp-theme-preview sp-theme-preview-dark">
               <span className="sp-left" />
               <span className="sp-right" />
             </span>
             <span>Dark</span>
           </button>
-          <button className={`sp-appearance-card${theme === 'system' ? ' is-selected' : ''}`} type="button" onClick={() => setTheme('system')}>
+          <button
+            className={`sp-appearance-card${theme === 'system' ? ' is-selected' : ''}`}
+            type="button"
+            onClick={() => setTheme('system')}
+          >
             <span className="sp-theme-preview sp-theme-preview-system">
               <span className="sp-left" />
               <span className="sp-right" />
@@ -1148,7 +1349,9 @@ function GeneralTab({ onSaveGeneral }) {
           </button>
         </div>
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={saveAppearance}>Save</button>
+          <button className="sp-btn sp-btn-primary" type="button" onClick={saveAppearance}>
+            Save
+          </button>
         </div>
       </section>
 
@@ -1159,28 +1362,48 @@ function GeneralTab({ onSaveGeneral }) {
         <div className="sp-divider" />
         <div className="sp-field-row">
           <div className="sp-field">
-            <label className="sp-label" htmlFor="sp-timezone">Timezone</label>
+            <label className="sp-label" htmlFor="sp-timezone">
+              Timezone
+            </label>
             <div className="sp-select-wrap">
-              <select id="sp-timezone" className="sp-select" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+              <select
+                id="sp-timezone"
+                className="sp-select"
+                value={timezone}
+                onChange={(e) => setTimezone(e.target.value)}
+              >
                 {TIMEZONE_OPTIONS.map((tz) => (
-                  <option key={tz} value={tz}>{tz}</option>
+                  <option key={tz} value={tz}>
+                    {tz}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
           <div className="sp-field">
-            <label className="sp-label" htmlFor="sp-date-format">Date format</label>
+            <label className="sp-label" htmlFor="sp-date-format">
+              Date format
+            </label>
             <div className="sp-select-wrap">
-              <select id="sp-date-format" className="sp-select" value={dateFormat} onChange={(e) => setDateFormat(e.target.value)}>
+              <select
+                id="sp-date-format"
+                className="sp-select"
+                value={dateFormat}
+                onChange={(e) => setDateFormat(e.target.value)}
+              >
                 {DATE_FORMAT_OPTIONS.map((fmt) => (
-                  <option key={fmt} value={fmt}>{fmt}</option>
+                  <option key={fmt} value={fmt}>
+                    {fmt}
+                  </option>
                 ))}
               </select>
             </div>
           </div>
         </div>
         <div className="sp-btn-row">
-          <button className="sp-btn sp-btn-primary" type="button" onClick={saveDateTime}>Save</button>
+          <button className="sp-btn sp-btn-primary" type="button" onClick={saveDateTime}>
+            Save
+          </button>
         </div>
       </section>
     </div>
@@ -1252,14 +1475,20 @@ function NotificationsTab({ onSaveNotifications }) {
               <p className="sp-toggle-desc">{row.description}</p>
             </div>
             <label className="sp-toggle-switch">
-              <input type="checkbox" checked={prefs[row.key]} onChange={() => togglePref(row.key)} />
+              <input
+                type="checkbox"
+                checked={prefs[row.key]}
+                onChange={() => togglePref(row.key)}
+              />
               <span className="sp-toggle-track" />
             </label>
           </div>
         ))}
       </div>
       <div className="sp-btn-row">
-        <button className="sp-btn sp-btn-primary" type="button" onClick={savePreferences}>Save preferences</button>
+        <button className="sp-btn sp-btn-primary" type="button" onClick={savePreferences}>
+          Save preferences
+        </button>
       </div>
     </section>
   );
@@ -1308,11 +1537,21 @@ function DangerZoneTab({ user, onDeleteAccount }) {
           <div className="sp-danger-row">
             <div className="sp-danger-meta">
               <strong>Export account data</strong>
-              <span className="sp-help">Download a full export of your databases, API keys, and billing history as a JSON file.</span>
+              <span className="sp-help">
+                Download a full export of your databases, API keys, and billing history as a JSON
+                file.
+              </span>
             </div>
-            <button className="sp-btn sp-btn-ghost" type="button" onClick={handleRequestExport}>Request export</button>
+            <button className="sp-btn sp-btn-ghost" type="button" onClick={handleRequestExport}>
+              Request export
+            </button>
           </div>
-          {exportRequested && <p className="sp-success"><span className="sp-success-dot" />Export requested - you'll receive an email when it's ready.</p>}
+          {exportRequested && (
+            <p className="sp-success">
+              <span className="sp-success-dot" />
+              Export requested - you'll receive an email when it's ready.
+            </p>
+          )}
         </div>
 
         <div className="sp-divider" />
@@ -1321,18 +1560,36 @@ function DangerZoneTab({ user, onDeleteAccount }) {
           <div className="sp-danger-row">
             <div className="sp-danger-meta">
               <strong>Transfer account ownership</strong>
-              <span className="sp-help">Transfer this account to another user. You will lose admin access.</span>
+              <span className="sp-help">
+                Transfer this account to another user. You will lose admin access.
+              </span>
             </div>
-            <button className="sp-btn sp-btn-ghost" type="button" onClick={handleTransferOwnership}>Transfer ownership</button>
+            <button className="sp-btn sp-btn-ghost" type="button" onClick={handleTransferOwnership}>
+              Transfer ownership
+            </button>
           </div>
           {showTransfer && (
             <div className="sp-field-row" style={{ marginTop: 'var(--space-3)' }}>
               <div className="sp-field">
-                <label className="sp-label" htmlFor="sp-transfer-email">New owner email</label>
-                <input id="sp-transfer-email" className="sp-input sp-mono" type="email" value={transferEmail} onChange={(e) => setTransferEmail(e.target.value)} />
+                <label className="sp-label" htmlFor="sp-transfer-email">
+                  New owner email
+                </label>
+                <input
+                  id="sp-transfer-email"
+                  className="sp-input sp-mono"
+                  type="email"
+                  value={transferEmail}
+                  onChange={(e) => setTransferEmail(e.target.value)}
+                />
               </div>
               <div className="sp-btn-row" style={{ alignItems: 'flex-end' }}>
-                <button className="sp-btn sp-btn-primary" type="button" onClick={handleConfirmTransfer}>Confirm transfer</button>
+                <button
+                  className="sp-btn sp-btn-primary"
+                  type="button"
+                  onClick={handleConfirmTransfer}
+                >
+                  Confirm transfer
+                </button>
               </div>
             </div>
           )}
@@ -1344,17 +1601,37 @@ function DangerZoneTab({ user, onDeleteAccount }) {
           <div className="sp-danger-row">
             <div className="sp-danger-meta">
               <strong>Delete account</strong>
-              <span className="sp-help">Permanently delete your account and all associated databases. This cannot be undone.</span>
+              <span className="sp-help">
+                Permanently delete your account and all associated databases. This cannot be undone.
+              </span>
             </div>
-            <button className="sp-btn sp-btn-danger" type="button" onClick={handleDeleteClick}>Delete account</button>
+            <button className="sp-btn sp-btn-danger" type="button" onClick={handleDeleteClick}>
+              Delete account
+            </button>
           </div>
           {showDeleteConfirm && (
             <div className="sp-field" style={{ marginTop: 'var(--space-3)' }}>
-              <label className="sp-label" htmlFor="sp-delete-confirm">Type your email to confirm deletion</label>
-              <input id="sp-delete-confirm" className="sp-input sp-mono" value={deleteEmailInput} onChange={(e) => setDeleteEmailInput(e.target.value)} />
+              <label className="sp-label" htmlFor="sp-delete-confirm">
+                Type your email to confirm deletion
+              </label>
+              <input
+                id="sp-delete-confirm"
+                className="sp-input sp-mono"
+                value={deleteEmailInput}
+                onChange={(e) => setDeleteEmailInput(e.target.value)}
+              />
               <div className="sp-btn-row">
-                <button className="sp-btn sp-btn-danger" type="button" disabled={!canDelete} onClick={handleConfirmDelete}>Confirm deletion</button>
-                <span className="sp-subtle-inline">Expected: <span className="sp-mono">{user.email}</span></span>
+                <button
+                  className="sp-btn sp-btn-danger"
+                  type="button"
+                  disabled={!canDelete}
+                  onClick={handleConfirmDelete}
+                >
+                  Confirm deletion
+                </button>
+                <span className="sp-subtle-inline">
+                  Expected: <span className="sp-mono">{user.email}</span>
+                </span>
               </div>
             </div>
           )}
@@ -1377,9 +1654,9 @@ export default function SettingsPage() {
   async function handleSaveProfile(fields) {
     await updateProfile({
       username: fields.displayName || fields.fullName || undefined,
-      country:  fields.country  ?? undefined,
+      country: fields.country ?? undefined,
       jobTitle: fields.jobTitle ?? undefined,
-      company:  fields.company  ?? undefined,
+      company: fields.company ?? undefined,
       photoUrl: fields.avatarUrl ?? undefined,
     });
   }
@@ -1450,9 +1727,7 @@ export default function SettingsPage() {
           ))}
         </nav>
 
-        <div className="sp-content">
-          {renderTab()}
-        </div>
+        <div className="sp-content">{renderTab()}</div>
       </div>
     </section>
   );

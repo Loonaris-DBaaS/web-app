@@ -13,18 +13,20 @@ function parseCpuToMillis(cpu: string): number {
 }
 
 function parseMemoryToBytes(memory: string): number {
-  const kiB = 1024, miB = kiB * 1024, giB = miB * 1024;
+  const kiB = 1024,
+    miB = kiB * 1024,
+    giB = miB * 1024;
   if (memory.endsWith('Ki')) return parseInt(memory) * kiB;
   if (memory.endsWith('Mi')) return parseInt(memory) * miB;
   if (memory.endsWith('Gi')) return parseInt(memory) * giB;
-  if (memory.endsWith('k'))  return parseInt(memory) * 1000;
-  if (memory.endsWith('M'))  return parseInt(memory) * 1_000_000;
-  if (memory.endsWith('G'))  return parseInt(memory) * 1_000_000_000;
+  if (memory.endsWith('k')) return parseInt(memory) * 1000;
+  if (memory.endsWith('M')) return parseInt(memory) * 1_000_000;
+  if (memory.endsWith('G')) return parseInt(memory) * 1_000_000_000;
   return parseInt(memory, 10);
 }
 
 function parseSizeBytesToGb(size: string): number {
-  return parseMemoryToBytes(size) / (1024 ** 3);
+  return parseMemoryToBytes(size) / 1024 ** 3;
 }
 
 /**
@@ -146,11 +148,10 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       instances,
       imageName: pgImage,
       storage: { size: specs.storage, storageClass: 'gp3' },
-      // One fixed limit for every CNPG pod regardless of plan — tenant nodes have
-      // limited capacity shared across all tenants. No requests on purpose (we
-      // oversubscribe; the limit just caps each pod's ceiling). Fits c5.xlarge
-      // (4 vCPU/8GB) with up to 3 instances + 2 poolers per cluster.
-      resources: { limits: { cpu: '500m', memory: '1Gi' } },
+      // Strict pod limits to maximise tenant density per node.  A c5.xlarge has
+      // 4 vCPU / 8 GiB RAM — at 150m / 300Mi per CNPG pod we can schedule ~20+
+      // data-plane pods per node (leaving headroom for poolers and system daemons).
+      resources: { limits: { cpu: '150m', memory: '300Mi' } },
       nodeSelector: { role: 'tenant' },
       topologySpreadConstraints: [
         {
@@ -442,6 +443,7 @@ export interface ClusterLiveMetrics {
   readyInstances: number;
   pods: InstanceMetric[];
   provisionedStorageGb: number;
+  planStorageGb: number | null;
   usedStorageGb: number | null;
   timestamp: string;
 }
@@ -490,7 +492,10 @@ export async function getClusterUsedStorageGb(
   const perNodeBytes = await Promise.all(
     nodeNames.map(async (node): Promise<number | null> => {
       try {
-        const raw = await coreApi.connectGetNodeProxyWithPath({ name: node, path: 'stats/summary' });
+        const raw = await coreApi.connectGetNodeProxyWithPath({
+          name: node,
+          path: 'stats/summary',
+        });
         const stats = (typeof raw === 'string' ? JSON.parse(raw) : raw) as KubeletSummary;
         let bytes = 0;
         for (const podStat of stats.pods ?? []) {
@@ -519,6 +524,7 @@ export async function getClusterLiveMetrics(namespace: string): Promise<ClusterL
   let phase = 'Unknown';
   let totalInstances = 0;
   let readyInstances = 0;
+  let planStorageGb: number | null = null;
   try {
     const clusterResp = await customApi.getNamespacedCustomObject({
       group: 'postgresql.cnpg.io',
@@ -531,6 +537,10 @@ export async function getClusterLiveMetrics(namespace: string): Promise<ClusterL
     phase = clusterBody?.status?.phase ?? 'Unknown';
     totalInstances = clusterBody?.status?.instances ?? 0;
     readyInstances = clusterBody?.status?.readyInstances ?? 0;
+    const storageSpec = clusterBody?.spec?.storage?.size;
+    if (storageSpec) {
+      planStorageGb = parseSizeBytesToGb(storageSpec);
+    }
   } catch (err) {
     console.error(`[metrics] Failed to query CNPG cluster in ${namespace}:`, err);
     return null;
@@ -585,8 +595,7 @@ export async function getClusterLiveMetrics(namespace: string): Promise<ClusterL
     const pvcList = await coreApi.listNamespacedPersistentVolumeClaim({ namespace });
     for (const pvc of pvcList.items) {
       const capacity =
-        pvc.status?.capacity?.['storage'] ??
-        pvc.spec?.resources?.requests?.['storage'];
+        pvc.status?.capacity?.['storage'] ?? pvc.spec?.resources?.requests?.['storage'];
       if (capacity) {
         provisionedStorageGb += parseSizeBytesToGb(capacity);
       }
@@ -605,6 +614,7 @@ export async function getClusterLiveMetrics(namespace: string): Promise<ClusterL
     readyInstances,
     pods: instanceMetrics,
     provisionedStorageGb,
+    planStorageGb,
     usedStorageGb,
     timestamp: new Date().toISOString(),
   };

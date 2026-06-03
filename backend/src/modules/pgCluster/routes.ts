@@ -1,6 +1,14 @@
 import { Router } from 'express';
 import { authenticate } from '@/middleware/authenticate';
-import { index, show, create, update, remove, regenerateKey, getMetrics } from './controllers/pgCluster.controller';
+import {
+  index,
+  show,
+  create,
+  update,
+  remove,
+  regenerateKey,
+  getMetrics,
+} from './controllers/pgCluster.controller';
 
 const router = Router();
 
