@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   ReactFlow,
   Background,
@@ -6,6 +6,7 @@ import {
   MiniMap,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -127,6 +128,24 @@ function DbNode({ data }) {
 }
 
 const nodeTypes = { clientNode: ClientNode, poolerNode: PoolerNode, dbNode: DbNode };
+
+/* ─── Inner component: calls fitView once nodes are ready ─── */
+function FitViewHandler({ nodes }) {
+  const { fitView } = useReactFlow();
+  const hasFitted = useRef(false);
+
+  useEffect(() => {
+    if (nodes.length > 0 && !hasFitted.current) {
+      const t = setTimeout(() => {
+        fitView({ padding: 0.15, duration: 300 });
+        hasFitted.current = true;
+      }, 80);
+      return () => clearTimeout(t);
+    }
+  }, [nodes, fitView]);
+
+  return null;
+}
 
 export default function DatabaseGraph({ metrics, db }) {
   const instancePods = useMemo(
@@ -276,7 +295,6 @@ export default function DatabaseGraph({ metrics, db }) {
 
   const [internalNodes, setInternalNodes, onNodesChange] = useNodesState(nodes);
   const [internalEdges, setInternalEdges, onEdgesChange] = useEdgesState(edges);
-
   if (!metrics && !db) {
     return (
       <div
@@ -312,6 +330,7 @@ export default function DatabaseGraph({ metrics, db }) {
         minZoom={0.4}
         maxZoom={1.2}
       >
+        <FitViewHandler nodes={internalNodes} />
         <Background color="#e2e8f0" gap={20} size={1} />
         <Controls showInteractive={false} />
         <MiniMap
