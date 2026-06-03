@@ -19,82 +19,36 @@ const STATUS_COLORS = {
   healthy: '#16a34a',
 };
 
-function DbNode({ data }) {
-  const borderColor = STATUS_COLORS[data.status] || '#6b7280';
-  const bgColor = data.isPrimary ? '#ede9fe' : '#f4f4f6';
-  const labelColor = data.isPrimary ? '#201772' : '#42474e';
-
+/* ─── Client node (far left) ─── */
+function ClientNode({ data }) {
   return (
     <div
       style={{
-        padding: '12px 18px',
-        borderRadius: 12,
-        border: `2px solid ${borderColor}`,
-        background: bgColor,
-        minWidth: 140,
-        fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
-        position: 'relative',
+        padding: '14px 22px',
+        borderRadius: 14,
+        border: '2px solid #1e293b',
+        background: '#f8fafc',
+        minWidth: 120,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        textAlign: 'center',
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-          marginBottom: 4,
-        }}
-      >
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke={labelColor}
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <ellipse cx="12" cy="5" rx="9" ry="3" />
-          <path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
-          <path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9" />
-        </svg>
-        <span style={{ fontWeight: 600, fontSize: 13, color: labelColor }}>{data.label}</span>
-      </div>
-      {data.cpu != null && (
-        <div style={{ fontSize: 11, color: '#72777f', lineHeight: 1.6 }}>
-          CPU: {data.cpu}m · MEM:{' '}
-          {data.mem != null ? `${(data.mem / 1024 / 1024).toFixed(0)}Mi` : 'N/A'}
-        </div>
-      )}
-      <div
-        style={{
-          position: 'absolute',
-          top: 6,
-          right: 8,
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: borderColor,
-          boxShadow: `0 0 6px ${borderColor}80`,
-        }}
-      />
+      <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{data.label}</span>
     </div>
   );
 }
 
+/* ─── Pooler node (middle) ─── */
 function PoolerNode({ data }) {
-  const bgColor = '#fef3c7';
-  const borderColor = '#d97706';
-
   return (
     <div
       style={{
-        padding: '10px 14px',
+        padding: '10px 16px',
         borderRadius: 10,
-        border: `2px solid ${borderColor}`,
-        background: bgColor,
-        minWidth: 120,
-        fontFamily: 'var(--font-sans, Inter, system-ui, sans-serif)',
+        border: '2px solid #d97706',
+        background: '#fef3c7',
+        minWidth: 110,
+        fontFamily: "'Inter', system-ui, sans-serif",
         display: 'flex',
         alignItems: 'center',
         gap: 6,
@@ -112,19 +66,76 @@ function PoolerNode({ data }) {
       >
         <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
       </svg>
-      <span style={{ fontWeight: 600, fontSize: 12, color: '#92400e' }}>{data.label}</span>
+      <span style={{ fontWeight: 700, fontSize: 12, color: '#92400e' }}>{data.label}</span>
     </div>
   );
 }
 
-const nodeTypes = { dbNode: DbNode, poolerNode: PoolerNode };
+/* ─── Postgres node (far right) ─── */
+function DbNode({ data }) {
+  const borderColor = data.isPrimary ? '#201772' : STATUS_COLORS[data.status] || '#16a34a';
+  const bgColor = data.isPrimary ? '#ede9fe' : '#f4f4f6';
+  const labelColor = data.isPrimary ? '#201772' : '#0f172a';
 
-const ANIMATED_EDGE_STYLE = {
-  stroke: '#473ca9',
-  strokeWidth: 2,
-  animated: true,
-  markerEnd: { type: MarkerType.ArrowClosed, color: '#473ca9' },
-};
+  return (
+    <div
+      style={{
+        padding: '12px 16px',
+        borderRadius: 12,
+        border: `2px solid ${borderColor}`,
+        background: bgColor,
+        minWidth: 160,
+        fontFamily: "'Inter', system-ui, sans-serif",
+        position: 'relative',
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          marginBottom: 6,
+        }}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={labelColor}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <ellipse cx="12" cy="5" rx="9" ry="3" />
+          <path d="M3 5v4c0 1.66 4.03 3 9 3s9-1.34 9-3V5" />
+          <path d="M3 9v4c0 1.66 4.03 3 9 3s9-1.34 9-3V9" />
+        </svg>
+        <span style={{ fontWeight: 700, fontSize: 13, color: labelColor }}>{data.label}</span>
+      </div>
+      {data.cpu != null && (
+        <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.6 }}>
+          CPU: {data.cpu}m · MEM:{' '}
+          {data.mem != null ? `${(data.mem / 1024 / 1024).toFixed(0)}Mi` : 'N/A'}
+        </div>
+      )}
+      <div
+        style={{
+          position: 'absolute',
+          top: 8,
+          right: 8,
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: borderColor,
+          boxShadow: `0 0 6px ${borderColor}80`,
+        }}
+      />
+    </div>
+  );
+}
+
+const nodeTypes = { clientNode: ClientNode, poolerNode: PoolerNode, dbNode: DbNode };
 
 export default function DatabaseGraph({ metrics, db }) {
   const instancePods = useMemo(
@@ -135,47 +146,63 @@ export default function DatabaseGraph({ metrics, db }) {
   const nodes = useMemo(() => {
     if (!instancePods.length && !db) return [];
     const result = [];
-    const startY = 80;
-    const spacingY = 120;
 
-    instancePods.forEach((pod, i) => {
+    // 1. Client (far left)
+    result.push({
+      id: 'client',
+      type: 'clientNode',
+      position: { x: 20, y: 140 },
+      data: { label: 'Your pg client' },
+    });
+
+    // 2. Poolers (middle)
+    result.push({
+      id: 'pooler-rw',
+      type: 'poolerNode',
+      position: { x: 240, y: 60 },
+      data: { label: 'Pooler RW' },
+    });
+    result.push({
+      id: 'pooler-ro',
+      type: 'poolerNode',
+      position: { x: 240, y: 220 },
+      data: { label: 'Pooler RO' },
+    });
+
+    // 3. Postgres nodes (far right)
+    const primaryPod = instancePods.find((p) => p.role === 'primary');
+    const replicas = instancePods.filter((p) => p.role === 'replica');
+    const dbStartY = 20;
+    const dbSpacingY = 120;
+
+    if (primaryPod) {
+      result.push({
+        id: primaryPod.name,
+        type: 'dbNode',
+        position: { x: 520, y: dbStartY },
+        data: {
+          label: 'Primary',
+          isPrimary: true,
+          status: primaryPod.ready ? 'healthy' : 'error',
+          cpu: primaryPod.cpuMillis,
+          mem: primaryPod.memoryBytes,
+        },
+      });
+    }
+
+    replicas.forEach((pod, i) => {
       result.push({
         id: pod.name,
         type: 'dbNode',
-        position: { x: 280, y: startY + i * spacingY },
+        position: { x: 520, y: dbStartY + (i + 1) * dbSpacingY },
         data: {
-          label: pod.role === 'primary' ? 'Primary' : `Replica ${i}`,
-          isPrimary: pod.role === 'primary',
+          label: `Replica ${i + 1}`,
+          isPrimary: false,
           status: pod.ready ? 'healthy' : 'error',
           cpu: pod.cpuMillis,
           mem: pod.memoryBytes,
         },
       });
-    });
-
-    result.push({
-      id: 'pooler-rw',
-      type: 'poolerNode',
-      position: { x: 30, y: 80 },
-      data: { label: 'Pooler RW' },
-    });
-
-    result.push({
-      id: 'pooler-ro',
-      type: 'poolerNode',
-      position: { x: 30, y: 220 },
-      data: { label: 'Pooler RO' },
-    });
-
-    result.push({
-      id: 'client',
-      type: 'dbNode',
-      position: { x: 530, y: 80 + (instancePods.length > 1 ? 60 : 0) },
-      data: {
-        label: 'Your App',
-        isPrimary: false,
-        status: 'running',
-      },
     });
 
     return result;
@@ -184,62 +211,73 @@ export default function DatabaseGraph({ metrics, db }) {
   const edges = useMemo(() => {
     const result = [];
     const primaryPod = instancePods.find((p) => p.role === 'primary');
+    const replicas = instancePods.filter((p) => p.role === 'replica');
 
+    // Client → Pooler RW (writes)
+    result.push({
+      id: 'client-to-rw',
+      source: 'client',
+      target: 'pooler-rw',
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#0f172a', strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#0f172a' },
+    });
+
+    // Client → Pooler RO (reads)
+    result.push({
+      id: 'client-to-ro',
+      source: 'client',
+      target: 'pooler-ro',
+      type: 'smoothstep',
+      animated: true,
+      style: { stroke: '#0f172a', strokeWidth: 2.5 },
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#0f172a' },
+    });
+
+    // Pooler RW → Primary
     if (primaryPod) {
       result.push({
         id: 'rw-to-primary',
         source: 'pooler-rw',
         target: primaryPod.name,
-        ...ANIMATED_EDGE_STYLE,
-        label: 'writes',
-        labelStyle: { fontSize: 10, fill: '#473ca9' },
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#d97706', strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#d97706' },
       });
     }
 
-    instancePods
-      .filter((p) => p.role === 'replica')
-      .forEach((pod) => {
+    // Pooler RO → Replicas
+    replicas.forEach((pod, i) => {
+      result.push({
+        id: `ro-to-${pod.name}`,
+        source: 'pooler-ro',
+        target: pod.name,
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#3b82f6', strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+      });
+    });
+
+    // Streaming replication: Primary → Replica (downward arrows)
+    if (primaryPod) {
+      replicas.forEach((pod) => {
         result.push({
-          id: `ro-to-${pod.name}`,
-          source: 'pooler-ro',
+          id: `stream-${primaryPod.name}-${pod.name}`,
+          source: primaryPod.name,
           target: pod.name,
-          ...ANIMATED_EDGE_STYLE,
-          label: 'reads',
-          labelStyle: { fontSize: 10, fill: '#473ca9' },
+          type: 'smoothstep',
+          animated: true,
+          style: { stroke: '#201772', strokeWidth: 2 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#201772' },
+          label: 'replication',
+          labelStyle: { fontSize: 10, fill: '#201772', fontWeight: 600 },
+          labelBgStyle: { fill: '#fff', rx: 4 },
         });
       });
-
-    if (primaryPod) {
-      result.push({
-        id: 'primary-to-replica-sync',
-        source: primaryPod.name,
-        target: 'pooler-ro',
-        strokeDasharray: '5 5',
-        style: { stroke: '#c2c7cf', strokeWidth: 1.5 },
-        animated: true,
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#c2c7cf' },
-        label: 'sync',
-        labelStyle: { fontSize: 10, fill: '#c2c7cf' },
-      });
     }
-
-    result.push({
-      id: 'client-to-rw',
-      source: 'client',
-      target: 'pooler-rw',
-      ...ANIMATED_EDGE_STYLE,
-      style: { ...ANIMATED_EDGE_STYLE.style, stroke: '#201772' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#201772' },
-    });
-
-    result.push({
-      id: 'client-to-ro',
-      source: 'client',
-      target: 'pooler-ro',
-      ...ANIMATED_EDGE_STYLE,
-      style: { ...ANIMATED_EDGE_STYLE.style, stroke: '#201772' },
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#201772' },
-    });
 
     return result;
   }, [instancePods]);
@@ -279,9 +317,8 @@ export default function DatabaseGraph({ metrics, db }) {
         nodeTypes={nodeTypes}
         fitView
         proOptions={{ hideAttribution: true }}
-        minZoom={0.5}
-        maxZoom={1.5}
-        defaultEdgeOptions={ANIMATED_EDGE_STYLE}
+        minZoom={0.4}
+        maxZoom={1.2}
       >
         <Background color="#e2e8f0" gap={20} size={1} />
         <Controls showInteractive={false} />

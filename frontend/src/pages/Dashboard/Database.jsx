@@ -5,7 +5,6 @@ import { clusterService, buildConnectionString } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
 import ConnectionStringModal from '../../components/ui/ConnectionStringModal';
-import { MetricsSummaryCards } from '../../components/ui/MetricsCharts';
 import StorageUtilizationCard from './components/StorageUtilizationCard';
 import ClusterHealthCard from './components/ClusterHealthCard';
 import DatabasesTable from './components/DatabasesTable';
@@ -128,8 +127,6 @@ export default function Database() {
           />
           <ClusterHealthCard healthyClusters={healthyClusters} totalClusters={databases.length} />
         </div>
-
-        <MetricsSummaryCards databases={databases} />
 
         <div className="databases-search-wrap">
           <label htmlFor="database-search" className="label-md">
