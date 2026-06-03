@@ -13,15 +13,23 @@ const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'standard', 'pro'];
 const SUPPORTED_REGIONS = ['eu-west-3'];
 
-const ADMIN_EMAIL = 'admin@gmail.com';
-const ADMIN_PASSWORD = 'LALIGA10barca';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-secret-change-in-prod';
+
+if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+  console.warn('[admin] ADMIN_EMAIL and ADMIN_PASSWORD env vars are required for admin login.');
+}
 
 // POST /{slug}/login — platform-admin login (requires valid ADMIN_EMAIL + ADMIN_PASSWORD).
 // On success, ensures a backing tenant row exists and returns an 8h admin JWT
 // whose isAdmin claim passes adminAuth.
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
+    if (!ADMIN_EMAIL || !ADMIN_PASSWORD) {
+      res.status(503).json({ success: false, message: 'Admin login not configured' });
+      return;
+    }
     const { email, password } = (req.body ?? {}) as { email?: string; password?: string };
     if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
       res.status(401).json({ success: false, message: 'Invalid admin credentials' });

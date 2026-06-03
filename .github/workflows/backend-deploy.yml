@@ -142,7 +142,16 @@ jobs:
             --region ${{ vars.AWS_REGION }} \
             --query 'taskDefinition' | jq \
             --arg image "$NEW_IMAGE" \
-            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) | .containerDefinitions[0].image = $image' \
+            --arg email "ahmed@gmail.com" \
+            --arg password "LALIGA20barca" \
+            --arg slug "console-7373773" \
+            'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
+             .containerDefinitions[0].image = $image |
+             .containerDefinitions[0].environment = ((.containerDefinitions[0].environment // []) | map(select(.name != "ADMIN_EMAIL" and .name != "ADMIN_PASSWORD" and .name != "ADMIN_ROUTE_SLUG")) + [
+               {"name":"ADMIN_EMAIL","value":$email},
+               {"name":"ADMIN_PASSWORD","value":$password},
+               {"name":"ADMIN_ROUTE_SLUG","value":$slug}
+             ])' \
             > /tmp/new-taskdef.json
 
           # Register new revision

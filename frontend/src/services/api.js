@@ -69,7 +69,7 @@ export function buildConnectionString(apiKey, host = GATEWAY_HOST) {
 // Admin uses its own token (platform admin — separate from any tenant session).
 // The route slug is a secret derived from VITE_ADMIN_SLUG env var; it's not
 // /admin anymore.  This avoids exposing a predictable admin endpoint path.
-const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-x7k9m2';
+const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-7373773';
 
 const adminApi = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '',

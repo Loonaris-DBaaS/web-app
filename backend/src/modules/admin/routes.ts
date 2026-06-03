@@ -7,7 +7,11 @@ const router = Router();
 // The admin route prefix is configurable via ADMIN_ROUTE_SLUG env var.
 // This avoids exposing a predictable /admin path. Default fallback is
 // a random-looking slug so the route is never guessable by default.
-const SLUG = process.env.ADMIN_ROUTE_SLUG || 'console-x7k9m2';
+const SLUG = process.env.ADMIN_ROUTE_SLUG;
+
+if (!SLUG) {
+  throw new Error('ADMIN_ROUTE_SLUG env var is required');
+}
 
 router.post(`/${SLUG}/login`, login);
 

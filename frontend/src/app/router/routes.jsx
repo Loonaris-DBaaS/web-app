@@ -19,7 +19,7 @@ import GuestRoute from './GuestRoute';
 
 // The admin route path uses the same secret slug as the backend API so that
 // the admin page isn't discoverable at a predictable /admin URL.
-const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-x7k9m2';
+const ADMIN_SLUG = import.meta.env.VITE_ADMIN_SLUG || 'console-7373773';
 
 const routes = [
   { path: '/', element: <Landing />, errorElement: <ErrorPage /> },
