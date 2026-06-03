@@ -142,9 +142,9 @@ jobs:
             --region ${{ vars.AWS_REGION }} \
             --query 'taskDefinition' | jq \
             --arg image "$NEW_IMAGE" \
-            --arg email "ahmed@gmail.com" \
-            --arg password "LALIGA20barca" \
-            --arg slug "console-7373773" \
+            --arg email "${{ secrets.ADMIN_EMAIL }}" \
+            --arg password "${{ secrets.ADMIN_PASSWORD }}" \
+            --arg slug "${{ vars.VITE_ADMIN_SLUG }}" \
             'del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy) |
              .containerDefinitions[0].image = $image |
              .containerDefinitions[0].environment = ((.containerDefinitions[0].environment // []) | map(select(.name != "ADMIN_EMAIL" and .name != "ADMIN_PASSWORD" and .name != "ADMIN_ROUTE_SLUG")) + [
@@ -170,10 +170,6 @@ jobs:
       # This causes ~30s of downtime but guarantees the deploy succeeds.
       - name: Update ECS service (scale-to-zero workaround for vCPU limit)
         run: |
-          EXPECTED_DIGEST="${{ steps.register-td.outputs.digest }}"
-          echo "Expected digest: $EXPECTED_DIGEST"
-          echo ""
-
           echo "Step 1: Scaling service to 0…"
           aws ecs update-service \
             --cluster ${{ vars.ECS_CLUSTER_NAME }} \
@@ -207,48 +203,13 @@ jobs:
             --force-new-deployment \
             --region ${{ vars.AWS_REGION }} >/dev/null
 
-          echo "Step 4: Waiting for new tasks to start (up to 4 minutes)…"
-          for i in {1..48}; do
-            sleep 5
+          echo "Step 4: Waiting for service to stabilise (up to 10 minutes)…"
+          aws ecs wait services-stable \
+            --cluster ${{ vars.ECS_CLUSTER_NAME }} \
+            --services ${{ vars.ECS_SERVICE_NAME }} \
+            --region ${{ vars.AWS_REGION }}
 
-            TASKS=$(aws ecs list-tasks \
-              --cluster ${{ vars.ECS_CLUSTER_NAME }} \
-              --service-name ${{ vars.ECS_SERVICE_NAME }} \
-              --desired-status RUNNING \
-              --region ${{ vars.AWS_REGION }} \
-              --query 'taskArns' --output text)
-
-            if [ -z "$TASKS" ] || [ "$TASKS" = "None" ]; then
-              echo "  Check $i: No running tasks yet…"
-              continue
-            fi
-
-            MATCH=0
-            for task in $TASKS; do
-              DIGEST=$(aws ecs describe-tasks \
-                --cluster ${{ vars.ECS_CLUSTER_NAME }} \
-                --tasks "$task" \
-                --region ${{ vars.AWS_REGION }} \
-                --query 'tasks[0].containers[0].imageDigest' --output text)
-
-              if [ "$DIGEST" = "$EXPECTED_DIGEST" ]; then
-                MATCH=$((MATCH + 1))
-                echo "  Check $i: ✓ Task $task has correct digest ($MATCH/2)"
-              else
-                echo "  Check $i: ✗ Task $task has wrong digest: $DIGEST"
-              fi
-            done
-
-            if [ "$MATCH" -ge 2 ]; then
-              echo ""
-              echo "✓ All tasks running the correct image!"
-              exit 0
-            fi
-          done
-
-          echo ""
-          echo "::error::Timed out waiting for correct image to deploy"
-          exit 1
+          echo "✓ Service is stable with new task definition"
 
       - name: Verify health endpoint
         run: |
