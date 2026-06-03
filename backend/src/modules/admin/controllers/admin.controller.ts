@@ -7,7 +7,6 @@ import type {
 } from '@/modules/pgCluster/dto/create-cluster.dto';
 import prisma from '@/lib/prisma';
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
 
 const VALID_PG_VERSIONS: PgVersion[] = ['16', '17', '18'];
 const VALID_SIZES: ClusterSize[] = ['starter', 'standard', 'pro'];
@@ -35,13 +34,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       res.status(401).json({ success: false, message: 'Invalid admin credentials' });
       return;
     }
-    const passwordHash = await bcrypt.hash(ADMIN_PASSWORD, 10);
-    const admin = await prisma.tenant.upsert({
-      where: { email: ADMIN_EMAIL },
-      update: { isAdmin: true },
-      create: { email: ADMIN_EMAIL, username: `platform-admin-${Date.now()}`, passwordHash, isAdmin: true },
-    });
-    const accessToken = jwt.sign({ id: admin.id, tenantId: admin.id, isAdmin: true }, JWT_SECRET, {
+    const accessToken = jwt.sign({ id: 'admin', isAdmin: true }, JWT_SECRET, {
       expiresIn: '8h',
     });
     res.status(200).json({ success: true, data: { accessToken, email: ADMIN_EMAIL } });
