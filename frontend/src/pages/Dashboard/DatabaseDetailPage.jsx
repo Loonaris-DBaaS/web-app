@@ -59,7 +59,6 @@ export default function DatabaseDetailPage({
   const [metrics, setMetrics] = useState(null);
   const [metricsError, setMetricsError] = useState('');
   const [showConnModal, setShowConnModal] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     clusterService
@@ -103,13 +102,11 @@ export default function DatabaseDetailPage({
     }
     setActionError('');
     setSuccessMsg('');
-    setDeleting(true);
     try {
       await clusterService.deleteCluster(id);
       navigate('/dashboard/databases');
     } catch (err) {
       setActionError(err.response?.data?.error ?? err.message);
-      setDeleting(false);
     }
   }
 
@@ -177,22 +174,25 @@ export default function DatabaseDetailPage({
               View Metrics
             </button>
             <button
-              onClick={() => handleDelete(db.id)}
-              disabled={deleting}
+              onClick={() => {
+                setActiveTab('Settings');
+                setTimeout(() => {
+                  document.getElementById('danger-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }, 100);
+              }}
               style={{
                 padding: '8px 16px',
                 background: 'var(--error-container, #fee2e2)',
                 color: 'var(--error, #dc2626)',
                 border: '1px solid var(--error-container, #fee2e2)',
                 borderRadius: 'var(--radius-sm)',
-                cursor: deleting ? 'default' : 'pointer',
+                cursor: 'pointer',
                 fontSize: 'var(--text-label-md-size)',
                 fontWeight: 600,
                 fontFamily: 'var(--font-sans)',
-                opacity: deleting ? 0.6 : 1,
               }}
             >
-              {deleting ? 'Deleting…' : 'Delete Database'}
+              Delete Database
             </button>
           </div>
         </DashboardHeader>

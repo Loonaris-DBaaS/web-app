@@ -536,6 +536,7 @@ export default function DatabaseSettingsTab({
 
       {/* ── Danger Zone ─────────────────────────────────────────────────── */}
       <article
+        id="danger-zone"
         style={{
           background: 'var(--error-container)',
           border: '1px solid rgba(220,38,38,0.15)',
