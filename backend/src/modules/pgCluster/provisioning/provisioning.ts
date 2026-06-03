@@ -152,7 +152,9 @@ function buildManifests(namespace: string, dto: CreateClusterDto, password: stri
       // 4 vCPU / 8 GiB RAM — at 150m / 300Mi per CNPG pod we can schedule ~20+
       // data-plane pods per node (leaving headroom for poolers and system daemons).
       resources: { limits: { cpu: '150m', memory: '300Mi' } },
-      nodeSelector: { role: 'tenant' },
+      affinity: {
+        nodeSelector: { role: 'tenant' },
+      },
       topologySpreadConstraints: [
         {
           maxSkew: 1,
