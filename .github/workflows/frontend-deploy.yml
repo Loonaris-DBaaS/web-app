@@ -29,6 +29,8 @@ jobs:
 
       - name: Install & Build
         working-directory: frontend
+        env:
+          VITE_ADMIN_SLUG: ${{ vars.VITE_ADMIN_SLUG }}
         run: |
           npm ci
           npm run build
