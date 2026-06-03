@@ -29,7 +29,7 @@ function buildConnectionString(apiKey) {
   return `postgresql://${apiKey}@${GATEWAY_HOST}:5432/app?sslmode=disable`;
 }
 
-function getFormats(apiKey, rwKey) {
+function getFormats(apiKey) {
   const host = GATEWAY_HOST;
   const port = 5432;
   const db = 'app';
@@ -37,11 +37,11 @@ function getFormats(apiKey, rwKey) {
   const roKey = apiKey?.replace?.(/_rw$/, '_ro') || apiKey;
   const maskedRo = maskKey(roKey);
 
-  const rw = buildConnectionString(maskedKey);
-  const ro = buildConnectionString(maskedRo);
-
   return {
-    uri: { rw, ro },
+    uri: {
+      rw: buildConnectionString(maskedKey),
+      ro: buildConnectionString(maskedRo),
+    },
     jdbc: {
       rw: `jdbc:postgresql://${host}:${port}/${db}?user=${maskedKey}&ssl=false`,
       ro: `jdbc:postgresql://${host}:${port}/${db}?user=${maskedRo}&ssl=false`,
@@ -51,8 +51,8 @@ function getFormats(apiKey, rwKey) {
       ro: `const { Client } = require('pg');\nconst client = new Client({\n  host: '${host}',\n  port: ${port},\n  database: '${db}',\n  user: '${maskedRo}',\n  ssl: false,\n});`,
     },
     prisma: {
-      rw: `datasource db {\n  provider = "postgresql"\n  url      = "${rw}"\n}`,
-      ro: `datasource db {\n  provider = "postgresql"\n  url      = "${ro}"\n}`,
+      rw: `datasource db {\n  provider = "postgresql"\n  url      = "${buildConnectionString(maskedKey)}"\n}`,
+      ro: `datasource db {\n  provider = "postgresql"\n  url      = "${buildConnectionString(maskedRo)}"\n}`,
     },
     django: {
       rw: `DATABASES = {\n  'default': {\n    'ENGINE': 'django.db.backends.postgresql',\n    'HOST': '${host}',\n    'PORT': '${port}',\n    'NAME': '${db}',\n    'USER': '${maskedKey}',\n    'OPTIONS': { 'sslmode': 'disable' },\n  }\n}`,
@@ -148,12 +148,10 @@ export default function ConnectionStringModal({
   onRegenerate,
   onClose,
 }) {
-  const [revealSecret, setRevealSecret] = useState(false);
   const [activeFormat, setActiveFormat] = useState('uri');
   const [copiedField, setCopiedField] = useState('');
 
   const hasRealKey = !isPreview;
-  const displayKey = hasRealKey && revealSecret ? apiKey : maskKey(apiKey);
   const rwKey = apiKey;
   const roKey = apiKey?.replace?.(/_rw$/, '_ro');
 
@@ -181,7 +179,7 @@ export default function ConnectionStringModal({
     },
   };
 
-  const formats = hasRealKey && revealSecret ? realFormats : getFormats(apiKey, rwKey);
+  const formats = hasRealKey ? realFormats : getFormats(apiKey);
 
   const copyToClipboard = useCallback(async (text, fieldId) => {
     try {
@@ -225,7 +223,7 @@ export default function ConnectionStringModal({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2 style={{ fontSize: 20, fontWeight: 700, margin: '0 0 4px', color: '#0f172a' }}>
-                🔑 Connection Strings
+                Connection Strings
               </h2>
               <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>
                 Use these to connect your application to the database
@@ -249,84 +247,6 @@ export default function ConnectionStringModal({
             >
               ✕
             </button>
-          </div>
-        </div>
-
-        {/* ── API Key ── */}
-        <div style={{ padding: '20px 28px', borderBottom: '1px solid #f1f5f9' }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 8,
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              API Key
-            </span>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {hasRealKey && (
-                <button
-                  onClick={() => setRevealSecret((v) => !v)}
-                  style={{
-                    fontSize: 11,
-                    padding: '3px 10px',
-                    borderRadius: 6,
-                    border: '1px solid #e2e8f0',
-                    background: revealSecret ? '#fee2e2' : '#fff',
-                    color: revealSecret ? '#991b1b' : '#475569',
-                    cursor: 'pointer',
-                    fontWeight: 500,
-                  }}
-                >
-                  {revealSecret ? '🙈 Hide' : '👁 Reveal'}
-                </button>
-              )}
-              <button
-                onClick={() => copyToClipboard(displayKey, 'apikey')}
-                style={{
-                  fontSize: 11,
-                  padding: '3px 10px',
-                  borderRadius: 6,
-                  border: '1px solid #e2e8f0',
-                  background: copiedField === 'apikey' ? '#dcfce7' : '#fff',
-                  color: copiedField === 'apikey' ? '#14532d' : '#475569',
-                  cursor: 'pointer',
-                  fontWeight: 500,
-                }}
-              >
-                {copiedField === 'apikey' ? 'Copied!' : 'Copy'}
-              </button>
-            </div>
-          </div>
-
-          <code
-            style={{
-              display: 'block',
-              padding: '10px 12px',
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
-              borderRadius: 10,
-              fontSize: 12,
-              wordBreak: 'break-all',
-              fontFamily: "'Cascadia Code', 'Fira Code', 'JetBrains Mono', ui-monospace, monospace",
-              color: '#0f172a',
-              lineHeight: 1.5,
-            }}
-          >
-            {displayKey}
-          </code>
-
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span style={{ fontSize: 13 }}>{hasRealKey ? '⚠️' : '🔒'}</span>
-            <span style={{ fontSize: 12, color: '#64748b' }}>
-              {hasRealKey
-                ? revealSecret
-                  ? 'This key is shown in full. Copy it now — you will not see it again.'
-                  : 'Click Reveal to show the full key, or Copy to copy the masked version.'
-                : 'The secret key is masked. Regenerate credentials to get the real key.'}
-            </span>
           </div>
         </div>
 

@@ -5,9 +5,6 @@ import { clusterService, buildConnectionString } from '../../services/api';
 import DashboardHeader from '../../components/ui/DashboardHeader';
 import CreateDatabaseForm from '../../components/ui/CreateDatabaseForm';
 import ConnectionStringModal from '../../components/ui/ConnectionStringModal';
-import { MetricsSummaryCards } from '../../components/ui/MetricsCharts';
-import StorageUtilizationCard from './components/StorageUtilizationCard';
-import ClusterHealthCard from './components/ClusterHealthCard';
 import DatabasesTable from './components/DatabasesTable';
 
 const STATUS_MAP = {
@@ -78,12 +75,6 @@ export default function Database() {
     );
   }, [query, databases]);
 
-  const usedStorageGb = databases.reduce((acc, db) => acc + (db.storageUsedGb ?? 0), 0);
-  const totalStorageGb = databases.reduce((acc, db) => acc + (db.provisionedStorageGb ?? 0), 0);
-  const storagePercent =
-    totalStorageGb > 0 ? Math.round((usedStorageGb / totalStorageGb) * 100) : 0;
-  const healthyClusters = databases.filter((db) => db.status === 'Healthy').length;
-
   async function handleDelete(id) {
     try {
       await clusterService.deleteCluster(id);
@@ -119,17 +110,6 @@ export default function Database() {
             {successMsg}
           </p>
         )}
-
-        <div className="databases-stats-grid">
-          <StorageUtilizationCard
-            usedStorageGb={usedStorageGb}
-            totalStorageGb={totalStorageGb}
-            percentage={storagePercent}
-          />
-          <ClusterHealthCard healthyClusters={healthyClusters} totalClusters={databases.length} />
-        </div>
-
-        <MetricsSummaryCards databases={databases} />
 
         <div className="databases-search-wrap">
           <label htmlFor="database-search" className="label-md">

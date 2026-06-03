@@ -50,7 +50,7 @@ export default function DatabaseDetailPage({
   const [error, setError] = useState('');
   const [actionError, setActionError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [activeTab, setActiveTab] = useState(location.state?.initialTab || 'Connect');
+  const [activeTab, setActiveTab] = useState(location.state?.initialTab || 'Topology');
   const [dbNameInput, setDbNameInput] = useState('');
   const [targetVersion, setTargetVersion] = useState('');
   const [regen, setRegen] = useState(null);

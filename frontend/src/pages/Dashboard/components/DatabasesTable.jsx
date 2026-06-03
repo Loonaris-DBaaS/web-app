@@ -1,6 +1,17 @@
 import React from 'react';
 import Button from '../../../components/ui/Button';
 
+function regionLabel(code) {
+  const map = {
+    'eu-west-3': 'Paris',
+    'eu-west-1': 'Ireland',
+    'eu-central-1': 'Frankfurt',
+    'us-east-1': 'N. Virginia',
+    'us-west-2': 'Oregon',
+  };
+  return map[code] ?? code;
+}
+
 function StatusPill({ status }) {
   const normalized = status.toLowerCase();
   const statusClass =
@@ -11,6 +22,40 @@ function StatusPill({ status }) {
         : 'is-neutral';
 
   return <span className={`status-pill ${statusClass}`}>{status}</span>;
+}
+
+function StorageHighlight({ used, total }) {
+  const pct = total > 0 ? Math.round((used / total) * 100) : 0;
+  let color = '#16a34a'; // green
+  if (pct > 80) color = '#dc2626'; // red
+  else if (pct > 60) color = '#d97706'; // orange
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div
+        style={{
+          width: 60,
+          height: 6,
+          background: '#e2e8f0',
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${Math.min(pct, 100)}%`,
+            height: '100%',
+            background: color,
+            borderRadius: 3,
+            transition: 'width 0.3s ease',
+          }}
+        />
+      </div>
+      <span style={{ fontSize: 12, fontWeight: 600, color, whiteSpace: 'nowrap' }}>
+        {used.toFixed(1)} / {total} GB
+      </span>
+    </div>
+  );
 }
 
 export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onDelete }) {
@@ -38,6 +83,7 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
               <th>Status</th>
               <th>Postgres version</th>
               <th>Region</th>
+              <th>Storage</th>
               <th>Instances</th>
               <th style={{ width: '1%', whiteSpace: 'nowrap' }}>Actions</th>
             </tr>
@@ -45,7 +91,7 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="table-empty body-md">
+                <td colSpan={7} className="table-empty body-md">
                   No database found for this search.
                 </td>
               </tr>
@@ -57,7 +103,10 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
                     <StatusPill status={db.status} />
                   </td>
                   <td className="body-md">{db.postgresVersion}</td>
-                  <td className="body-md">{db.region}</td>
+                  <td className="body-md">{regionLabel(db.region)}</td>
+                  <td>
+                    <StorageHighlight used={db.storageUsedGb} total={db.provisionedStorageGb} />
+                  </td>
                   <td className="body-md">{db.instances}</td>
                   <td>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
