@@ -10,30 +10,21 @@ import {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 
-const STATUS_COLORS = {
-  running: '#16a34a',
-  provisioning: '#d97706',
-  error: '#dc2626',
-  stopped: '#6b7280',
-  deleting: '#6b7280',
-  healthy: '#16a34a',
-};
-
 /* ─── Client node (far left) ─── */
 function ClientNode({ data }) {
   return (
     <div
       style={{
-        padding: '14px 22px',
-        borderRadius: 14,
+        padding: '16px 24px',
+        borderRadius: 16,
         border: '2px solid #1e293b',
         background: '#f8fafc',
-        minWidth: 120,
-        fontFamily: "'Inter', system-ui, sans-serif",
+        minWidth: 130,
+        fontFamily: "'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', cursive, sans-serif",
         textAlign: 'center',
       }}
     >
-      <span style={{ fontWeight: 700, fontSize: 13, color: '#0f172a' }}>{data.label}</span>
+      <span style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{data.label}</span>
     </div>
   );
 }
@@ -45,9 +36,9 @@ function PoolerNode({ data }) {
       style={{
         padding: '10px 16px',
         borderRadius: 10,
-        border: '2px solid #d97706',
+        border: '2px solid #f59e0b',
         background: '#fef3c7',
-        minWidth: 110,
+        minWidth: 120,
         fontFamily: "'Inter', system-ui, sans-serif",
         display: 'flex',
         alignItems: 'center',
@@ -73,8 +64,8 @@ function PoolerNode({ data }) {
 
 /* ─── Postgres node (far right) ─── */
 function DbNode({ data }) {
-  const borderColor = data.isPrimary ? '#201772' : STATUS_COLORS[data.status] || '#16a34a';
-  const bgColor = data.isPrimary ? '#ede9fe' : '#f4f4f6';
+  const borderColor = '#16a34a'; // green border for all DB nodes
+  const bgColor = data.isPrimary ? '#ede9fe' : '#f8fafc';
   const labelColor = data.isPrimary ? '#201772' : '#0f172a';
 
   return (
@@ -84,7 +75,7 @@ function DbNode({ data }) {
         borderRadius: 12,
         border: `2px solid ${borderColor}`,
         background: bgColor,
-        minWidth: 160,
+        minWidth: 170,
         fontFamily: "'Inter', system-ui, sans-serif",
         position: 'relative',
       }}
@@ -152,7 +143,7 @@ export default function DatabaseGraph({ metrics, db }) {
       id: 'client',
       type: 'clientNode',
       position: { x: 20, y: 140 },
-      data: { label: 'Your pg client' },
+      data: { label: 'your pg client' },
     });
 
     // 2. Poolers (middle)
@@ -213,7 +204,7 @@ export default function DatabaseGraph({ metrics, db }) {
     const primaryPod = instancePods.find((p) => p.role === 'primary');
     const replicas = instancePods.filter((p) => p.role === 'replica');
 
-    // Client → Pooler RW (writes)
+    // Client → Pooler RW (writes) — black arrow
     result.push({
       id: 'client-to-rw',
       source: 'client',
@@ -224,7 +215,7 @@ export default function DatabaseGraph({ metrics, db }) {
       markerEnd: { type: MarkerType.ArrowClosed, color: '#0f172a' },
     });
 
-    // Client → Pooler RO (reads)
+    // Client → Pooler RO (reads) — black arrow
     result.push({
       id: 'client-to-ro',
       source: 'client',
@@ -235,7 +226,7 @@ export default function DatabaseGraph({ metrics, db }) {
       markerEnd: { type: MarkerType.ArrowClosed, color: '#0f172a' },
     });
 
-    // Pooler RW → Primary
+    // Pooler RW → Primary — black arrow
     if (primaryPod) {
       result.push({
         id: 'rw-to-primary',
@@ -243,13 +234,13 @@ export default function DatabaseGraph({ metrics, db }) {
         target: primaryPod.name,
         type: 'smoothstep',
         animated: true,
-        style: { stroke: '#d97706', strokeWidth: 2.5 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: '#d97706' },
+        style: { stroke: '#0f172a', strokeWidth: 2.5 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: '#0f172a' },
       });
     }
 
-    // Pooler RO → Replicas
-    replicas.forEach((pod, i) => {
+    // Pooler RO → Replicas — blue arrows
+    replicas.forEach((pod) => {
       result.push({
         id: `ro-to-${pod.name}`,
         source: 'pooler-ro',
@@ -261,7 +252,7 @@ export default function DatabaseGraph({ metrics, db }) {
       });
     });
 
-    // Streaming replication: Primary → Replica (downward arrows)
+    // Streaming replication: Primary → Replica — blue animated arrows
     if (primaryPod) {
       replicas.forEach((pod) => {
         result.push({
@@ -270,11 +261,12 @@ export default function DatabaseGraph({ metrics, db }) {
           target: pod.name,
           type: 'smoothstep',
           animated: true,
-          style: { stroke: '#201772', strokeWidth: 2 },
-          markerEnd: { type: MarkerType.ArrowClosed, color: '#201772' },
-          label: 'replication',
-          labelStyle: { fontSize: 10, fill: '#201772', fontWeight: 600 },
+          style: { stroke: '#3b82f6', strokeWidth: 2.5 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#3b82f6' },
+          label: 'streaming replication',
+          labelStyle: { fontSize: 10, fill: '#3b82f6', fontWeight: 600 },
           labelBgStyle: { fill: '#fff', rx: 4 },
+          labelBgPadding: [4, 4],
         });
       });
     }
