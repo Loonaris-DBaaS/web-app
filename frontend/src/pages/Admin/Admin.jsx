@@ -953,7 +953,7 @@ const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padd
                         {u.isAdmin ? 'Yes' : 'No'}
                       </span>
                     </td>
-                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{new Date(u.createdAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
