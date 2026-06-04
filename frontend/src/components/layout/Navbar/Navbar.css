@@ -26,10 +26,18 @@
 }
 
 .logo {
+  display: inline-flex;
+  align-items: center;
   font-size: var(--text-title-lg-size);
   font-weight: 700;
   letter-spacing: var(--text-display-tracking);
   color: var(--primary);
+}
+
+.logoImg {
+  height: 40px;
+  width: auto;
+  display: block;
 }
 
 .nav {

@@ -1,6 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { LoonarisLogo } from './LoonarisLogo';
 
 const navItems = [
   { to: '/dashboard/databases', label: 'Databases', icon: 'storage' },
@@ -24,7 +23,7 @@ export default function Sidebar() {
       {/* Brand */}
       <div className="dashboard-sidebar__brand">
         <div className="dashboard-sidebar__brand-icon">
-          <LoonarisLogo size={28} />
+          <img src="/logos/loonaris-logo.ico" alt="Loonaris" width={28} height={28} />
         </div>
         <span className="dashboard-sidebar__brand-name">Loonaris</span>
       </div>
