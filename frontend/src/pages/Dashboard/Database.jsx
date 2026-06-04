@@ -52,13 +52,25 @@ export default function Database() {
   const [successMsg, setSuccessMsg] = useState('');
   const [createdKey, setCreatedKey] = useState(null);
   const [spikeNotice, setSpikeNotice] = useState(false);
+  const [spikeExiting, setSpikeExiting] = useState(false);
 
-  // Auto-hide spike notice after 4 seconds.
+  // Auto-hide spike notice after 9 seconds with smooth exit animation.
   useEffect(() => {
-    if (!spikeNotice) return;
-    const t = setTimeout(() => setSpikeNotice(false), 4000);
-    return () => clearTimeout(t);
+    if (!spikeNotice) {
+      setSpikeExiting(false);
+      return;
+    }
+    const autoHide = setTimeout(() => {
+      setSpikeExiting(true);
+      setTimeout(() => setSpikeNotice(false), 400); // let slide-up animation finish
+    }, 9000);
+    return () => clearTimeout(autoHide);
   }, [spikeNotice]);
+
+  function dismissSpike() {
+    setSpikeExiting(true);
+    setTimeout(() => setSpikeNotice(false), 400);
+  }
 
   function fetchDatabases() {
     clusterService
@@ -117,7 +129,7 @@ export default function Database() {
 
         {/* Spike notice — shown after closing the create form */}
         {spikeNotice && (
-          <div className="dash-spike-notice">
+          <div className={`dash-spike-notice${spikeExiting ? ' is-exiting' : ''}`}>
             <span className="material-symbols-outlined">network_check</span>
             <span>
               Lots of folks are spinning up databases right now — we&apos;re having a spike!
@@ -126,7 +138,7 @@ export default function Database() {
             <button
               type="button"
               className="dash-spike-notice__close"
-              onClick={() => setSpikeNotice(false)}
+              onClick={dismissSpike}
               aria-label="Dismiss notice"
             >
               close

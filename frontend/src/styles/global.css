@@ -954,36 +954,44 @@ ol {
   border-color: var(--primary);
 }
 
-/* ── Dashboard spike notice ── */
+/* ── Dashboard spike notice (fixed top banner) ── */
 .dash-spike-notice {
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 300;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
   gap: 0.625rem;
-  padding: 0.875rem 2.25rem 0.875rem 1rem;
-  margin-bottom: var(--space-4);
+  padding: 0.875rem 2.5rem;
   background: var(--primary-fixed, #ede9fe);
-  border: 1px solid color-mix(in srgb, var(--primary-container, #473ca9) 18%, transparent);
-  border-radius: var(--radius-md, 0.75rem);
+  border-bottom: 1px solid color-mix(in srgb, var(--primary-container, #473ca9) 18%, transparent);
   color: var(--primary, #201772);
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.5;
-  animation: dashSpikeIn 400ms var(--ease-out, ease-out) both;
+  box-shadow: 0 2px 12px color-mix(in srgb, var(--primary-container, #473ca9) 12%, transparent);
+  animation: dashSpikeSlideDown 500ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.dash-spike-notice.is-exiting {
+  animation: dashSpikeSlideUp 400ms cubic-bezier(0.55, 0, 1, 0.45) forwards;
 }
 
 .dash-spike-notice .material-symbols-outlined {
   font-size: 20px;
   flex-shrink: 0;
-  margin-top: 1px;
 }
 
 .dash-spike-notice__close {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 26px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -993,19 +1001,24 @@ ol {
   cursor: pointer;
   border-radius: var(--radius-sm, 0.5rem);
   font-family: 'Material Symbols Outlined', sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   line-height: 1;
   padding: 0;
   transition: background 150ms;
 }
 
 .dash-spike-notice__close:hover {
-  background: color-mix(in srgb, var(--primary-container, #473ca9) 10%, transparent);
+  background: color-mix(in srgb, var(--primary-container, #473ca9) 12%, transparent);
 }
 
-@keyframes dashSpikeIn {
-  from { opacity: 0; transform: translateY(-6px); }
+@keyframes dashSpikeSlideDown {
+  from { opacity: 0; transform: translateY(-100%); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dashSpikeSlideUp {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-100%); }
 }
 
 @keyframes pulse-green {
