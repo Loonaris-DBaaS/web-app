@@ -254,8 +254,8 @@ export default function Docs() {
       <p style={paragraphStyle}>
         Use the <strong>Support</strong> page in your Dashboard sidebar, or
         email us at{' '}
-        <a href="mailto:support@loonaris.tech" style={{ color: '#201772' }}>
-          support@loonaris.tech
+        <a href="mailto:idaniahmed72@gmail.com" style={{ color: '#201772' }}>
+          idaniahmed72@gmail.com
         </a>
         .
       </p>

@@ -123,8 +123,8 @@ export default function TermsOfService() {
       <h2 style={subHeadingStyle}>10. Contact</h2>
       <p style={paragraphStyle}>
         For questions about these Terms, contact us at{' '}
-        <a href="mailto:legal@loonaris.tech" style={{ color: '#201772' }}>
-          legal@loonaris.tech
+        <a href="mailto:idaniahmed72@gmail.com" style={{ color: '#201772' }}>
+          idaniahmed72@gmail.com
         </a>
         .
       </p>

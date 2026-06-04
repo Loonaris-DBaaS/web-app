@@ -116,8 +116,8 @@ export default function Security() {
       <h2 style={subHeadingStyle}>Reporting Vulnerabilities</h2>
       <p style={paragraphStyle}>
         We encourage responsible disclosure. If you believe you have discovered a security vulnerability, please report it to{' '}
-        <a href="mailto:security@loonaris.tech" style={{ color: '#201772' }}>
-          security@loonaris.tech
+        <a href="mailto:idaniahmed72@gmail.com" style={{ color: '#201772' }}>
+          idaniahmed72@gmail.com
         </a>
         . We will investigate promptly and keep you informed.
       </p>
@@ -130,8 +130,8 @@ export default function Security() {
       <h2 style={subHeadingStyle}>Contact</h2>
       <p style={paragraphStyle}>
         For security-related inquiries, email{' '}
-        <a href="mailto:security@loonaris.tech" style={{ color: '#201772' }}>
-          security@loonaris.tech
+        <a href="mailto:idaniahmed72@gmail.com" style={{ color: '#201772' }}>
+          idaniahmed72@gmail.com
         </a>
         .
       </p>

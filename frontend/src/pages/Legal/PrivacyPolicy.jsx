@@ -97,7 +97,7 @@ export default function PrivacyPolicy() {
 
       <h2 style={subHeadingStyle}>5. Your Rights</h2>
       <p style={paragraphStyle}>
-        Depending on your location, you may have rights regarding your personal data, including the right to access, correct, delete, or restrict processing of your data. Contact us at privacy@loonaris.tech to exercise these rights.
+        Depending on your location, you may have rights regarding your personal data, including the right to access, correct, delete, or restrict processing of your data. Contact us at idaniahmed72@gmail.com to exercise these rights.
       </p>
 
       <h2 style={subHeadingStyle}>6. Changes to This Policy</h2>
@@ -108,8 +108,8 @@ export default function PrivacyPolicy() {
       <h2 style={subHeadingStyle}>7. Contact Us</h2>
       <p style={paragraphStyle}>
         If you have any questions about this Privacy Policy, please contact us at{' '}
-        <a href="mailto:privacy@loonaris.tech" style={{ color: '#201772' }}>
-          privacy@loonaris.tech
+        <a href="mailto:idaniahmed72@gmail.com" style={{ color: '#201772' }}>
+          idaniahmed72@gmail.com
         </a>
         .
       </p>
