@@ -937,9 +937,6 @@ const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padd
                 <tr>
                   <th style={thStyle} onClick={() => toggleSort('email')}>Email{arrow('email')}</th>
                   <th style={thStyle} onClick={() => toggleSort('username')}>Username{arrow('username')}</th>
-                  <th style={thStyle} onClick={() => toggleSort('country')}>Country{arrow('country')}</th>
-                  <th style={thStyle} onClick={() => toggleSort('jobTitle')}>Job Title{arrow('jobTitle')}</th>
-                  <th style={thStyle} onClick={() => toggleSort('company')}>Company{arrow('company')}</th>
                   <th style={thStyle} onClick={() => toggleSort('clusterCount')}>Clusters{arrow('clusterCount')}</th>
                   <th style={thStyle} onClick={() => toggleSort('isAdmin')}>Admin{arrow('isAdmin')}</th>
                   <th style={thStyle} onClick={() => toggleSort('createdAt')}>Created{arrow('createdAt')}</th>
@@ -950,9 +947,6 @@ const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padd
                   <tr key={u.id}>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.email}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.username}</td>
-                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.country || '—'}</td>
-                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.jobTitle || '—'}</td>
-                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.company || '—'}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.clusterCount}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
                       <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 12, fontWeight: 600, color: u.isAdmin ? '#16a34a' : '#64748b', background: u.isAdmin ? '#f0fdf4' : '#f1f5f9' }}>
