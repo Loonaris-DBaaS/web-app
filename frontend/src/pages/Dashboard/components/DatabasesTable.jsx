@@ -111,12 +111,6 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
                   <td>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                       <Button
-                        text="View"
-                        variant="outlined"
-                        size="sm"
-                        onClick={() => onViewDetails(db.id)}
-                      />
-                      <Button
                         text="Metrics"
                         variant="outlined"
                         size="sm"
