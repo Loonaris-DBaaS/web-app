@@ -75,6 +75,15 @@ export default function DatabaseDetailPage({
     }
   }, [db]);
 
+  // Scroll to Danger Zone when navigated from the list view delete button.
+  useEffect(() => {
+    if (activeTab === 'Settings' && location.state?.scrollToDanger) {
+      setTimeout(() => {
+        document.getElementById('danger-zone')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 200);
+    }
+  }, [activeTab, location.state?.scrollToDanger]);
+
   // Poll metrics endpoint every 7s while mounted; feeds both Metrics and Replicas tabs
   useEffect(() => {
     if (!db) return;
@@ -97,9 +106,6 @@ export default function DatabaseDetailPage({
   }
 
   async function handleDelete(id) {
-    if (!window.confirm(`Delete database "${db?.name}"? This cannot be undone and all data will be lost.`)) {
-      return;
-    }
     setActionError('');
     setSuccessMsg('');
     try {
