@@ -22,10 +22,11 @@ export default function Sidebar() {
     <aside className="dashboard-sidebar">
       {/* Brand */}
       <div className="dashboard-sidebar__brand">
-        <div className="dashboard-sidebar__brand-icon">
-          <img src="/logos/loonaris-logo.ico" alt="Loonaris" width={28} height={28} />
-        </div>
-        <span className="dashboard-sidebar__brand-name">Loonaris</span>
+        <img
+          src="/logos/loonaris-title.png"
+          alt="Loonaris"
+          className="dashboard-sidebar__brand-logo"
+        />
       </div>
 
       {/* Nav */}
