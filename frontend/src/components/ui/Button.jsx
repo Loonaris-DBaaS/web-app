@@ -20,6 +20,7 @@ export default function Button({
   icon,
   disabled = false,
   loading = false,
+  className = '',
 }) {
   const base = {
     display: 'inline-flex',
@@ -57,7 +58,7 @@ export default function Button({
   const style = { ...base, ...sizes[size], ...variants[variant] };
 
   return (
-    <button style={style} onClick={onClick} disabled={disabled || loading}>
+    <button className={className} style={style} onClick={onClick} disabled={disabled || loading}>
       {loading ? (
         <span
           style={{

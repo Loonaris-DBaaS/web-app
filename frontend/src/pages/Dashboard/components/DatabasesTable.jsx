@@ -101,26 +101,14 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onV
                         text="Metrics"
                         variant="outlined"
                         size="sm"
+                        className="db-row-btn db-row-btn--metrics"
                         onClick={() => onViewMetrics(db.id)}
                       />
                       <button
                         type="button"
                         title="Settings"
                         onClick={() => onViewSettings(db.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 32,
-                          height: 32,
-                          border: '1px solid var(--outline, #e2e8f0)',
-                          borderRadius: 'var(--radius-sm, 6px)',
-                          background: 'var(--surface, #fff)',
-                          color: 'var(--on-surface, #334155)',
-                          cursor: 'pointer',
-                          fontSize: 18,
-                          fontFamily: '"Material Symbols Outlined", sans-serif',
-                        }}
+                        className="db-row-btn db-row-btn--settings"
                       >
                         settings
                       </button>
@@ -128,20 +116,7 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onV
                         type="button"
                         title="Delete database"
                         onClick={() => onDeleteRequest(db.id)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '6px 10px',
-                          border: '1px solid var(--error-container, #fee2e2)',
-                          borderRadius: 'var(--radius-sm, 6px)',
-                          background: 'var(--error-container, #fee2e2)',
-                          color: 'var(--error, #dc2626)',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          fontFamily: 'var(--font-sans)',
-                        }}
+                        className="db-row-btn db-row-btn--delete"
                       >
                         Delete
                       </button>
