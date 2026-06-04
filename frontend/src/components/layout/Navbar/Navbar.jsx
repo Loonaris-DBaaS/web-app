@@ -1,16 +1,27 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Navbar.css';
 
 export default function Navbar() {
+  const navigate = useNavigate();
+
+  const scrollTo = (id) => (e) => {
+    e.preventDefault();
+    if (window.location.pathname === '/') {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/#' + id);
+    }
+  };
+
   return (
     <header className="header">
       <div className="inner">
         <div className="left">
           <span className="logo">Loonaris</span>
           <nav className="nav">
-            <a href="#">Features</a>
-            <a href="#">Pricing</a>
-            <a href="#">Docs</a>
+            <a href="#features" onClick={scrollTo('features')}>Features</a>
+            <a href="#pricing" onClick={scrollTo('pricing')}>Pricing</a>
+            <Link to="/docs">Docs</Link>
           </nav>
         </div>
         <div className="actions">

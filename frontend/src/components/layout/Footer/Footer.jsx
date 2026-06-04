@@ -1,34 +1,52 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './Footer.css';
 
-const links = {
-  Product: ['Dashboard', 'Scaling', 'Pricing'],
-  Company: ['About', 'Blog', 'Careers'],
-  Support: ['Documentation', 'API Status', 'Contact Us'],
-};
-
 export default function Footer() {
+  const navigate = useNavigate();
+
+  const scrollToPricing = (e) => {
+    e.preventDefault();
+    if (window.location.pathname === '/') {
+      document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      navigate('/#pricing');
+    }
+  };
+
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-grid">
           <div className="footer-brand">
             <span className="footer-logo">Loonaris</span>
-            <p>blablabla</p>
+            
           </div>
 
-          {Object.entries(links).map(([group, items]) => (
-            <div key={group}>
-              <h4 className="footer-group-title">{group}</h4>
-              <ul className="footer-link-list">
-                {items.map((item) => (
-                  <li key={item}>
-                    <a href="#">{item}</a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          <div>
+            <h4 className="footer-group-title">Product</h4>
+            <ul className="footer-link-list">
+              <li><Link to="/dashboard/databases">Dashboard</Link></li>
+              <li><a href="#pricing" onClick={scrollToPricing}>Pricing</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="footer-group-title">Company</h4>
+            <ul className="footer-link-list">
+              <li><a href="#">About</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Careers</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="footer-group-title">Support</h4>
+            <ul className="footer-link-list">
+              <li><Link to="/docs">Documentation</Link></li>
+              <li><a href="#">API Status</a></li>
+              <li><a href="#">Contact Us</a></li>
+            </ul>
+          </div>
         </div>
 
         <div className="footer-bottom">

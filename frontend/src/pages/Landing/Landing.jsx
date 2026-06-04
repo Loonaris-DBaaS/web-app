@@ -70,7 +70,7 @@ function Hero() {
 
 function Features() {
   return (
-    <section className="featuresSection">
+    <section className="featuresSection" id="features">
       <div className="featureHeader">
         <h2 className="featureTitle">Engineered for velocity.</h2>
         <p className="label-lg">Standard features, elevated infrastructure.</p>
@@ -204,7 +204,7 @@ const proTier = [
 
 function Pricing() {
   return (
-    <section className="pricingSection">
+    <section className="pricingSection" id="pricing">
       <div className="pricingInner">
         <div className="featureHeader">
           <h2 className="featureTitle">Transparent pricing.</h2>

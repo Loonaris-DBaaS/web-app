@@ -14,6 +14,7 @@ import Admin from '../../pages/Admin/Admin';
 import PrivacyPolicy from '../../pages/Legal/PrivacyPolicy';
 import TermsOfService from '../../pages/Legal/TermsOfService';
 import Security from '../../pages/Legal/Security';
+import Docs from '../../pages/Docs/Docs';
 import ProtectedRoute from './ProtectedRoute';
 import GuestRoute from './GuestRoute';
 
@@ -27,6 +28,7 @@ const routes = [
   { path: '/privacy', element: <PrivacyPolicy />, errorElement: <ErrorPage /> },
   { path: '/terms', element: <TermsOfService />, errorElement: <ErrorPage /> },
   { path: '/security', element: <Security />, errorElement: <ErrorPage /> },
+  { path: '/docs', element: <Docs />, errorElement: <ErrorPage /> },
   { path: `/${ADMIN_SLUG}`, element: <Admin />, errorElement: <ErrorPage /> },
   {
     element: <ProtectedRoute />,
