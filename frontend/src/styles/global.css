@@ -954,6 +954,60 @@ ol {
   border-color: var(--primary);
 }
 
+/* ── Dashboard spike notice ── */
+.dash-spike-notice {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.875rem 2.25rem 0.875rem 1rem;
+  margin-bottom: var(--space-4);
+  background: var(--primary-fixed, #ede9fe);
+  border: 1px solid color-mix(in srgb, var(--primary-container, #473ca9) 18%, transparent);
+  border-radius: var(--radius-md, 0.75rem);
+  color: var(--primary, #201772);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+  animation: dashSpikeIn 400ms var(--ease-out, ease-out) both;
+}
+
+.dash-spike-notice .material-symbols-outlined {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.dash-spike-notice__close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--primary-container, #473ca9);
+  cursor: pointer;
+  border-radius: var(--radius-sm, 0.5rem);
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: background 150ms;
+}
+
+.dash-spike-notice__close:hover {
+  background: color-mix(in srgb, var(--primary-container, #473ca9) 10%, transparent);
+}
+
+@keyframes dashSpikeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 @keyframes pulse-green {
   0% {
     transform: scale(0.95);

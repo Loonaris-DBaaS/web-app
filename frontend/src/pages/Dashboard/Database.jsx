@@ -51,6 +51,14 @@ export default function Database() {
   const [fetchError, setFetchError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [createdKey, setCreatedKey] = useState(null);
+  const [spikeNotice, setSpikeNotice] = useState(false);
+
+  // Auto-hide spike notice after 4 seconds.
+  useEffect(() => {
+    if (!spikeNotice) return;
+    const t = setTimeout(() => setSpikeNotice(false), 4000);
+    return () => clearTimeout(t);
+  }, [spikeNotice]);
 
   function fetchDatabases() {
     clusterService
@@ -107,6 +115,25 @@ export default function Database() {
           </p>
         )}
 
+        {/* Spike notice — shown after closing the create form */}
+        {spikeNotice && (
+          <div className="dash-spike-notice">
+            <span className="material-symbols-outlined">network_check</span>
+            <span>
+              Lots of folks are spinning up databases right now — we&apos;re having a spike!
+              Yours might take a little longer than usual. Hang tight!
+            </span>
+            <button
+              type="button"
+              className="dash-spike-notice__close"
+              onClick={() => setSpikeNotice(false)}
+              aria-label="Dismiss notice"
+            >
+              close
+            </button>
+          </div>
+        )}
+
         <div className="databases-stats-grid">
           <StorageUtilizationCard
             usedStorageGb={usedStorageGb}
@@ -149,6 +176,7 @@ export default function Database() {
           <CreateDatabaseForm
             onSubmit={(cluster) => {
               setShowCreateForm(false);
+              setSpikeNotice(true);
               fetchDatabases();
               if (cluster?.apiKey) {
                 setCreatedKey({

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { clusterService } from '../../services/api';
 import { DEPLOYMENT_OPTIONS, PG_VERSIONS, SIZES } from '../../constants/database';
 const styles = `
@@ -458,68 +458,6 @@ const styles = `
     background: var(--success, #16a34a);
     flex-shrink: 0;
   }
-
-  .dbf-notice {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    gap: 0.625rem;
-    padding: 0.875rem 2.25rem 0.875rem 1rem;
-    margin: 0 2rem 1.25rem;
-    background: var(--primary-fixed, #ede9fe);
-    border: 1px solid color-mix(in srgb, var(--primary-container, #473ca9) 18%, transparent);
-    border-radius: var(--radius-md, 0.75rem);
-    color: var(--primary, #201772);
-    font-size: 0.8125rem;
-    font-weight: 500;
-    line-height: 1.5;
-    animation: dbfNoticeIn 400ms var(--ease-out, ease-out) both;
-  }
-
-  .dbf-notice .material-symbols-outlined {
-    font-size: 20px;
-    flex-shrink: 0;
-    margin-top: 1px;
-  }
-
-  .dbf-notice-close {
-    position: absolute;
-    top: 6px;
-    right: 6px;
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    background: transparent;
-    color: var(--primary-container, #473ca9);
-    cursor: pointer;
-    border-radius: var(--radius-sm, 0.5rem);
-    font-family: 'Material Symbols Outlined', sans-serif;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0;
-    transition: background 150ms;
-  }
-
-  .dbf-notice-close:hover {
-    background: color-mix(in srgb, var(--primary-container, #473ca9) 10%, transparent);
-  }
-
-  .dbf-notice-hide {
-    animation: dbfNoticeOut 300ms var(--ease-out, ease-out) forwards;
-  }
-
-  @keyframes dbfNoticeIn {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes dbfNoticeOut {
-    from { opacity: 1; transform: translateY(0); }
-    to   { opacity: 0; transform: translateY(-6px); }
-  }
 `;
 
 function DbIcon() {
@@ -605,18 +543,6 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
   const [nameError, setNameError] = useState('');
   const [status, setStatus] = useState('idle'); // idle | loading | success
   const [toastVisible, setToastVisible] = useState(false);
-  const [noticeVisible, setNoticeVisible] = useState(false);
-
-  // Auto-show spike notice when deploying, then auto-hide after 4s.
-  useEffect(() => {
-    if (status !== 'loading') {
-      setNoticeVisible(false);
-      return;
-    }
-    setNoticeVisible(true);
-    const t = setTimeout(() => setNoticeVisible(false), 4000);
-    return () => clearTimeout(t);
-  }, [status]);
 
   const size = SIZES.find((s) => s.id === selectedSize);
   const baseCost = 0;
@@ -831,25 +757,6 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </label>
             </div>
           </div>
-
-          {/* Spike notice */}
-          {status === 'loading' && noticeVisible && (
-            <div className="dbf-notice">
-              <span className="material-symbols-outlined">network_check</span>
-              <span>
-                Lots of folks are spinning up databases right now — we&apos;re having a spike!
-                Yours might take a little longer than usual. Hang tight!
-              </span>
-              <button
-                type="button"
-                className="dbf-notice-close"
-                onClick={() => setNoticeVisible(false)}
-                aria-label="Dismiss notice"
-              >
-                close
-              </button>
-            </div>
-          )}
 
           {/* Footer */}
           <div className="dbf-footer">
