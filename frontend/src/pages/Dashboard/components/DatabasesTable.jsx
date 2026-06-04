@@ -58,20 +58,7 @@ function StorageHighlight({ used, total }) {
   );
 }
 
-export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onDelete }) {
-  const [deletingId, setDeletingId] = React.useState(null);
-
-  async function handleDelete(id, name) {
-    if (!window.confirm(`Delete database "${name}"? This cannot be undone and all data will be lost.`)) {
-      return;
-    }
-    setDeletingId(id);
-    try {
-      await onDelete(id);
-    } finally {
-      setDeletingId(null);
-    }
-  }
+export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onDeleteRequest }) {
 
   return (
     <section className="table-card" aria-label="User databases list">
@@ -119,8 +106,7 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
                       <button
                         type="button"
                         title="Delete database"
-                        disabled={deletingId === db.id}
-                        onClick={() => handleDelete(db.id, db.name)}
+                        onClick={() => onDeleteRequest(db.id)}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -130,14 +116,13 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
                           borderRadius: 'var(--radius-sm, 6px)',
                           background: 'var(--error-container, #fee2e2)',
                           color: 'var(--error, #dc2626)',
-                          cursor: deletingId === db.id ? 'default' : 'pointer',
+                          cursor: 'pointer',
                           fontSize: '12px',
                           fontWeight: 600,
                           fontFamily: 'var(--font-sans)',
-                          opacity: deletingId === db.id ? 0.6 : 1,
                         }}
                       >
-                        {deletingId === db.id ? '…' : 'Delete'}
+                        Delete
                       </button>
                     </div>
                   </td>

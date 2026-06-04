@@ -8,6 +8,7 @@ import ConnectionStringModal from '../../components/ui/ConnectionStringModal';
 import StorageUtilizationCard from './components/StorageUtilizationCard';
 import ClusterHealthCard from './components/ClusterHealthCard';
 import DatabasesTable from './components/DatabasesTable';
+import Button from '../../components/ui/Button';
 
 const STATUS_MAP = {
   running: 'Healthy',
@@ -29,6 +30,91 @@ const overlayStyle = {
   overflowY: 'auto',
 };
 
+function DangerZoneConfirm({ dbName, onConfirm, onCancel }) {
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const canDelete = deleteText === dbName;
+
+  return (
+    <>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginBottom: 'var(--space-6)', color: 'var(--error)' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: 28 }}>report</span>
+        <h4 style={{ fontSize: 'var(--text-title-md-size)', fontWeight: 700, margin: 0, color: 'var(--on-surface)' }}>
+          Danger Zone
+        </h4>
+      </div>
+
+      <p style={{ fontSize: 'var(--text-body-md-size)', fontWeight: 600, color: 'var(--on-surface)', margin: '0 0 4px 0' }}>
+        Delete this database
+      </p>
+      <p style={{ fontSize: 'var(--text-body-sm-size)', color: 'var(--on-surface-variant)', margin: '0 0 var(--space-6) 0', lineHeight: 1.5 }}>
+        Once you delete a database, there is no going back. Please be certain. All data
+        and backups will be immediately purged.
+      </p>
+
+      <div style={{
+        padding: 'var(--space-4)',
+        background: 'var(--surface-container-low)',
+        borderRadius: 'var(--radius-md)',
+        border: '1px solid rgba(220,38,38,0.2)',
+      }}>
+        <p style={{ fontSize: 'var(--text-body-sm-size)', margin: '0 0 var(--space-3) 0' }}>
+          Type <strong>{dbName}</strong> to confirm deletion.
+        </p>
+        <input
+          type="text"
+          value={deleteText}
+          onChange={(e) => setDeleteText(e.target.value)}
+          placeholder={dbName}
+          style={{
+            width: '100%',
+            background: 'var(--surface-container-lowest)',
+            border: '1px solid var(--outline-variant)',
+            borderRadius: 'var(--radius-sm)',
+            padding: 'var(--space-3) var(--space-4)',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--text-body-md-size)',
+            color: 'var(--on-surface)',
+            fontWeight: 500,
+            outline: 'none',
+            boxSizing: 'border-box',
+            marginBottom: 'var(--space-4)',
+          }}
+        />
+        <div style={{ display: 'flex', gap: 'var(--space-2)', justifyContent: 'flex-end' }}>
+          <Button text="Cancel" variant="ghost" onClick={onCancel} />
+          <Button
+            text={deleting ? 'Deleting…' : 'Confirm Deletion'}
+            variant="danger"
+            onClick={async () => {
+              if (!canDelete) return;
+              setDeleting(true);
+              await onConfirm();
+            }}
+            disabled={!canDelete || deleting}
+          />
+        </div>
+      </div>
+
+      <span
+        className="material-symbols-outlined"
+        style={{
+          position: 'absolute',
+          bottom: '-32px',
+          right: '-32px',
+          fontSize: '160px',
+          opacity: 0.05,
+          color: 'var(--error)',
+          pointerEvents: 'none',
+          userSelect: 'none',
+        }}
+        aria-hidden="true"
+      >
+        delete_forever
+      </span>
+    </>
+  );
+}
 function toRow(project) {
   return {
     id: project.id,
@@ -50,7 +136,8 @@ export default function Database() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [fetchError, setFetchError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [createdKey, setCreatedKey] = useState(null); // { name, apiKey, rwConnStr, roConnStr } — shown once
+  const [createdKey, setCreatedKey] = useState(null);
+  const [deletingDb, setDeletingDb] = useState(null); // { name, apiKey, rwConnStr, roConnStr } — shown once
 
   function fetchDatabases() {
     clusterService
@@ -146,7 +233,10 @@ export default function Database() {
           rows={filteredDatabases}
           onViewDetails={(id) => navigate(`/dashboard/databases/${id}`)}
           onViewMetrics={(id) => navigate(`/dashboard/databases/${id}`, { state: { initialTab: 'Metrics' } })}
-          onDelete={handleDelete}
+          onDeleteRequest={(id) => {
+            const db = filteredDatabases.find((d) => d.id === id);
+            setDeletingDb(db || { id, name: id });
+          }}
         />
       </section>
 
@@ -185,6 +275,36 @@ export default function Database() {
           roConnectionString={createdKey.roConnStr}
           onClose={() => setCreatedKey(null)}
         />
+      )}
+
+      {deletingDb && (
+        <div
+          style={overlayStyle}
+          onClick={(e) => { if (e.target === e.currentTarget) setDeletingDb(null); }}
+        >
+          <div
+            style={{
+              background: 'var(--surface-container-lowest)',
+              borderRadius: 'var(--radius-xl)',
+              boxShadow: 'var(--shadow-modal)',
+              maxWidth: 520,
+              width: '100%',
+              padding: 'var(--space-8)',
+              position: 'relative',
+              overflow: 'hidden',
+              marginTop: '10vh',
+            }}
+          >
+            <DangerZoneConfirm
+              dbName={deletingDb.name}
+              onConfirm={async () => {
+                await handleDelete(deletingDb.id);
+                setDeletingDb(null);
+              }}
+              onCancel={() => setDeletingDb(null)}
+            />
+          </div>
+        </div>
       )}
     </>
   );
