@@ -14,7 +14,9 @@ export function validateSignup(req: Request, res: Response, next: NextFunction):
   if (!password || password.length < 6) errors.push('Password must be at least 6 characters');
 
   if (errors.length > 0) {
-    res.status(400).json({ success: false, message: 'Validation failed', errors });
+    const passwordError = errors.find(e => e.includes('Password'));
+    const message = passwordError ? 'short password' : 'Validation failed';
+    res.status(400).json({ success: false, message, errors });
     return;
   }
   next();
