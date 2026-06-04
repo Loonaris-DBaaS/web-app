@@ -17,17 +17,17 @@ export default function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-bottom">
-          <p className="label-md">© 2026 Loonaris. All rights reserved.</p>
-          <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
-            <Link to="/privacy" style={{ fontSize: 12, color: '#64748b', textDecoration: 'none' }}>
+          <p style={{ fontSize: 11, color: '#94a3b8', margin: 0 }}>© 2026 Loonaris. All rights reserved.</p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            <Link to="/privacy" style={{ fontSize: 11, color: '#64748b', textDecoration: 'none' }}>
               Privacy Policy
             </Link>
-            <span style={{ color: '#cbd5e1', fontSize: 12 }}>·</span>
-            <Link to="/terms" style={{ fontSize: 12, color: '#64748b', textDecoration: 'none' }}>
+            <span style={{ color: '#cbd5e1', fontSize: 11 }}>·</span>
+            <Link to="/terms" style={{ fontSize: 11, color: '#64748b', textDecoration: 'none' }}>
               Terms of Service
             </Link>
-            <span style={{ color: '#cbd5e1', fontSize: 12 }}>·</span>
-            <Link to="/security" style={{ fontSize: 12, color: '#64748b', textDecoration: 'none' }}>
+            <span style={{ color: '#cbd5e1', fontSize: 11 }}>·</span>
+            <Link to="/security" style={{ fontSize: 11, color: '#64748b', textDecoration: 'none' }}>
               Security
             </Link>
           </div>
