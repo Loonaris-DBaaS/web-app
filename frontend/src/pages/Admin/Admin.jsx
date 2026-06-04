@@ -53,6 +53,8 @@ export default function Admin() {
   const [users, setUsers] = useState([]);
   const [usersLoading, setUsersLoading] = useState(false);
   const [usersErr, setUsersErr] = useState('');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortDir, setSortDir] = useState('desc');
 
   // Stats tab
   const [stats, setStats] = useState(null);
@@ -904,22 +906,47 @@ const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padd
           {!usersLoading && !usersErr && users.length === 0 && (
             <p style={{ color: '#64748b', fontSize: 14 }}>No users found.</p>
           )}
-          {!usersLoading && users.length > 0 && (
+          {!usersLoading && users.length > 0 && (() => {
+            const sorted = [...users].sort((a, b) => {
+              let va = a[sortField], vb = b[sortField];
+              if (sortField === 'createdAt') { va = new Date(va); vb = new Date(vb); }
+              if (typeof va === 'string') va = va.toLowerCase();
+              if (typeof vb === 'string') vb = vb.toLowerCase();
+              if (va == null) va = '';
+              if (vb == null) vb = '';
+              if (va < vb) return sortDir === 'asc' ? -1 : 1;
+              if (va > vb) return sortDir === 'asc' ? 1 : -1;
+              return 0;
+            });
+            const toggleSort = (field) => {
+              if (sortField === field) { setSortDir((d) => (d === 'asc' ? 'desc' : 'asc')); }
+              else { setSortField(field); setSortDir('asc'); }
+            };
+            const thStyle = {
+              textAlign: 'left',
+              padding: '8px 10px',
+              borderBottom: '2px solid #e5e7eb',
+              color: '#475569',
+              cursor: 'pointer',
+              userSelect: 'none',
+            };
+            const arrow = (field) => sortField === field ? (sortDir === 'asc' ? ' ▲' : ' ▼') : '';
+            return (
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Email</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Username</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Country</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Job Title</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Company</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Clusters</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Admin</th>
-                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Created</th>
+                  <th style={thStyle} onClick={() => toggleSort('email')}>Email{arrow('email')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('username')}>Username{arrow('username')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('country')}>Country{arrow('country')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('jobTitle')}>Job Title{arrow('jobTitle')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('company')}>Company{arrow('company')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('clusterCount')}>Clusters{arrow('clusterCount')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('isAdmin')}>Admin{arrow('isAdmin')}</th>
+                  <th style={thStyle} onClick={() => toggleSort('createdAt')}>Created{arrow('createdAt')}</th>
                 </tr>
               </thead>
               <tbody>
-                {users.map((u) => (
+                {sorted.map((u) => (
                   <tr key={u.id}>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.email}</td>
                     <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.username}</td>
@@ -932,12 +959,13 @@ const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padd
                         {u.isAdmin ? 'Yes' : 'No'}
                       </span>
                     </td>
-                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b', whiteSpace: 'nowrap' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          )}
+            );
+          })()}
         </div>
       )}
 
