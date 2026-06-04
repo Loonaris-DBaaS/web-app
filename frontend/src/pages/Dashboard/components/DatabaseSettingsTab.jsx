@@ -176,7 +176,7 @@ export default function DatabaseSettingsTab({
           </div>
         </div>
 
-        {/* Storage / Max Connections (CPU/RAM are a fixed pod limit, not per-plan) */}
+        {/* Storage / Max Connections (read-only) */}
         <div
           style={{
             display: 'grid',
@@ -189,29 +189,51 @@ export default function DatabaseSettingsTab({
             <label style={labelStyle} htmlFor="mod-storage">
               Storage (GB)
             </label>
-            <input
+            <div
               id="mod-storage"
-              type="number"
-              min="10"
-              max="65536"
-              step="10"
-              value={storage}
-              onChange={(e) => setStorage(e.target.value)}
-              style={inputStyle}
-            />
+              style={{
+                ...inputStyle,
+                background: 'var(--surface-container)',
+                color: 'var(--on-surface-variant)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>{storage}</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
+              >
+                lock
+              </span>
+            </div>
           </div>
           <div>
             <label style={labelStyle} htmlFor="ddp-max-conn">
               Max Connections
             </label>
-            <input
+            <div
               id="ddp-max-conn"
-              type="number"
-              min="10"
-              value={maxConnections}
-              onChange={(e) => setMaxConnections(e.target.value)}
-              style={inputStyle}
-            />
+              style={{
+                ...inputStyle,
+                background: 'var(--surface-container)',
+                color: 'var(--on-surface-variant)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>{maxConnections}</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
+              >
+                lock
+              </span>
+            </div>
           </div>
         </div>
 
@@ -331,30 +353,32 @@ export default function DatabaseSettingsTab({
           </div>
         </div>
 
-        {/* Read Replicas — only for multi-az-cluster */}
+        {/* Read Replicas — read-only */}
         {deploymentOption === 'multi-az-cluster' && (
           <div style={{ marginBottom: 'var(--space-6)', maxWidth: '220px' }}>
             <label style={labelStyle} htmlFor="mod-replicas">
-              Read Replicas (max 3)
+              Read Replicas
             </label>
-            <select
+            <div
               id="mod-replicas"
-              value={readReplicas}
-              onChange={(e) => setReadReplicas(e.target.value)}
               style={{
                 ...inputStyle,
-                appearance: 'none',
-                cursor: 'pointer',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2342474e' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 12px center',
-                paddingRight: '36px',
+                background: 'var(--surface-container)',
+                color: 'var(--on-surface-variant)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-            </select>
+              <span>{readReplicas}</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
+              >
+                lock
+              </span>
+            </div>
           </div>
         )}
 
@@ -457,80 +481,56 @@ export default function DatabaseSettingsTab({
           }}
         >
           <div>
-            <label style={labelStyle} htmlFor="ddp-target-version">
-              Target Version
-            </label>
-            <select
-              id="ddp-target-version"
-              value={targetVersion}
-              onChange={(e) => setTargetVersion(e.target.value)}
+            <label style={labelStyle}>Current Version</label>
+            <div
               style={{
                 ...inputStyle,
-                appearance: 'none',
-                cursor: 'pointer',
-                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2342474e' d='M2 4l4 4 4-4'/%3E%3C/svg%3E")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundPosition: 'right 12px center',
-                paddingRight: '36px',
+                background: 'var(--surface-container)',
+                color: 'var(--on-surface-variant)',
+                cursor: 'default',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}
             >
-              {TARGET_VERSIONS.map((v) => (
-                <option key={v.value} value={v.value}>
-                  {v.label}
-                </option>
-              ))}
-            </select>
+              <span>PostgreSQL {database.pgVersion}</span>
+              <span
+                className="material-symbols-outlined"
+                style={{ fontSize: 16, color: 'var(--on-surface-variant)' }}
+              >
+                lock
+              </span>
+            </div>
           </div>
 
           <div
             style={{
               display: 'flex',
-              alignItems: 'flex-start',
-              gap: 'var(--space-4)',
-              padding: 'var(--space-4)',
-              background: 'var(--warning-container)',
+              alignItems: 'center',
+              gap: 'var(--space-3)',
+              padding: 'var(--space-3) var(--space-4)',
+              background: 'var(--surface-container-low)',
               borderRadius: 'var(--radius-sm)',
-              border: '1px solid #fde68a',
+              border: '1px dashed var(--outline-variant)',
             }}
           >
             <span
               className="material-symbols-outlined"
-              style={{ color: 'var(--warning)', marginTop: '2px', fontSize: '20px', flexShrink: 0 }}
+              style={{ color: 'var(--on-surface-variant)', fontSize: '20px', flexShrink: 0 }}
             >
-              warning
+              schedule
             </span>
-            <div>
-              <p
-                style={{
-                  fontSize: 'var(--text-body-sm-size)',
-                  fontWeight: 700,
-                  color: '#92400e',
-                  margin: '0 0 4px 0',
-                }}
-              >
-                Rolling Restart Required
-              </p>
-              <p
-                style={{
-                  fontSize: '0.7rem',
-                  color: 'var(--on-warning-container)',
-                  lineHeight: '1.5',
-                  margin: 0,
-                }}
-              >
-                Upgrading major versions will trigger a rolling restart. Your instance may
-                experience up to 60 seconds of read-only state during the switchover.
-              </p>
-            </div>
+            <p
+              style={{
+                fontSize: 'var(--text-body-sm-size)',
+                color: 'var(--on-surface-variant)',
+                margin: 0,
+                fontWeight: 500,
+              }}
+            >
+              Version change coming soon.
+            </p>
           </div>
-        </div>
-
-        <div style={{ marginTop: 'var(--space-8)' }}>
-          <Button
-            text="Schedule Upgrade"
-            variant="outlined"
-            onClick={() => onUpgrade(database.id, targetVersion)}
-          />
         </div>
       </article>
 
