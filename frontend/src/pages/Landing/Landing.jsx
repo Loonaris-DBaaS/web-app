@@ -1,8 +1,11 @@
 import Footer from '../../components/layout/Footer/Footer';
 import Navbar from '../../components/layout/Navbar/Navbar';
+import { useNavigate } from 'react-router-dom';
 import './Landing.css';
 
 function Hero() {
+  const navigate = useNavigate();
+
   return (
     <section className="heroSection">
       <div className="heroGrid">
@@ -26,7 +29,7 @@ function Hero() {
           </p>
 
           <div className="heroCtas">
-            <button className="ctaPrimary">Start for free</button>
+            <button className="ctaPrimary" onClick={() => navigate('/signup')}>Start for free</button>
             <button className="ctaSecondary">
               <span className="material-symbols-outlined">terminal</span>
               View Docs
@@ -203,6 +206,8 @@ const proTier = [
 ];
 
 function Pricing() {
+  const navigate = useNavigate();
+
   return (
     <section className="pricingSection" id="pricing">
       <div className="pricingInner">
@@ -243,7 +248,7 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <button className="pricingBtnSecondary">Get Started</button>
+            <button className="pricingBtnSecondary" onClick={() => navigate('/signup')}>Get Started</button>
           </div>
 
           <div className="pricingCard pricingCardDark">
@@ -268,7 +273,7 @@ function Pricing() {
                 </li>
               ))}
             </ul>
-            <button className="pricingBtnPrimary">Upgrade Now</button>
+            <button className="pricingBtnPrimary" onClick={() => navigate('/signup')}>Upgrade Now</button>
           </div>
         </div>
       </div>
@@ -277,12 +282,14 @@ function Pricing() {
 }
 
 function CTABanner() {
+  const navigate = useNavigate();
+
   return (
     <section className="ctaSection">
       <div className="ctaDotPattern" />
       <div className="ctaContent">
         <h2 className="ctaTitle">Ready to stop worrying about infrastructure?</h2>
-        <button className="ctaBannerBtn">Deploy your first DB</button>
+        <button className="ctaBannerBtn" onClick={() => navigate('/signup')}>Deploy your first DB</button>
         <p className="ctaSub">Join developers building on Loonaris.</p>
       </div>
     </section>
