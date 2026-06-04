@@ -53,6 +53,57 @@ export async function listClusters(_req: Request, res: Response, next: NextFunct
   }
 }
 
+// GET /{slug}/users — list all registered users (tenants).
+export async function listUsers(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const users = await prisma.tenant.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: { select: { projects: true } },
+      },
+    });
+    res.json({
+      success: true,
+      count: users.length,
+      data: users.map((u) => ({
+        id: u.id,
+        email: u.email,
+        username: u.username,
+        country: u.country,
+        jobTitle: u.jobTitle,
+        company: u.company,
+        isAdmin: u.isAdmin,
+        createdAt: u.createdAt,
+        photoUrl: u.photoUrl,
+        clusterCount: u._count.projects,
+      })),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /{slug}/stats — aggregate platform stats.
+export async function getStats(_req: Request, res: Response, next: NextFunction) {
+  try {
+    const [totalUsers, totalClusters, runningClusters] = await Promise.all([
+      prisma.tenant.count(),
+      prisma.project.count(),
+      prisma.project.count({ where: { status: 'running' } }),
+    ]);
+    res.json({
+      success: true,
+      data: {
+        totalUsers,
+        totalClusters,
+        runningClusters,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 // POST /api/admin/clusters — provision a cluster as admin.
 // Owner = body.tenantId if provided (must exist), else the authenticated admin's
 // own tenant. Returns the sk_live_ key once (admin must copy it now).

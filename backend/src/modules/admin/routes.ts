@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { adminAuth } from '@/middleware/adminAuth';
-import { login, listClusters, createCluster, deleteCluster } from './controllers/admin.controller';
+import { login, listClusters, listUsers, getStats, createCluster, deleteCluster } from './controllers/admin.controller';
 
 const router = Router();
 
@@ -18,6 +18,8 @@ router.post(`/${SLUG}/login`, login);
 // Everything below requires a valid admin JWT (isAdmin claim).
 router.use(`/${SLUG}`, adminAuth);
 router.get(`/${SLUG}/clusters`, listClusters);
+router.get(`/${SLUG}/users`, listUsers);
+router.get(`/${SLUG}/stats`, getStats);
 router.post(`/${SLUG}/clusters`, createCluster);
 router.delete(`/${SLUG}/clusters/:id`, deleteCluster);
 

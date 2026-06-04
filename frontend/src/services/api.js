@@ -85,6 +85,8 @@ export const adminService = {
   login: (email, password) =>
     adminApi.post(`/api/${ADMIN_SLUG}/login`, { email, password }).then((res) => res.data.data),
   getClusters: () => adminApi.get(`/api/${ADMIN_SLUG}/clusters`).then((res) => res.data.data),
+  getUsers: () => adminApi.get(`/api/${ADMIN_SLUG}/users`).then((res) => res.data.data),
+  getStats: () => adminApi.get(`/api/${ADMIN_SLUG}/stats`).then((res) => res.data.data),
   createCluster: (body) =>
     adminApi.post(`/api/${ADMIN_SLUG}/clusters`, body).then((res) => res.data.data),
   deleteCluster: (id) => adminApi.delete(`/api/${ADMIN_SLUG}/clusters/${id}`),

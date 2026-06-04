@@ -42,11 +42,22 @@ export default function Admin() {
   const [created, setCreated] = useState(null); // { name, apiKey, connStr } — shown once
 
   // UI state
-  const [selected, setSelected] = useState(() => new Set()); // selected cluster ids
-  const [expanded, setExpanded] = useState(() => new Set()); // expanded detail rows
+  const [selected, setSelected] = useState(() => new Set());
+  const [expanded, setExpanded] = useState(() => new Set());
   const [groupByUser, setGroupByUser] = useState(true);
   const [bulkBusy, setBulkBusy] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [tab, setTab] = useState('clusters');
+
+  // Users tab
+  const [users, setUsers] = useState([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [usersErr, setUsersErr] = useState('');
+
+  // Stats tab
+  const [stats, setStats] = useState(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [statsErr, setStatsErr] = useState('');
 
   const doLogin = async (e) => {
     e.preventDefault();
@@ -87,13 +98,53 @@ export default function Admin() {
     }
   }, []);
 
-  // Load + auto-refresh while authed (shows provisioning → running → deleted).
+  const loadUsers = useCallback(async () => {
+    setUsersLoading(true);
+    setUsersErr('');
+    try {
+      const data = await adminService.getUsers();
+      setUsers(data || []);
+    } catch (e) {
+      if (e?.response?.status === 401) { adminLogout(); return; }
+      setUsersErr(e?.response?.data?.message || e.message || 'Failed to load users');
+    } finally {
+      setUsersLoading(false);
+    }
+  }, []);
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    setStatsErr('');
+    try {
+      const data = await adminService.getStats();
+      setStats(data);
+    } catch (e) {
+      if (e?.response?.status === 401) { adminLogout(); return; }
+      setStatsErr(e?.response?.data?.message || e.message || 'Failed to load stats');
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  // Load + auto-refresh clusters while authed and on clusters tab.
   useEffect(() => {
     if (!authed) return undefined;
-    load();
-    const t = setInterval(load, POLL_MS);
-    return () => clearInterval(t);
-  }, [authed, load]);
+    if (tab === 'clusters') {
+      load();
+      const t = setInterval(load, POLL_MS);
+      return () => clearInterval(t);
+    }
+  }, [authed, load, tab]);
+
+  // Load users when switching to users tab.
+  useEffect(() => {
+    if (authed && tab === 'users') loadUsers();
+  }, [authed, tab, loadUsers]);
+
+  // Load stats when switching to stats tab.
+  useEffect(() => {
+    if (authed && tab === 'stats') loadStats();
+  }, [authed, tab, loadStats]);
 
   // Drop selections/expansions for clusters that no longer exist.
   useEffect(() => {
@@ -509,6 +560,9 @@ export default function Admin() {
 
   const colSpanAll = groupByUser ? 6 : 7;
 
+const tabActive = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 16px', border: 0, fontSize: 14, fontWeight: 600, cursor: 'pointer', color: '#fff', background: '#4f46e5', borderRadius: '6px 6px 0 0' };
+const tabInactive = { display: 'inline-flex', alignItems: 'center', gap: 4, padding: '8px 16px', border: 0, fontSize: 14, fontWeight: 500, cursor: 'pointer', color: '#475569', background: 'transparent', borderRadius: '6px 6px 0 0' };
+
   // --- Dashboard ---
   return (
     <div
@@ -520,20 +574,35 @@ export default function Admin() {
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <h1 style={{ fontSize: 22 }}>Admin — Clusters</h1>
+        <h1 style={{ fontSize: 22 }}>Admin</h1>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            onClick={load}
-            disabled={loading}
-            style={{ padding: '6px 14px', cursor: 'pointer' }}
-          >
-            {loading ? 'Loading…' : 'Refresh'}
+          <button onClick={() => { if (tab === 'clusters') load(); else if (tab === 'users') loadUsers(); else if (tab === 'stats') loadStats(); }}
+            style={{ padding: '6px 14px', cursor: 'pointer' }}>
+            Refresh
           </button>
           <button onClick={adminLogout} style={{ padding: '6px 14px', cursor: 'pointer' }}>
             Log out
           </button>
         </div>
       </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginTop: 16, borderBottom: '2px solid #e5e7eb' }}>
+        <button onClick={() => setTab('clusters')} style={tab === 'clusters' ? tabActive : tabInactive}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>database</span>
+          Clusters
+        </button>
+        <button onClick={() => setTab('users')} style={tab === 'users' ? tabActive : tabInactive}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>people</span>
+          Users
+        </button>
+        <button onClick={() => setTab('stats')} style={tab === 'stats' ? tabActive : tabInactive}>
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>bar_chart</span>
+          Stats
+        </button>
+      </div>
+
+      {tab === 'clusters' && (<> 
 
       {/* Summary stats */}
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
@@ -825,6 +894,79 @@ export default function Admin() {
             : filtered.map((c) => <ClusterRow key={c.id} c={c} />)}
         </tbody>
       </table>
+      </>)}
+
+      {tab === 'users' && (
+        <div style={{ marginTop: 16 }}>
+          <h2 style={{ fontSize: 18, margin: '0 0 12px 0' }}>All Users ({users.length})</h2>
+          {usersLoading && <p style={{ color: '#64748b', fontSize: 14 }}>Loading users…</p>}
+          {usersErr && <p style={{ color: '#dc2626', fontSize: 14 }}>{usersErr}</p>}
+          {!usersLoading && !usersErr && users.length === 0 && (
+            <p style={{ color: '#64748b', fontSize: 14 }}>No users found.</p>
+          )}
+          {!usersLoading && users.length > 0 && (
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Email</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Username</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Country</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Job Title</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Company</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Clusters</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Admin</th>
+                  <th style={{ textAlign: 'left', padding: '8px 10px', borderBottom: '2px solid #e5e7eb', color: '#475569' }}>Created</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((u) => (
+                  <tr key={u.id}>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.email}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.username}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.country || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.jobTitle || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{u.company || '—'}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>{u.clusterCount}</td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9' }}>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: 999, fontSize: 12, fontWeight: 600, color: u.isAdmin ? '#16a34a' : '#64748b', background: u.isAdmin ? '#f0fdf4' : '#f1f5f9' }}>
+                        {u.isAdmin ? 'Yes' : 'No'}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px 10px', borderBottom: '1px solid #f1f5f9', color: '#64748b' }}>{new Date(u.createdAt).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {tab === 'stats' && (
+        <div style={{ marginTop: 16 }}>
+          <h2 style={{ fontSize: 18, margin: '0 0 16px 0' }}>Platform Stats</h2>
+          {statsLoading && <p style={{ color: '#64748b', fontSize: 14 }}>Loading stats…</p>}
+          {statsErr && <p style={{ color: '#dc2626', fontSize: 14 }}>{statsErr}</p>}
+          {!statsLoading && !statsErr && stats && (
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 24px', minWidth: 160, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, fontWeight: 700, color: '#4f46e5' }}>{stats.totalUsers}</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Total Accounts</div>
+              </div>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 24px', minWidth: 160, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, fontWeight: 700, color: '#16a34a' }}>{stats.runningClusters}</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Running Clusters</div>
+              </div>
+              <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '20px 24px', minWidth: 160, textAlign: 'center' }}>
+                <div style={{ fontSize: 36, fontWeight: 700, color: '#d97706' }}>{stats.totalClusters}</div>
+                <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Total Clusters</div>
+              </div>
+            </div>
+          )}
+          {!statsLoading && !statsErr && !stats && (
+            <p style={{ color: '#64748b', fontSize: 14 }}>No stats available.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
