@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 36 36" fill="none">
+  <defs>
+    <linearGradient id="f-grad" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#201772"/>
+      <stop offset="100%" stop-color="#473ca9"/>
+    </linearGradient>
+    <linearGradient id="f-grad-light" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#c4b5fd"/>
+      <stop offset="100%" stop-color="#ede9fe"/>
+    </linearGradient>
+  </defs>
+  <rect width="36" height="36" rx="10" fill="url(#f-grad)"/>
+  <path d="M10 8c0 0 2-2 8-2s8 2 8 2v4c0 0-2-2-8-2s-8 2-8 2V8z" fill="url(#f-grad-light)" opacity="0.9"/>
+  <path d="M10 14c0 0 2-2 8-2s8 2 8 2v4c0 0-2-2-8-2s-8 2-8 2v-4z" fill="url(#f-grad-light)" opacity="0.7"/>
+  <path d="M10 20c0 0 2-2 8-2s8 2 8 2v4c0 0-2-2-8-2s-8 2-8 2v-4z" fill="url(#f-grad-light)" opacity="0.55"/>
+  <path d="M10 26c0 0 2-2 8-2s8 2 8 2v2c0 1.1-.9 2-2 2H12c-1.1 0-2-.9-2-2v-2z" fill="url(#f-grad-light)" opacity="0.4"/>
+  <circle cx="26" cy="9" r="2" fill="#10b981"/>
+</svg>

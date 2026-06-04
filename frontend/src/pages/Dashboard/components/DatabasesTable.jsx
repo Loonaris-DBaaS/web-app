@@ -58,7 +58,7 @@ function StorageHighlight({ used, total }) {
   );
 }
 
-export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onDeleteRequest }) {
+export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onViewSettings, onDeleteRequest }) {
 
   return (
     <section className="table-card" aria-label="User databases list">
@@ -103,6 +103,27 @@ export default function DatabasesTable({ rows, onViewDetails, onViewMetrics, onD
                         size="sm"
                         onClick={() => onViewMetrics(db.id)}
                       />
+                      <button
+                        type="button"
+                        title="Settings"
+                        onClick={() => onViewSettings(db.id)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: 32,
+                          height: 32,
+                          border: '1px solid var(--outline, #e2e8f0)',
+                          borderRadius: 'var(--radius-sm, 6px)',
+                          background: 'var(--surface, #fff)',
+                          color: 'var(--on-surface, #334155)',
+                          cursor: 'pointer',
+                          fontSize: 18,
+                          fontFamily: '"Material Symbols Outlined", sans-serif',
+                        }}
+                      >
+                        settings
+                      </button>
                       <button
                         type="button"
                         title="Delete database"

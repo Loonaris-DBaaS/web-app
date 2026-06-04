@@ -134,6 +134,7 @@ export default function Database() {
           rows={filteredDatabases}
           onViewDetails={(id) => navigate(`/dashboard/databases/${id}`)}
           onViewMetrics={(id) => navigate(`/dashboard/databases/${id}`, { state: { initialTab: 'Metrics' } })}
+          onViewSettings={(id) => navigate(`/dashboard/databases/${id}`, { state: { initialTab: 'Settings' } })}
           onDeleteRequest={(id) => navigate(`/dashboard/databases/${id}`, { state: { initialTab: 'Settings', scrollToDanger: true } })}
         />
       </section>
