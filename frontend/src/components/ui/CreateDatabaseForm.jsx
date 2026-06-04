@@ -458,6 +458,33 @@ const styles = `
     background: var(--success, #16a34a);
     flex-shrink: 0;
   }
+
+  .dbf-notice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    padding: 0.875rem 1rem;
+    margin: 0 2rem 1.25rem;
+    background: var(--primary-fixed, #ede9fe);
+    border: 1px solid color-mix(in srgb, var(--primary-container, #473ca9) 18%, transparent);
+    border-radius: var(--radius-md, 0.75rem);
+    color: var(--primary, #201772);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.5;
+    animation: dbfNoticeIn 400ms var(--ease-out, ease-out) both;
+  }
+
+  .dbf-notice .material-symbols-outlined {
+    font-size: 20px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  @keyframes dbfNoticeIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
 `;
 
 function DbIcon() {
@@ -757,6 +784,17 @@ export default function CreateDatabaseForm({ onSubmit, onCancel }) {
               </label>
             </div>
           </div>
+
+          {/* Spike notice */}
+          {status === 'loading' && (
+            <div className="dbf-notice">
+              <span className="material-symbols-outlined">network_check</span>
+              <span>
+                Lots of folks are spinning up databases right now — we&apos;re having a spike!
+                Yours might take a little longer than usual. Hang tight!
+              </span>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="dbf-footer">
