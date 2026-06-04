@@ -18,7 +18,7 @@ export default function Navbar() {
       <div className="inner">
         <div className="left">
           <Link to="/" className="logo" aria-label="Loonaris home">
-            <img src="/logos/loonaris-title.jpg" alt="Loonaris" className="logoImg" />
+            <img src="/logos/loonaris-title.png" alt="Loonaris" className="logoImg" />
           </Link>
           <nav className="nav">
             <a href="#features" onClick={scrollTo('features')}>Features</a>
