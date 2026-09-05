@@ -230,6 +230,8 @@ Both packages deploy via GitHub Actions:
 - **Frontend** — [`frontend-deploy.yml`](.github/workflows/frontend-deploy.yml)
   builds the Vite bundle and publishes the static assets.
 
+<img width="1845" height="1269" alt="image" src="https://github.com/user-attachments/assets/cef1a532-fd44-44e5-a8d8-64cd14cd6600" />
+
 Infrastructure specifics (AWS accounts, EKS access, DNS, secrets) are documented
 in [`docs/INFRASTRUCTURE.md`](docs/INFRASTRUCTURE.md), which is the single source
 of truth. Always verify against live AWS/`kubectl` state before acting on a doc.
